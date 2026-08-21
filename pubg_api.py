@@ -33,32 +33,42 @@ class PubgApiError(Exception):
 
 
 class RateLimiter:
-    """Very small sliding-window limiter so we never exceed N calls/60s."""
+    """Paces PUBG requests evenly instead of sending a burst every minute."""
 
     def __init__(self, max_calls: int = 10, period_seconds: int = 60):
         self.max_calls = max_calls
         self.period_seconds = period_seconds
-        self._timestamps: list[float] = []
+        # PUBG's advertised limit is per minute, but bursty traffic can still
+        # receive a 429.  Spacing calls is slower but much more reliable.
+        self._minimum_gap = period_seconds / max_calls
+        self._next_allowed = 0.0
         self._lock = asyncio.Lock()
 
     async def wait(self):
         async with self._lock:
             now = time.monotonic()
-            self._timestamps = [t for t in self._timestamps if now - t < self.period_seconds]
-            if len(self._timestamps) >= self.max_calls:
-                sleep_for = self.period_seconds - (now - self._timestamps[0]) + 0.1
-                if sleep_for > 0:
-                    await asyncio.sleep(sleep_for)
-            self._timestamps.append(time.monotonic())
+            sleep_for = self._next_allowed - now
+            if sleep_for > 0:
+                print(f"[pubg] Pacing API requests; waiting {sleep_for:.0f}s before the next request")
+                await asyncio.sleep(sleep_for)
+            self._next_allowed = time.monotonic() + self._minimum_gap
+
+    async def cool_down(self, seconds: float):
+        """Delay all queued requests after PUBG asks us to slow down."""
+        async with self._lock:
+            self._next_allowed = max(self._next_allowed, time.monotonic() + seconds)
 
 
 class PubgClient:
     def __init__(self, api_key: str, shard: str = "steam"):
         self.api_key = api_key
         self.shard = shard
-        self._limiter = RateLimiter(max_calls=9, period_seconds=60)  # leave 1 call headroom
+        # Eight evenly spaced calls/minute leaves room for other activity
+        # using the same PUBG key and avoids triggering burst protection.
+        self._limiter = RateLimiter(max_calls=8, period_seconds=60)
         self._session: aiohttp.ClientSession | None = None
         self._current_season_id: str | None = None  # cached for the process lifetime
+        self._season_lock = asyncio.Lock()
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -66,7 +76,8 @@ class PubgClient:
                 headers={
                     "Authorization": f"Bearer {self.api_key}",
                     "Accept": "application/vnd.api+json",
-                }
+                },
+                timeout=aiohttp.ClientTimeout(total=30),
             )
         return self._session
 
@@ -75,19 +86,34 @@ class PubgClient:
             await self._session.close()
 
     async def _request(self, path: str, params: dict[str, Any] | None = None, rate_limited: bool = True) -> dict:
-        if rate_limited:
-            await self._limiter.wait()
         session = await self._get_session()
         url = f"{BASE_URL}{path}"
-        async with session.get(url, params=params) as resp:
-            if resp.status == 404:
-                raise PubgApiError(f"Not found: {path}")
-            if resp.status == 429:
-                raise PubgApiError("Rate limited by PUBG API. Try again shortly.")
-            if resp.status >= 400:
-                text = await resp.text()
-                raise PubgApiError(f"PUBG API error {resp.status}: {text[:300]}")
-            return await resp.json()
+        for attempt in range(4):
+            if rate_limited:
+                await self._limiter.wait()
+            try:
+                async with session.get(url, params=params) as resp:
+                    if resp.status == 404:
+                        raise PubgApiError(f"Not found: {path}")
+                    if resp.status == 429:
+                        retry_after = resp.headers.get("Retry-After")
+                        try:
+                            delay = max(float(retry_after), 15.0) if retry_after else 65.0
+                        except ValueError:
+                            delay = 65.0
+                        if rate_limited and attempt < 3:
+                            print(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
+                            await self._limiter.cool_down(delay)
+                            continue
+                        raise PubgApiError("PUBG API is still rate-limiting requests. Please try again in a few minutes.")
+                    if resp.status >= 400:
+                        text = await resp.text()
+                        raise PubgApiError(f"PUBG API error {resp.status}: {text[:300]}")
+                    return await resp.json()
+            except asyncio.TimeoutError as e:
+                raise PubgApiError(f"PUBG API request timed out: {path}") from e
+            except aiohttp.ClientError as e:
+                raise PubgApiError(f"Could not reach the PUBG API: {e}") from e
 
     async def _get_telemetry(self, telemetry_url: str) -> list[dict]:
         """
@@ -126,10 +152,31 @@ class PubgClient:
                 {
                     "id": entry["id"],
                     "name": entry["attributes"]["name"],
+                    "clan_id": entry["attributes"].get("clanId"),
                     "match_ids": [m["id"] for m in match_refs],
                 }
             )
         return results
+
+    async def get_clan_by_id(self, clan_id: str) -> dict:
+        """Fetch a clan using its official PUBG clan ID."""
+        data = await self._request(f"/shards/{self.shard}/clans/{clan_id}")
+        entry = data.get("data", {})
+        attrs = entry.get("attributes", {})
+        return {
+            "id": entry.get("id", clan_id),
+            "name": attrs.get("clanName", "Unknown clan"),
+            "tag": attrs.get("clanTag") or "—",
+            "level": attrs.get("clanLevel", 0),
+            "member_count": attrs.get("clanMemberCount", 0),
+        }
+
+    async def get_clan_for_player_name(self, player_name: str) -> dict | None:
+        """Resolve a player's clan, since PUBG does not offer clan-name search."""
+        players = await self.get_players_by_name([player_name])
+        if not players or not players[0].get("clan_id"):
+            return None
+        return await self.get_clan_by_id(players[0]["clan_id"])
 
     async def get_lifetime_stats_batch(self, player_ids: list[str], game_mode: str = "squad-fpp") -> dict[str, dict]:
         """
@@ -229,34 +276,38 @@ class PubgClient:
         PUBG season starts to pick up the new season id."""
         if self._current_season_id:
             return self._current_season_id
-        data = await self._request(f"/shards/{self.shard}/seasons")
-        for entry in data.get("data", []):
-            if entry.get("attributes", {}).get("isCurrentSeason"):
-                self._current_season_id = entry["id"]
+        # A ranked report resolves several players concurrently. Without this
+        # lock, every player could request the same season list at once and
+        # waste the small shared PUBG API rate-limit budget.
+        async with self._season_lock:
+            if self._current_season_id:
                 return self._current_season_id
+            data = await self._request(f"/shards/{self.shard}/seasons")
+            for entry in data.get("data", []):
+                if entry.get("attributes", {}).get("isCurrentSeason"):
+                    self._current_season_id = entry["id"]
+                    return self._current_season_id
         raise PubgApiError("Could not determine the current PUBG season")
 
-    async def get_player_ranked_stats(self, player_id: str, game_mode: str = "squad") -> dict:
+    async def get_player_ranked_stats(self, player_id: str, game_mode: str) -> dict:
         """
-        Ranked stats for one player, one queue, current season. game_mode
-        should be the TPP name with no '-fpp' suffix (e.g. 'squad', 'duo',
-        'solo') unless you specifically want ranked FPP.
+        Current-season ranked stats for one player and one requested queue.
         Note: unlike lifetime stats, ranked has NO batch endpoint — this is
         one API call per player.
         """
         season_id = await self.get_current_season_id()
         data = await self._request(f"/shards/{self.shard}/players/{player_id}/seasons/{season_id}/ranked")
-        ranked_modes = data.get("data", {}).get("attributes", {}).get("rankedGameModeStats", {})
-        return ranked_modes.get(game_mode, {})
+        modes = data.get("data", {}).get("attributes", {}).get("rankedGameModeStats", {})
+        return modes.get(game_mode, {})
 
-    async def get_ranked_report(self, names: list[str], game_mode: str = "squad") -> tuple[list[dict], list[str]]:
+    async def get_ranked_report(self, names: list[str], game_mode: str) -> tuple[list[dict], list[str]]:
         """
         Convenience: resolve names to IDs then fetch current-season ranked
-        stats for each, for the given TPP queue.
+        stats for one queue.
 
         Returns (players, not_found) where players is a list of:
           {"name": ..., "id": ..., "ranked": {...}}
-        sorted by current rank points, highest first.
+        sorted by current rank points, descending.
         """
         found: list[dict] = []
         not_found: list[str] = []
@@ -270,7 +321,7 @@ class PubgClient:
             found.extend(resolved)
 
         async def resolve_one(p: dict):
-            p["ranked"] = await self.get_player_ranked_stats(p["id"], game_mode=game_mode)
+            p["ranked"] = await self.get_player_ranked_stats(p["id"], game_mode)
 
         await asyncio.gather(*(resolve_one(p) for p in found))
 
