@@ -19,8 +19,10 @@ the results.
    - New Application → Bot → Reset Token → copy it
    - Under "Privileged Gateway Intents" you don't need any extra intents for this bot
    - Under OAuth2 → URL Generator, check `bot` and `applications.commands`
-     scopes, and permissions `Send Messages` + `Embed Links`, then use the
-     generated URL to invite the bot to your server
+     scopes, and permissions `Send Messages`, `Embed Links`, and
+     `Manage Webhooks` (needed so reports can post under each linked
+     player's PUBG name and avatar), then use the generated URL to invite
+     the bot to your server
 2. **A PUBG API key** — https://developer.pubg.com/
    - Sign in, create an app, copy the API key
    - Free tier = 10 requests/minute, which this bot respects automatically
@@ -28,21 +30,13 @@ the results.
 
 ## Slash commands not showing up in Discord?
 
-Discord syncs slash commands two ways:
-- **Global sync** (what happens by default) can take **up to an hour** to
-  actually appear in the `/` menu on every server the bot is in. This is
-  normal Discord behavior, not a bug.
-- **Guild-specific sync** is instant, but only for that one server.
+On every restart, the bot publishes the complete command list directly to
+every Discord server it is currently in. Guild-specific commands are available
+immediately. The bot also clears its old global command list, so Discord does
+not show a delayed global copy alongside the current guild command.
 
-For instant testing, set `DEV_GUILD_ID` in your `.env` to your server's ID:
-1. In Discord, enable Developer Mode: User Settings → Advanced → Developer Mode
-2. Right-click your server icon → **Copy Server ID**
-3. Add it to `.env`:
-   ```
-   DEV_GUILD_ID=123456789012345678
-   ```
-4. Restart the bot — commands appear in that server immediately. Other
-   servers the bot is in still get commands via the slower global sync.
+For a newly invited server, restart the bot once after inviting it. The startup
+log will show `Instantly synced ... commands to guild ...` for every server.
 
 If commands still don't show after that, fully close and reopen Discord
 (not just refresh) — the client caches the command list locally.
@@ -98,12 +92,13 @@ From now on, logging into Windows automatically starts the bot, and any
 crash mid-session gets auto-restarted within 10 seconds. To pause it
 long-term, open Task Scheduler and **Disable** the task, or delete it.
 
-
+## Local setup (for testing)
 
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
 # edit .env and fill in DISCORD_TOKEN and PUBG_API_KEY
+# (PUBG_SHARD defaults to "steam")
 python bot.py
 ```
 
@@ -120,24 +115,52 @@ Then in your Discord server:
 | Command | What it does |
 |---|---|
 | `/addplayer <name>` | Add a player to the roster |
+| `/addplayers <names>` | Bulk-add players — paste names separated by commas or newlines |
 | `/removeplayer <name>` | Remove a player |
 | `/roster` | List tracked players |
 | `/clanstats` | Post aggregated stats right now |
+| `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |
+| `/leaderboardstats [pages]` | Check the official PUBG leaderboard for roster placements (top ladder only — most players won't appear; default checks top 2000) |
+| `/setleaderboardregion` | Platform/region shard the leaderboard check uses (default `pc-na`) |
+| `/setleaderboardqueue` | squad / duo / solo — TPP queue for the leaderboard check |
 | `/setgamemode <mode>` | squad-fpp, squad, duo-fpp, duo, solo-fpp, solo |
+| `/setclan <member_name>` | Choose the clan through the exact PUBG name of one of its current members |
+| `/clanlevel` | Show current clan level, member count, and weekly change |
+| `/setclanchannel` | Set the channel for the weekly clan-level report |
+| `/setclantime <day> <hour> [minute]` | Schedule the clan-level report once a week, Eastern time |
 | `/setchannel` | Set current channel as the auto-post destination |
 | `/setinterval <1-24>` | How often (hours) the digest auto-posts — ignored if `/setdigesttime` is set |
 | `/setdigesttime <0-23>` | Post the digest once/day at a fixed Eastern-time hour instead |
 | `/lastactive` | Show when each roster player last played, right now |
 | `/setactivitychannel` | Set channel for the 24h "last active" report (defaults to digest channel) |
 | `/setactivitytime <0-23>` | Fixed Eastern-time hour for the last-active report |
-| `/rankedstats` | Show current-season ranked TPP standings, right now |
-| `/setrankedchannel` | Set channel for the daily ranked TPP report (defaults to digest channel) |
-| `/setrankedqueue <queue>` | squad / duo / solo — TPP ranked queue to track |
+| `/rankedsquad`, `/rankedduo`, `/rankedsolo` | Show current-season ranked TPP standings for that queue |
+| `/rankedsquadfpp`, `/rankedduofpp`, `/rankedsolofpp` | Show current-season ranked FPP standings for that queue |
+| `/refreshrankedcache` | Make the next ranked check scan the full roster again |
+| `/setrankedchannel` | Set channel for the daily ranked report (defaults to digest channel) |
+| `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/setrankedtime <0-23>` | Fixed Eastern-time hour for the ranked report |
 | `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
+| `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
+| `/unlinkme <pubg_name>` | Remove a Discord-to-PUBG-name link |
+
+### Player identity in reports
+
+Scheduled and on-demand reports show linked players through a channel
+webhook, using their PUBG name and their linked Discord avatar. This
+needs `Manage Webhooks` in the report channel, and never touches a
+member's actual server nickname — it's a webhook-level display only.
+
+There's currently no slash command that creates a link — that used to be
+`/linkme`/`/linkplayer`, which also tried to rename members' server
+nicknames to match. That didn't work reliably across the whole clan (it
+depends on the bot's role sitting above every member's roles, which
+doesn't hold in practice for anyone with an elevated/officer role), so
+both commands were removed. `/unlinkme` still works, for clearing out
+any links already on record.
 
 ### Fixed-time scheduling (Eastern)
 
@@ -150,6 +173,15 @@ defaults to :00), and use the real `America/New_York` timezone, so they
 automatically shift between EST and EDT with daylight saving, rather than
 being off by an hour half the year. Setting a fixed time for a report
 overrides its interval-based settings.
+
+### Weekly clan-level report
+
+Set the PUBG clan once with `/setclan <current clan member>`, choose the destination with
+`/setclanchannel`, then use `/setclantime` to select a weekday and Eastern-time
+hour. The report posts once per week and records the clan level and member-count
+change since its previous successful scheduled post. PUBG does not provide the
+XP remaining to the next clan level, so the weekly progress value is the actual
+level change rather than an XP estimate.
 
 ## Free 24/7 hosting — recommended: Oracle Cloud "Always Free" VM
 
@@ -213,3 +245,8 @@ is done in the cloud — nothing stays on your computer once it's deployed.
   `wins`/`kills`, matching how the in-game stats screen defines them.
 - If a name is misspelled or the player hasn't played that game mode, the
   bot flags it under "Not found" rather than silently skipping it.
+- `/leaderboardstats` only checks the official ladder's top pages (default
+  top 2000) — most rostered players won't have a high enough rank to show
+  up there, that's expected, not a bug.
+- `/masterystats` makes 2 PUBG API calls per player, so it's noticeably
+  slower than the other on-demand commands, especially on a large roster.
