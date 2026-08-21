@@ -1,1 +1,6 @@
-^C
+^C^C^C^C^CSynced 26 commands globally (can take up to ~1hr to appear elsewhere)
+Logged in as PUBG Tracker#4672 (id=1530744054478930050)
+[app_command_error] /rankedstats: Command 'rankedstats' raised an exception: HTTPException: 401 Unauthorized (error code: 50027): Invalid Webhook Token
+[app_command_error] Also failed to notify the user: 401 Unauthorized (error code: 50027): Invalid Webhook Token
+Instantly synced 26 commands to dev guild 1240362820416176138 (guild-scoped only this run)
+Logged in as PUBG Tracker#4672 (id=1530744054478930050)
