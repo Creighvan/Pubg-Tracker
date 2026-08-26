@@ -13,6 +13,9 @@ Slash commands:
   /clanlevel                - show the current clan level and weekly progress
   /setclanchannel           - set current channel for the weekly clan-level report
   /setclantime <day> <hour> - set the weekly Eastern-time clan-level schedule
+  /survivalstats             - show roster Survival Mastery grouped by tier
+  /setsurvivalchannel        - set current channel for the weekly Survival Mastery report
+  /setsurvivaltime <day> <hour> - set the weekly Eastern-time Survival Mastery schedule
   /reporttoggle <report> <enabled> - turn a scheduled report on or off
   /help                     - show help and the official support server
   /donate                   - show the optional donation link
@@ -102,7 +105,22 @@ RANKED_MODE_LABELS = {
 EASTERN = ZoneInfo("America/New_York")
 
 intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="!", intents=intents)
+
+
+class GuildOnlyTree(app_commands.CommandTree):
+    """Every command is server-only. Using one in a DM previously crashed
+    with a confusing error (reports need a server's channels); this gives a
+    clear message instead."""
+
+    async def interaction_check(self, interaction: discord.Interaction, /) -> bool:
+        if interaction.guild_id is None:
+            raise app_commands.NoPrivateMessage(
+                "This command only works inside a Discord server — try it there instead."
+            )
+        return True
+
+
+bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
 pubg = PubgClient(PUBG_API_KEY, shard=PUBG_SHARD)
 
 # Serializes the four scheduled reports so they never run concurrently
@@ -216,8 +234,14 @@ async def send_tupper_player_messages(
                 allowed_mentions=discord.AllowedMentions.none(),
                 wait=False,
             )
-        except discord.NotFound:
-            # The webhook may have been deleted between lookup and send.
+        except discord.HTTPException as e:
+            # 404 = the webhook was deleted between lookup and send. 401 with
+            # "Invalid Webhook Token" = the cached webhook's token went stale
+            # (seen in the wild). Both mean the cached webhook is dead: drop
+            # it, fetch/create a fresh one, and retry this one message. Any
+            # other HTTP error is a real problem — re-raise it.
+            if e.status not in (401, 404):
+                raise
             _report_webhooks.pop(channel.id, None)
             webhook = await _get_report_webhook(channel)
             await webhook.send(
@@ -358,17 +382,27 @@ def _is_due(guild_cfg: dict, hour_key: str, minute_key: str, posted_at_key: str,
     return now - posted_dt >= timedelta(hours=interval_hours)
 
 
-def _is_weekly_due(guild_cfg: dict) -> bool:
-    """Whether the configured clan-level report is due this Eastern week."""
-    weekday = guild_cfg.get("clan_weekday_est")
+def _is_weekly_due(
+    guild_cfg: dict,
+    weekday_key: str = "clan_weekday_est",
+    hour_key: str = "clan_hour_est",
+    minute_key: str = "clan_minute_est",
+    posted_key: str = "clan_posted_at",
+) -> bool:
+    """Whether a configured weekly report is due this Eastern week."""
+    weekday = guild_cfg.get(weekday_key)
     if weekday is None:
         return False
     now_est = datetime.now(EASTERN)
-    target_minute = guild_cfg.get("clan_hour_est", 0) * 60 + guild_cfg.get("clan_minute_est", 0)
+    target_minute = guild_cfg.get(hour_key, 0) * 60 + guild_cfg.get(minute_key, 0)
     now_minute = now_est.hour * 60 + now_est.minute
-    if now_est.weekday() != weekday or not (target_minute <= now_minute < target_minute + 15):
+    # Due any time AFTER the target time on the scheduled weekday — not just
+    # during the first 15 minutes. The posted marker is only written after a
+    # successful post, so a failed attempt is retried on the next 15-minute
+    # tick instead of silently skipping the whole week.
+    if now_est.weekday() != weekday or now_minute < target_minute:
         return False
-    posted_at = guild_cfg.get("clan_posted_at")
+    posted_at = guild_cfg.get(posted_key)
     if not posted_at:
         return True
     posted_est = datetime.fromisoformat(posted_at).astimezone(EASTERN)
@@ -380,7 +414,10 @@ def _is_sunday_donation_due(guild_cfg: dict) -> bool:
     now_est = datetime.now(EASTERN)
     target_minute = guild_cfg.get("donation_hour_est", 12) * 60 + guild_cfg.get("donation_minute_est", 0)
     now_minute = now_est.hour * 60 + now_est.minute
-    if now_est.weekday() != 6 or not (target_minute <= now_minute < target_minute + 15):
+    # Same retry rule as the other weekly reports: due any time after the
+    # target time on Sunday, so a failed attempt retries instead of the
+    # whole week being skipped.
+    if now_est.weekday() != 6 or now_minute < target_minute:
         return False
     posted_at = guild_cfg.get("donation_posted_at")
     if not posted_at:
@@ -430,7 +467,7 @@ def _next_weekly_report(weekday: int, hour: int, minute: int, posted_at: str | N
     target = (now + timedelta(days=days_until)).replace(hour=hour, minute=minute, second=0, microsecond=0)
     posted = _as_eastern(posted_at)
     posted_this_week = posted is not None and posted.isocalendar()[:2] == now.isocalendar()[:2]
-    if target <= now < target + timedelta(minutes=15) and not posted_this_week:
+    if days_until == 0 and target <= now and not posted_this_week:
         return "Due now (the scheduler checks about every 15 minutes)"
     if target <= now:
         target += timedelta(days=7)
@@ -500,6 +537,17 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern\n**Next:** {next_time}", inline=False)
     elif clan_channel and clan_weekday is not None:
         disabled_reports.append("Clan Level")
+
+    survival_channel = guild_cfg.get("survival_channel_id")
+    survival_weekday = guild_cfg.get("survival_weekday_est")
+    if survival_channel and survival_weekday is not None and guild_cfg.get("survival_enabled", True):
+        hour = guild_cfg.get("survival_hour_est", 12)
+        minute = guild_cfg.get("survival_minute_est", 0)
+        weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[survival_weekday]
+        next_time = _next_weekly_report(survival_weekday, hour, minute, guild_cfg.get("survival_posted_at"))
+        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern\n**Next:** {next_time}", inline=False)
+    elif survival_channel and survival_weekday is not None:
+        disabled_reports.append("Survival Mastery")
 
     donation_channel = guild_cfg.get("donation_channel_id")
     if donation_channel and guild_cfg.get("donation_enabled", True):
@@ -980,6 +1028,127 @@ async def fetch_mastery_report(guild_id: int, guild_name: str) -> tuple[discord.
     return build_mastery_embed(guild_name, guild_cfg, players, not_found), players
 
 
+SURVIVAL_TIER_NAMES = {
+    5: "Tier 5",
+    4: "Tier 4",
+    3: "Tier 3",
+    2: "Tier 2",
+    1: "Tier 1",
+}
+SURVIVAL_TIER_ICON_FILES = {
+    5: "survival_tier_5.png",
+    4: "survival_tier_4.png",
+    3: "survival_tier_3.png",
+    2: "survival_tier_2.png",
+    1: "survival_tier_1.png",
+}
+SURVIVAL_TIER_ASSET_DIR = os.path.join(os.path.dirname(__file__), "assets")
+
+
+def _survival_tier_number(value) -> int:
+    """Normalize the API's survival tier value to 1-5."""
+    if isinstance(value, dict):
+        value = value.get("tier", value.get("Tier", 0))
+    try:
+        tier = int(value)
+    except (TypeError, ValueError):
+        tier = 0
+    return tier if tier in SURVIVAL_TIER_NAMES else 0
+
+
+def build_survival_mastery_embeds(
+    guild_id: int, guild_name: str, players: list[dict], not_found: list[str]
+) -> tuple[list[discord.Embed], list[discord.File]]:
+    title = storage.get_guild(guild_id).get("clan_name") or guild_name
+    grouped = {tier: [] for tier in range(5, 0, -1)}
+    unknown = []
+    for player in players:
+        mastery = player.get("mastery", {})
+        tier = _survival_tier_number(mastery.get("survival_tier"))
+        if tier in grouped:
+            grouped[tier].append(player)
+        else:
+            unknown.append(player)
+
+    for tier in grouped:
+        grouped[tier].sort(
+            key=lambda p: (
+                p.get("mastery", {}).get("survival_level", 0),
+                p.get("mastery", {}).get("survival_xp", 0),
+                p.get("name", "").lower(),
+            ),
+            reverse=True,
+        )
+
+    embeds: list[discord.Embed] = []
+    files: list[discord.File] = []
+    for tier in range(5, 0, -1):
+        tier_players = grouped[tier]
+        if not tier_players:
+            continue
+        filename = SURVIVAL_TIER_ICON_FILES[tier]
+        path = os.path.join(SURVIVAL_TIER_ASSET_DIR, filename)
+        file = None
+        if os.path.exists(path):
+            file = discord.File(path, filename=filename)
+            files.append(file)
+        # A missing icon file must not abort the whole report — post without
+        # the thumbnail instead.
+        embed = discord.Embed(
+            title=f"{title} — Survival Mastery {SURVIVAL_TIER_NAMES[tier]}",
+            description=f"**{len(tier_players)} player(s)** · Highest Survival Level first",
+            color=discord.Color.blurple(),
+            timestamp=datetime.now(timezone.utc),
+        )
+        if file is not None:
+            embed.set_thumbnail(url=f"attachment://{filename}")
+        lines = []
+        for i, player in enumerate(tier_players, start=1):
+            m = player.get("mastery", {})
+            level = m.get("survival_level", 0)
+            xp = m.get("survival_xp", 0)
+            lines.append(f"{i}. **{player['name']}** — Lv.{level} ({xp:,} XP)")
+        for start in range(0, len(lines), 15):
+            embed.add_field(
+                name="Players" if start == 0 else "\u200b",
+                value="\n".join(lines[start:start + 15]),
+                inline=False,
+            )
+        embed.set_footer(text="Stats from the official PUBG API · Survival Mastery")
+        embeds.append(embed)
+
+    if unknown:
+        embed = discord.Embed(
+            title=f"{title} — Survival Mastery (Tier unavailable)",
+            color=discord.Color.dark_grey(),
+            timestamp=datetime.now(timezone.utc),
+        )
+        embed.description = "\n".join(
+            f"**{p['name']}** — Lv.{p.get('mastery', {}).get('survival_level', 0)}" for p in unknown
+        )
+        embeds.append(embed)
+
+    if not_found:
+        embed = discord.Embed(
+            title=f"{title} — Survival Mastery (Not Found)",
+            color=discord.Color.dark_grey(),
+        )
+        embed.description = ", ".join(not_found[:25]) + (" ..." if len(not_found) > 25 else "")
+        embeds.append(embed)
+
+    return embeds, files
+
+
+async def fetch_survival_mastery_report(
+    guild_id: int, guild_name: str
+) -> tuple[list[discord.Embed], list[discord.File]] | None:
+    guild_cfg = storage.get_guild(guild_id)
+    if not guild_cfg["players"]:
+        return None
+    players, not_found = await pubg.get_mastery_report(guild_cfg["players"])
+    return build_survival_mastery_embeds(guild_id, guild_name, players, not_found)
+
+
 def build_leaderboard_embed(
     guild_id: int, guild_name: str, guild_cfg: dict, found: dict[str, dict], checked: int, pages: int, queue: str
 ) -> discord.Embed:
@@ -1089,6 +1258,8 @@ async def on_ready():
         auto_highlights.start()
     if not auto_clan_level.is_running():
         auto_clan_level.start()
+    if not auto_survival_mastery.is_running():
+        auto_survival_mastery.start()
     if not auto_donations.is_running():
         auto_donations.start()
     print(f"Logged in as {bot.user} (id={bot.user.id})")
@@ -1310,6 +1481,48 @@ async def auto_clan_level():
 
 @auto_clan_level.before_loop
 async def before_auto_clan_level():
+    await bot.wait_until_ready()
+
+
+@tasks.loop(minutes=15)
+async def auto_survival_mastery():
+    """Post the configured weekly Survival Mastery snapshot."""
+    now = datetime.now(timezone.utc)
+    for guild_id in storage.all_guild_ids():
+        guild_cfg = storage.get_guild(guild_id)
+        if not guild_cfg.get("survival_enabled", True):
+            continue
+        channel_id = guild_cfg.get("survival_channel_id")
+        if channel_id is None or not _is_weekly_due(
+            guild_cfg,
+            weekday_key="survival_weekday_est",
+            hour_key="survival_hour_est",
+            minute_key="survival_minute_est",
+            posted_key="survival_posted_at",
+        ):
+            continue
+
+        channel = bot.get_channel(channel_id)
+        guild = bot.get_guild(guild_id)
+        if channel is None or guild is None:
+            continue
+        try:
+            async with _scheduler_lock:
+                result = await fetch_survival_mastery_report(guild_id, guild.name)
+            if result is None:
+                continue
+            embeds, files = result
+            await channel.send(embeds=embeds, files=files)
+            guild_cfg["survival_posted_at"] = now.isoformat()
+            storage.save_guild(guild_id, guild_cfg)
+        except PubgApiError as e:
+            print(f"[auto_survival_mastery] PUBG API error for guild {guild_id}: {e}")
+        except Exception as e:
+            print(f"[auto_survival_mastery] Unexpected error for guild {guild_id}: {e}")
+
+
+@auto_survival_mastery.before_loop
+async def before_auto_survival_mastery():
     await bot.wait_until_ready()
 
 
@@ -1542,6 +1755,7 @@ async def reportstatus(interaction: discord.Interaction):
         app_commands.Choice(name="Ranked", value="ranked_enabled"),
         app_commands.Choice(name="Daily Highlights", value="highlights_enabled"),
         app_commands.Choice(name="Clan Level", value="clan_level_enabled"),
+        app_commands.Choice(name="Survival Mastery", value="survival_enabled"),
         app_commands.Choice(name="Donation Message", value="donation_enabled"),
     ],
     enabled=[
@@ -1729,21 +1943,28 @@ async def _run_ranked_command(interaction: discord.Interaction, game_mode: str, 
     if not guild_cfg["players"]:
         await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
         return
+    # Discord only allows a slash command to reply for 15 minutes. The first
+    # full roster scan is one ranked API call per player (paced at 8/min by
+    # the PUBG rate limiter), which can exceed that window on large rosters —
+    # so acknowledge instantly and post the finished report to the channel
+    # instead of through the command reply.
     await interaction.response.send_message(
         f"⏳ Fetching {queue_label} ranked standings. Only players with ranked matches will be posted. "
-        f"With a large roster, PUBG's request limit can make this take several minutes."
+        f"With a large roster, PUBG's request limit can make this take 15+ minutes — "
+        f"the report will appear in this channel when it's ready."
     )
+    channel = interaction.channel
     try:
         result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name, game_mode)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await channel.send(f"PUBG API error while fetching {queue_label} ranked standings: {e}")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await channel.send(f"Something went wrong generating this report: {e}")
         return
     embed, congrats, players = result
-    await interaction.followup.send(content=congrats, embed=embed, allowed_mentions=discord.AllowedMentions(users=True))
-    await send_tupper_player_messages(interaction.channel, interaction.guild, interaction.guild_id, _ranked_player_messages(players, queue_label))
+    await channel.send(content=congrats, embed=embed, allowed_mentions=discord.AllowedMentions(users=True))
+    await send_tupper_player_messages(channel, interaction.guild, interaction.guild_id, _ranked_player_messages(players, queue_label))
 
 
 @bot.tree.command(description="Show current-season ranked Squad TPP standings")
@@ -1873,27 +2094,108 @@ async def sethighlightstime(interaction: discord.Interaction, hour: app_commands
     await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{guild_cfg['highlights_minute_est']:02d} Eastern**.")
 
 
+@bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
+async def survivalstats(interaction: discord.Interaction):
+    guild_cfg = storage.get_guild(interaction.guild_id)
+    if not guild_cfg["players"]:
+        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        return
+    # Survival mastery is 2 PUBG API calls per player, paced at 8/min —
+    # roughly 15 seconds per player. That blows past Discord's 15-minute
+    # slash-command reply window on rosters of ~60+, so acknowledge
+    # instantly and post the finished report straight to the channel.
+    est_minutes = (len(guild_cfg["players"]) * 15 + 59) // 60
+    await interaction.response.send_message(
+        f"⏳ Working on it — with {len(guild_cfg['players'])} player(s) this takes about {est_minutes} minute(s) "
+        f"(PUBG's request limit paces the lookups). The report will appear in this channel when it's ready; "
+        f"you don't need to keep waiting here."
+    )
+    channel = interaction.channel
+    try:
+        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
+    except PubgApiError as e:
+        await channel.send(f"PUBG API error while building the Survival Mastery report: {e}")
+        return
+    except Exception as e:
+        await channel.send(f"Something went wrong generating this report: {e}")
+        return
+    if result is None:
+        await channel.send("No players tracked yet. Add some with `/addplayer`.")
+        return
+    embeds, files = result
+    await channel.send(embeds=embeds, files=files)
+
+
+@bot.tree.command(description="Set this channel for the weekly Survival Mastery report")
+async def setsurvivalchannel(interaction: discord.Interaction):
+    guild_cfg = storage.get_guild(interaction.guild_id)
+    guild_cfg["survival_channel_id"] = interaction.channel_id
+    guild_cfg["survival_enabled"] = True
+    storage.save_guild(interaction.guild_id, guild_cfg)
+    weekday = guild_cfg.get("survival_weekday_est")
+    if weekday is None:
+        await interaction.response.send_message(
+            f"✅ Weekly Survival Mastery reports will post in {interaction.channel.mention}. "
+            "Use `/setsurvivaltime` to choose the weekly day and time."
+        )
+    else:
+        weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[weekday]
+        await interaction.response.send_message(
+            f"✅ Weekly Survival Mastery reports will post in {interaction.channel.mention} every "
+            f"**{weekday_name} at {guild_cfg.get('survival_hour_est', 12):02d}:{guild_cfg.get('survival_minute_est', 0):02d} Eastern**. "
+            "Use `/setsurvivaltime` to change the schedule."
+        )
+
+
+@bot.tree.command(description="Set the weekly Survival Mastery report time in Eastern time")
+@app_commands.describe(day="Day of the week", hour="0-23 Eastern time", minute="Quarter-hour, defaults to :00")
+@app_commands.choices(day=WEEKDAY_CHOICES, minute=QUARTER_HOUR_CHOICES)
+async def setsurvivaltime(
+    interaction: discord.Interaction,
+    day: app_commands.Choice[int],
+    hour: app_commands.Range[int, 0, 23],
+    minute: app_commands.Choice[int] = None,
+):
+    guild_cfg = storage.get_guild(interaction.guild_id)
+    guild_cfg["survival_weekday_est"] = day.value
+    guild_cfg["survival_hour_est"] = hour
+    guild_cfg["survival_minute_est"] = minute.value if minute else 0
+    guild_cfg["survival_enabled"] = True
+    storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message(
+        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{guild_cfg['survival_minute_est']:02d} Eastern**."
+    )
+
+
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
 async def masterystats(interaction: discord.Interaction):
     guild_cfg = storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
         await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
         return
-    await interaction.response.defer()
+    # Same 15-seconds-per-player pacing as /survivalstats (2 PUBG calls per
+    # player) — reply instantly and post to the channel so large rosters
+    # aren't cut off by Discord's 15-minute command reply window.
+    est_minutes = (len(guild_cfg["players"]) * 15 + 59) // 60
+    await interaction.response.send_message(
+        f"⏳ Working on it — with {len(guild_cfg['players'])} player(s) this takes about {est_minutes} minute(s). "
+        f"The report will appear in this channel when it's ready."
+    )
+    channel = interaction.channel
     try:
         result = await fetch_mastery_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await channel.send(f"PUBG API error while building the mastery report: {e}")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await channel.send(f"Something went wrong generating this report: {e}")
         return
     if result is None:
-        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        await channel.send("No players tracked yet. Add some with `/addplayer`.")
         return
     embed, players = result
-    await interaction.followup.send(embed=embed)
-    await send_tupper_player_messages(interaction.channel, interaction.guild, interaction.guild_id, _mastery_player_messages(players))
+    await channel.send(embed=embed)
+    await send_tupper_player_messages(channel, interaction.guild, interaction.guild_id, _mastery_player_messages(players))
 
 
 @bot.tree.command(description="Check the official leaderboard for roster placements (most won't appear — top ladder only)")
@@ -1962,6 +2264,18 @@ async def setleaderboardqueue(interaction: discord.Interaction, queue: app_comma
 @bot.tree.command(description="Remove your Discord-to-PUBG-name link")
 @app_commands.describe(pubg_name="The PUBG name to unlink")
 async def unlinkme(interaction: discord.Interaction, pubg_name: str):
+    guild_cfg = storage.get_guild(interaction.guild_id)
+    linked_id = guild_cfg["discord_links"].get(pubg_name.lower())
+    # Only the Discord account a link points to — or a server manager — may
+    # remove it. Previously anyone in the server could delete anyone's link.
+    is_their_own_link = linked_id is not None and linked_id == interaction.user.id
+    is_server_manager = interaction.user.guild_permissions.manage_guild
+    if not (is_their_own_link or is_server_manager):
+        await interaction.response.send_message(
+            "You can only remove a link that points to your own account — ask a server manager for other names.",
+            ephemeral=True,
+        )
+        return
     removed = storage.unlink_discord_account(interaction.guild_id, pubg_name)
     if removed:
         await interaction.response.send_message(f"🗑️ Unlinked **{pubg_name}**.")

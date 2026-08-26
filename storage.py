@@ -7,6 +7,7 @@ redeploy to a platform with an ephemeral filesystem, mount a persistent
 volume for this file or swap this module for SQLite/Postgres later).
 """
 
+import copy
 import json
 import os
 import threading
@@ -51,6 +52,12 @@ _DEFAULT_GUILD = {
     "clan_posted_at": None,
     "clan_last_level": None,  # most recent successfully scheduled snapshot
     "clan_last_member_count": None,
+    "survival_channel_id": None,  # destination for the weekly Survival Mastery report
+    "survival_enabled": True,
+    "survival_weekday_est": None,  # Monday=0 through Sunday=6; None disables scheduling
+    "survival_hour_est": 12,
+    "survival_minute_est": 0,
+    "survival_posted_at": None,
     "donation_channel_id": None,  # opt-in channel for the weekly donation message
     "donation_enabled": True,
     "donation_hour_est": 12,  # Sunday noon Eastern by default
@@ -83,10 +90,16 @@ def get_guild(guild_id: int) -> dict:
     with _lock:
         data = _load()
         guild = data.get(str(guild_id))
+        # deepcopy, not a plain dict() copy: the defaults contain mutable
+        # lists/dicts (players, discord_links, ranked_known_players). A
+        # shallow copy shares those with _DEFAULT_GUILD itself, so the first
+        # mutation for a brand-new guild (e.g. /addplayer appending) rewrote
+        # the module-level defaults and the NEXT new guild inherited the
+        # previous one's roster and links.
         if guild is None:
-            guild = dict(_DEFAULT_GUILD)
+            guild = copy.deepcopy(_DEFAULT_GUILD)
         else:
-            merged = dict(_DEFAULT_GUILD)
+            merged = copy.deepcopy(_DEFAULT_GUILD)
             merged.update(guild)
             guild = merged
         return guild

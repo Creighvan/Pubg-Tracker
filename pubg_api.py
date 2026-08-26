@@ -465,7 +465,12 @@ class PubgClient:
                 "best_zero_kill_placement": None, "loot_ratio": 0.0,
             }
             for match_id in p.get("match_ids", [])[:max_matches_checked]:
-                details = await get_match(match_id)
+                try:
+                    details = await get_match(match_id)
+                except PubgApiError:
+                    # One unreadable match (e.g. a 404 for an expired match)
+                    # must not abort the whole report — skip it and carry on.
+                    continue
                 created_at = details.get("created_at")
                 if not created_at:
                     continue
@@ -597,6 +602,7 @@ class PubgClient:
                 "best_weapon_kills": best["kills"] if best else 0,
                 "survival_level": survival_attrs.get("Level", survival_attrs.get("level", 0)) or 0,
                 "survival_xp": survival_attrs.get("XP", survival_attrs.get("Exp", survival_attrs.get("xp", 0))) or 0,
+                "survival_tier": survival_attrs.get("tier", survival_attrs.get("Tier", 0)) or 0,
             }
 
         await asyncio.gather(*(process(p) for p in found))
