@@ -115,6 +115,19 @@ Then in your Discord server:
 /clanstats                   (test it immediately)
 ```
 
+
+### Survival Mastery weekly report
+
+The bot can post a weekly Survival Mastery report grouped by PUBG tier, with **Tier 5 first and Tier 1 last**. Players inside each tier are sorted by **Survival Level highest to lowest**, then XP. The five tier icons are included in the `assets/` folder and are attached to the Discord embeds.
+
+Commands:
+- `/survivalstats` — post the report immediately.
+- `/setsurvivalchannel` — choose the weekly report channel.
+- `/setsurvivaltime <day> <hour> [minute]` — choose the weekly Eastern-time schedule.
+- `/reporttoggle` → `Survival Mastery` → On/Off — enable or disable the scheduled report without losing its settings.
+
+The official PUBG API now exposes the Survival Mastery `tier` field, so the bot reads the tier directly rather than guessing it from the level.
+
 ## Commands
 
 | Command | What it does |
