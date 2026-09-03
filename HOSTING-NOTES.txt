@@ -1,0 +1,59 @@
+PUBG Clan Tracker — Deployment & Feature Notes
+============================================================
+
+WHAT'S IN THIS FOLDER
+  bot.py, pubg_api.py, storage.py  the bot (all reports, scheduled tasks,
+                                   and feedback modal system)
+  data.json                        current rosters/settings per Discord server
+  assets\survival_tier_1..5.png    pictures used by the Survival report
+  requirements.txt                 libraries needed by the bot
+  README.md                        full command and hosting documentation
+
+HOSTING ON ORACLE CLOUD (ALWAYS FREE) WITH PM2
+  1. Transfer files to the server:
+     scp -i "key.key" -r "folder" ubuntu@YOUR_IP:~/pubg-bot
+  2. In ~/pubg-bot, create .env:
+       DISCORD_TOKEN  = your Discord bot token
+       PUBG_API_KEY   = your PUBG developer API key
+       PUBG_SHARD     = steam
+       BOT_ADMIN_KEY  = optional secret key for admin commands
+       ADMIN_USER_IDS = optional comma-separated admin Discord IDs
+  3. IMPORTANT: Enable Server Members Intent in Discord Developer Portal
+       before starting the bot (required for avatar functionality)
+  4. Start with PM2 (24/7 background process manager):
+       cd ~/pubg-bot
+       python3 -m venv venv
+       source venv/bin/activate
+       pip install -r requirements.txt
+       pm2 start bot.py --name "pubg-bot" --interpreter ./venv/bin/python3
+       pm2 startup && pm2 save
+
+NEW FEATURES & RECENT FIXES
+  1. 14-Day Automatic Feedback Prompt: posts an embed every 14 days with an
+     interactive popup modal ("Submit Feedback / Suggestions") that routes
+     user suggestions directly to your Support Server (1539320166318481459).
+  2. /botservers: Secret command (Owner/Admin) to view all installed Discord
+     servers, member counts, and tracked players.
+  3. /askfeedback: Secret command to manually post the feedback prompt to
+     any channel.
+  4. Permission Lockdown: Admin commands use default_permissions(administrator=True)
+     so normal members cannot see them in slash menus.
+  5. Survival Mastery Weekly Report with Tier 1-5 badges.
+  6. Multi-server isolation: Each server has fully independent rosters & links.
+  7. Robust Webhooks: Automatic recovery from stale/deleted webhook tokens.
+  8. /linkme: Players can now self-link their Discord account to a PUBG
+     roster name (previously only /unlinkme existed; links had to be
+     added by hand in data.json).
+  9. Chicken Dinner win alerts: /chickendinner checks for wins on demand;
+     /setchickendinnerchannel enables an automatic 15-minute check that
+     dedupes so the same win isn't posted twice.
+  10. /pingtoggle: New command to toggle mention notifications for achievement
+      awards in reports (default: on). Helps prevent notification fatigue
+      in active clans while keeping avatar links functional.
+  11. Enhanced Server Members Intent: Enabled for proper avatar functionality.
+      Users must enable this intent in Discord Developer Portal.
+  12. Improved telemetry error messages: Better handling of expired matches
+      (older than 14 days) with clear user-facing error messages.
+  13. Per-guild command sync: Commands appear immediately when bot joins a
+      server (prioritizes immediate availability over extreme scalability).
+

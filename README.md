@@ -22,12 +22,10 @@ the results.
 
 1. **A Discord bot token** — https://discord.com/developers/applications
    - New Application → Bot → Reset Token → copy it
-   - Under "Privileged Gateway Intents" you don't need any extra intents for this bot
+   - Under "Privileged Gateway Intents" enable **Server Members Intent** (required for avatar functionality)
    - Under OAuth2 → URL Generator, check `bot` and `applications.commands`
-     scopes, and permissions `Send Messages`, `Embed Links`, and
-     `Manage Webhooks` (needed so reports can post under each linked
-     player's PUBG name and avatar), then use the generated URL to invite
-     the bot to your server
+     scopes, and permissions `Send Messages` and `Embed Links`, then use
+     the generated URL to invite the bot to your server
 2. **A PUBG API key** — https://developer.pubg.com/
    - Sign in, create an app, copy the API key
    - Free tier = 10 requests/minute, which this bot respects automatically
@@ -104,6 +102,7 @@ pip install -r requirements.txt
 cp .env.example .env
 # edit .env and fill in DISCORD_TOKEN and PUBG_API_KEY
 # (PUBG_SHARD defaults to "steam")
+# IMPORTANT: Enable Server Members Intent in Discord Developer Portal
 python bot.py
 ```
 
@@ -150,6 +149,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/help` | Get assistance and the official Discord support-server link |
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
+| `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
 | `/donate` | Show the optional Ko-fi donation link |
 | `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
 | `/setdonationtime <0-23>` | Choose the Sunday Eastern-time donation post time (defaults to noon) |
@@ -169,17 +169,59 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
+| `/linkme <pubg_name>` | Link your Discord account to a PUBG name (shows as a mention on `/leaderboardstats` results) |
+| `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (open to anyone) |
 | `/unlinkme <pubg_name>` | Remove a Discord-to-PUBG-name link |
+| `/links` | Show every PUBG-name-to-Discord link currently set for this server |
+| `/chickendinner` | Check the roster's most recent matches for wins right now |
+| `/setchickendinnerchannel` | Set the channel for automatic Chicken Dinner win alerts (defaults to the digest channel; checks every 15 minutes) |
+| `/pingtoggle <on/off>` | Toggle mention notifications for achievement awards in reports (default: on) |
+| `/botservers [secret_key]` | **Admin/Owner**: List all servers the bot is in, member counts, and tracked player counts (ephemeral) |
+| `/askfeedback [channel] [secret_key]` | **Admin/Owner**: Post an interactive feedback & suggestions prompt embed with a submission popup modal |
+
+### Chicken Dinner win alerts
+
+`/chickendinner` checks each roster player's most recent match right now
+and reports anyone who won it. `/setchickendinnerchannel` opts a channel
+into automatic alerts: every 15 minutes the bot re-checks the roster and
+posts only *new* wins — it remembers the last match already alerted per
+player, so the same win isn't reposted on every tick just because nobody
+has queued up again yet. Toggle it on/off without losing the channel via
+`/reporttoggle` → `Chicken Dinner Alerts`.
+
+### Live bot status
+
+`/setstatuschannel` points a channel at a single status message that the
+bot keeps up to date by *editing it in place* — it never spams a new
+message. Unlike every other report, it isn't on a timer: it only updates
+when something actually happens —
+
+- the bot connects, disconnects, or reconnects to Discord
+- the bot is added to or removed from a server
+- a scheduled report fails (PUBG API error or unexpected error)
+- PUBG actually rate-limits the bot (a real 429, not the bot's own
+  routine pacing, which happens constantly and isn't an issue)
+
+The event log is in-memory and resets on restart — it's a live feed, not
+a persisted audit trail. Bursts of events (e.g. several reports failing
+within a few seconds of each other) collapse into a single edit rather
+than triggering one edit per event.
 
 ### Player identity in reports
 
-Scheduled and on-demand reports show linked players through a channel
-webhook, using their PUBG name and their linked Discord avatar. This
-needs `Manage Webhooks` in the report channel, and never touches a
-member's actual server nickname — it's a webhook-level display only.
+Reports never post a separate per-player message and never @mention or
+ping anyone by default. Linking affects one thing: on `/leaderboardstats`, a
+linked player's name is shown as a non-pinging `@mention` instead of the
+plain PUBG name.
 
-There's currently no slash command that creates a link. `/unlinkme` can
-remove any existing report-identity link.
+- `/linkme <pubg_name>` — link your own Discord account.
+- `/linkplayer <member> <pubg_name>` — link someone else's account for
+  them (open to anyone, e.g. a member who won't run the command
+  themselves).
+- `/unlinkme <pubg_name>` — remove a link (your own, or — for a server
+  manager — anyone's).
+- `/links` — list every current PUBG-name-to-Discord link for the server.
+- `/pingtoggle <on/off>` — enable or disable mention notifications for achievement awards in reports (default: on). Avatar links still work regardless of this setting.
 
 ### Fixed-time scheduling (Eastern)
 
@@ -202,50 +244,52 @@ change since its previous successful scheduled post. PUBG does not provide the
 XP remaining to the next clan level, so the weekly progress value is the actual
 level change rather than an XP estimate.
 
-## Free 24/7 hosting — recommended: Oracle Cloud "Always Free" VM
+### 14-Day Automatic Feedback & Modal System
+
+Every 14 days, the bot automatically posts an interactive feedback prompt in every server's designated announcements/digest channel.
+- Includes an interactive button: **`💬 Submit Feedback / Suggestions`**
+- Clicking the button pops up a native Discord Modal form for users to enter their suggestions, questions, or bug reports.
+- Upon submission, the bot forwards the feedback directly into your **Support Server** (`1539320166318481459`) with the user's name, Discord ID, and origin server information.
+- You can also trigger this prompt manually at any time with `/askfeedback [channel]`.
+
+### Admin & Owner Secret Commands
+
+- **`/botservers [secret_key]`**: Lists all Discord servers the bot is currently in, total member reach, and number of tracked players per server.
+- **`/askfeedback [channel] [secret_key]`**: Manually posts the interactive feedback prompt to any channel.
+
+#### Access & Permissions:
+- Both commands use `default_permissions(administrator=True)` to hide them from regular server members in Discord's slash command picker.
+- Automatically accessible by the **Bot Application Owner**.
+- Accessible by authorized users specified in `ADMIN_USER_IDS` or anyone with the `BOT_ADMIN_KEY` password in `.env`.
+
+## Free 24/7 hosting — Oracle Cloud "Always Free" VM + PM2
 
 This is the most reliable genuinely-free option that doesn't sleep, doesn't
-expire, and doesn't require you to leave your own PC on. Everything below
-is done in the cloud — nothing stays on your computer once it's deployed.
+expire, and doesn't require you to leave your own PC on.
 
-1. Sign up at https://www.oracle.com/cloud/free/ (a card is required for
-   identity verification, but the "Always Free" tier is not a trial and
-   doesn't get billed as long as you stay within the always-free shapes)
-2. Create a **VM.Standard.A1.Flex** instance (ARM, free tier) running
-   **Ubuntu**
-3. SSH into it, then:
+1. Create a **VM.Standard.A1.Flex** (ARM) or **VM.Standard.E2.1.Micro** instance running **Ubuntu 24.04**.
+2. Connect via SSH:
    ```bash
-   sudo apt update && sudo apt install -y python3-pip python3-venv git
-   git clone <your-repo-or-upload-these-files>
-   cd pubg-clan-bot
+   ssh -i "path/to/private-key.key" ubuntu@YOUR_PUBLIC_IP
+   ```
+3. Install dependencies and PM2:
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   sudo apt install -y python3 python3-pip python3-venv git npm
+   sudo npm install -g pm2
+   ```
+4. Transfer bot files, configure `.env`, and start with PM2:
+   ```bash
+   cd ~/pubg-bot
    python3 -m venv venv
    source venv/bin/activate
    pip install -r requirements.txt
-   cp .env.example .env
-   nano .env   # paste in your real tokens
+   nano .env
+   # IMPORTANT: Before starting, enable Server Members Intent in Discord Developer Portal
+   pm2 start bot.py --name "pubg-bot" --interpreter ./venv/bin/python3
+   pm2 startup
+   pm2 save
    ```
-4. Keep it running permanently with a systemd service:
-   ```bash
-   sudo tee /etc/systemd/system/pubgbot.service <<EOF
-   [Unit]
-   Description=PUBG Clan Discord Bot
-   After=network.target
-
-   [Service]
-   WorkingDirectory=/home/ubuntu/pubg-clan-bot
-   ExecStart=/home/ubuntu/pubg-clan-bot/venv/bin/python bot.py
-   Restart=always
-   RestartSec=10
-
-   [Install]
-   WantedBy=multi-user.target
-   EOF
-
-   sudo systemctl daemon-reload
-   sudo systemctl enable --now pubgbot
-   sudo systemctl status pubgbot   # confirm it's running
-   ```
-   The bot now survives reboots and restarts automatically if it crashes.
 
 ### Alternatives if Oracle account approval is being difficult
 - **Railway** (railway.app) — gives free monthly credit; a bot this small
@@ -269,3 +313,7 @@ is done in the cloud — nothing stays on your computer once it's deployed.
   up there, that's expected, not a bug.
 - `/masterystats` makes 2 PUBG API calls per player, so it's noticeably
   slower than the other on-demand commands, especially on a large roster.
+- `/dailyhighlights` requires match telemetry data, which PUBG only keeps
+  available for the last 14 days. If players haven't played in 15+ days,
+  the bot will show a clear "No matches found in the last 14 days" message
+  instead of a generic error.
