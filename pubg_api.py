@@ -69,6 +69,12 @@ class PubgClient:
         self._session: aiohttp.ClientSession | None = None
         self._current_season_id: str | None = None  # cached for the process lifetime
         self._season_lock = asyncio.Lock()
+        # Optional async callback(delay_seconds: float), set by the caller
+        # (bot.py) to surface a REAL PUBG 429 to a status feed. Left unset,
+        # this is a no-op. Deliberately NOT fired on the routine, self-
+        # imposed pacing in RateLimiter.wait() — that happens on nearly
+        # every call and isn't an issue, just normal throttling.
+        self.on_rate_limit_hit = None
 
     async def _get_session(self) -> aiohttp.ClientSession:
         if self._session is None or self._session.closed:
@@ -101,6 +107,11 @@ class PubgClient:
                             delay = max(float(retry_after), 15.0) if retry_after else 65.0
                         except ValueError:
                             delay = 65.0
+                        if self.on_rate_limit_hit:
+                            try:
+                                await self.on_rate_limit_hit(delay)
+                            except Exception:
+                                pass  # a status-reporting hook must never break the actual request
                         if rate_limited and attempt < 3:
                             print(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
                             await self._limiter.cool_down(delay)
@@ -271,6 +282,61 @@ class PubgClient:
         found.sort(key=lambda p: p["last_match_at"] or "", reverse=True)
         return found, not_found
 
+    async def get_recent_wins(self, names: list[str]) -> tuple[dict[str, dict], list[str]]:
+        """
+        Checks each roster player's single most recent match and reports its
+        placement/kills/map. Used by /chickendinner and the scheduled win
+        alert task. Match-endpoint calls (via _get_match_details) are
+        rate-limit exempt, so this stays cheap even on a large roster —
+        unlike get_daily_activity_report, it never downloads telemetry.
+
+        Returns (results, not_found) where results is keyed by PUBG name:
+          {"winPlace": int, "kills": int, "map_name": str | None,
+           "match_id": str}
+        Players with no recent match at all are simply absent from results
+        (not an error). not_found is the input names PUBG couldn't resolve.
+        """
+        found: list[dict] = []
+        not_found: list[str] = []
+        for chunk in _chunk(names, 10):
+            resolved = await self.get_players_by_name(chunk)
+            resolved_lower = {p["name"].lower() for p in resolved}
+            for n in chunk:
+                if n.lower() not in resolved_lower:
+                    not_found.append(n)
+            found.extend(resolved)
+
+        # Squadmates commonly share the same most-recent match; cache by
+        # match_id so it's only fetched once instead of once per player.
+        match_cache: dict[str, dict] = {}
+        cache_lock = asyncio.Lock()
+
+        async def get_match(match_id: str) -> dict:
+            async with cache_lock:
+                if match_id not in match_cache:
+                    match_cache[match_id] = await self._get_match_details(match_id)
+                return match_cache[match_id]
+
+        results: dict[str, dict] = {}
+
+        async def process(p: dict):
+            if not p["match_ids"]:
+                return
+            match_id = p["match_ids"][0]
+            match = await get_match(match_id)
+            stats = match["participants"].get(p["id"])
+            if stats is None:
+                return
+            results[p["name"]] = {
+                "winPlace": stats.get("winPlace"),
+                "kills": stats.get("kills", 0),
+                "map_name": match.get("map_name"),
+                "match_id": match_id,
+            }
+
+        await asyncio.gather(*(process(p) for p in found))
+        return results, not_found
+
     async def get_current_season_id(self) -> str:
         """Cached for the life of the process. Restart the bot after a new
         PUBG season starts to pick up the new season id."""
@@ -349,7 +415,12 @@ class PubgClient:
                     participants[pid] = s
             elif inc.get("type") == "asset":
                 telemetry_url = inc.get("attributes", {}).get("URL")
-        return {"created_at": attrs.get("createdAt"), "participants": participants, "telemetry_url": telemetry_url}
+        return {
+            "created_at": attrs.get("createdAt"),
+            "participants": participants,
+            "telemetry_url": telemetry_url,
+            "map_name": attrs.get("mapName"),
+        }
 
     async def get_daily_activity_report(
         self, names: list[str], hours: int = 24, max_matches_checked: int = 1
@@ -467,9 +538,13 @@ class PubgClient:
             for match_id in p.get("match_ids", [])[:max_matches_checked]:
                 try:
                     details = await get_match(match_id)
-                except PubgApiError:
+                except PubgApiError as e:
                     # One unreadable match (e.g. a 404 for an expired match)
                     # must not abort the whole report — skip it and carry on.
+                    # Track if we're hitting expired matches for better error messaging
+                    if "404" in str(e) or "Not found" in str(e):
+                        p.setdefault("_expired_matches", 0)
+                        p["_expired_matches"] += 1
                     continue
                 created_at = details.get("created_at")
                 if not created_at:
@@ -508,6 +583,8 @@ class PubgClient:
             totals["stooge_kills"] = totals["self_kills"] + totals["team_kills"]
             totals["loot_ratio"] = round(totals["weapons_acquired"] / max(totals["kills"], 1), 2)
             p["daily"] = totals
+            # Clean up temporary tracking
+            p.pop("_expired_matches", None)
 
         await asyncio.gather(*(process_player(p) for p in found))
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
