@@ -7,13 +7,13 @@ redeploy to a platform with an ephemeral filesystem, mount a persistent
 volume for this file or swap this module for SQLite/Postgres later).
 """
 
+import asyncio
 import copy
 import json
 import os
-import threading
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data.json")
-_lock = threading.Lock()
+_lock = asyncio.Lock()
 
 _DEFAULT_GUILD = {
     "players": [],  # list of PUBG player names tracked for this server's clan
@@ -66,6 +66,13 @@ _DEFAULT_GUILD = {
     "discord_links": {},  # pubg_name.lower() -> discord user id (int), for @mentions/congrats
     "leaderboard_shard": "pc-na",  # platform-REGION shard, only used by the leaderboards endpoint
     "leaderboard_queue": "squad",  # squad, duo, or solo — TPP
+    "last_feedback_prompt_at": None,  # ISO timestamp of the last 14-day feedback prompt
+    "chicken_dinner_channel_id": None,  # destination for automatic win alerts (defaults to post_channel_id)
+    "chicken_dinner_enabled": True,
+    "chicken_dinner_posted_matches": {},  # pubg_name.lower() -> match_id already alerted, so the same win isn't reposted every 15-min tick
+    "status_channel_id": None,  # destination for the live bot-status embed
+    "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
+    "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
 }
 
 
@@ -86,8 +93,8 @@ def _save(data: dict):
     os.replace(tmp_path, DATA_PATH)
 
 
-def get_guild(guild_id: int) -> dict:
-    with _lock:
+async def get_guild(guild_id: int) -> dict:
+    async with _lock:
         data = _load()
         guild = data.get(str(guild_id))
         # deepcopy, not a plain dict() copy: the defaults contain mutable
@@ -105,37 +112,37 @@ def get_guild(guild_id: int) -> dict:
         return guild
 
 
-def save_guild(guild_id: int, guild_data: dict):
-    with _lock:
+async def save_guild(guild_id: int, guild_data: dict):
+    async with _lock:
         data = _load()
         data[str(guild_id)] = guild_data
         _save(data)
 
 
-def all_guild_ids() -> list[int]:
-    with _lock:
+async def all_guild_ids() -> list[int]:
+    async with _lock:
         data = _load()
         return [int(g) for g in data.keys()]
 
 
-def add_player(guild_id: int, name: str) -> bool:
-    guild = get_guild(guild_id)
+async def add_player(guild_id: int, name: str) -> bool:
+    guild = await get_guild(guild_id)
     lowered = [p.lower() for p in guild["players"]]
     if name.lower() in lowered:
         return False
     guild["players"].append(name)
     guild["ranked_known_players"] = {}
-    save_guild(guild_id, guild)
+    await save_guild(guild_id, guild)
     return True
 
 
-def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str]]:
+async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str]]:
     """
     Bulk-add many players in a single save. Returns (added, duplicates).
     Preserves the casing of the first occurrence for duplicates within the
     input list itself.
     """
-    guild = get_guild(guild_id)
+    guild = await get_guild(guild_id)
     existing_lower = {p.lower() for p in guild["players"]}
     added: list[str] = []
     duplicates: list[str] = []
@@ -156,38 +163,51 @@ def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str]]:
 
     if added:
         guild["ranked_known_players"] = {}
-        save_guild(guild_id, guild)
+        await save_guild(guild_id, guild)
     return added, duplicates
 
 
-def remove_player(guild_id: int, name: str) -> bool:
-    guild = get_guild(guild_id)
+async def remove_player(guild_id: int, name: str) -> bool:
+    guild = await get_guild(guild_id)
     before = len(guild["players"])
     guild["players"] = [p for p in guild["players"] if p.lower() != name.lower()]
     changed = len(guild["players"]) != before
     if changed:
         guild["ranked_known_players"] = {}
-        save_guild(guild_id, guild)
+        await save_guild(guild_id, guild)
     return changed
 
 
-def link_discord_account(guild_id: int, pubg_name: str, discord_user_id: int):
+async def link_discord_account(guild_id: int, pubg_name: str, discord_user_id: int):
     """Links a PUBG name to a Discord user ID for this server, so reports
     can @mention the right person. Overwrites any existing link for that
     name."""
-    guild = get_guild(guild_id)
+    guild = await get_guild(guild_id)
     guild["discord_links"][pubg_name.lower()] = discord_user_id
-    save_guild(guild_id, guild)
+    await save_guild(guild_id, guild)
 
 
-def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
-    guild = get_guild(guild_id)
+async def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
+    guild = await get_guild(guild_id)
     existed = guild["discord_links"].pop(pubg_name.lower(), None) is not None
     if existed:
-        save_guild(guild_id, guild)
+        await save_guild(guild_id, guild)
     return existed
 
 
-def get_discord_id(guild_id: int, pubg_name: str) -> int | None:
-    guild = get_guild(guild_id)
+async def get_discord_id(guild_id: int, pubg_name: str) -> int | None:
+    guild = await get_guild(guild_id)
     return guild["discord_links"].get(pubg_name.lower())
+
+
+async def get_mentions_enabled(guild_id: int) -> bool:
+    """Check if mentions are enabled for a guild."""
+    guild = await get_guild(guild_id)
+    return guild.get("mentions_enabled", True)
+
+
+async def set_mentions_enabled(guild_id: int, enabled: bool):
+    """Enable or disable mentions for a guild."""
+    guild = await get_guild(guild_id)
+    guild["mentions_enabled"] = enabled
+    await save_guild(guild_id, guild)
