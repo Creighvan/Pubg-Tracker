@@ -93,12 +93,23 @@ SUPPORT_SERVER_URL = "https://discord.gg/KEUWmwBYV4"
 SUPPORT_SERVER_ID = int(os.environ.get("SUPPORT_SERVER_ID", "1539320166318481459"))
 SUPPORT_FEEDBACK_CHANNEL_ID = int(os.environ.get("SUPPORT_FEEDBACK_CHANNEL_ID", "0"))
 DONATION_URL = "https://ko-fi.com/creighvan"
+BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/creighvan"
 DONATION_MESSAGE = (
-    "☕ **Support PUBG Tracker**\n"
-    "PUBG Tracker is completely free. Donations are optional and help cover hosting, "
-    "development, updates, and future free Bot projects. Donations do not provide "
-    "special Bot features or access.\n"
-    f"Support the project: {DONATION_URL}"
+    "☕ **Support PUBG Tracker Development**\n\n"
+    "PUBG Tracker is completely free to use and will remain so. Your donations help keep the bot running and enable continued development:\n"
+    "• 🖥️ Server hosting and maintenance\n"
+    "• 🚀 New features and improvements\n"
+    "• 🐛 Bug fixes and stability updates\n"
+    "• 📈 PUBG API access and rate limits\n"
+    "• 🎮 Future free bot projects\n\n"
+    "❤️ **Why donate?**\n"
+    "Even small amounts make a big difference in keeping this project alive and improving it for everyone. Your support directly powers the servers and development time.\n\n"
+    "🎁 **What you get:**\n"
+    "Donations are voluntary and don't provide special bot features, but you'll have our eternal gratitude and help ensure PUBG Tracker stays free for everyone!\n\n"
+    "☕ **Support the project:**\n"
+    f"• Ko-Fi: {DONATION_URL}\n"
+    f"• Buy Me a Coffee: {BUY_ME_A_COFFEE_URL}\n\n"
+    "Thank you for considering supporting PUBG Tracker! 🙏"
 )
 
 VALID_GAME_MODES = {"squad-fpp", "squad", "duo-fpp", "duo", "solo-fpp", "solo"}
@@ -1678,6 +1689,139 @@ async def roster(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"**Tracked roster ({len(players)}):**\n" + ", ".join(players)
     )
+
+
+class CheatReportModal(discord.ui.Modal, title="Report Cheater"):
+    accused_name = discord.ui.TextInput(
+        label="Accused Player Name",
+        placeholder="Enter the suspected cheater's PUBG name",
+        required=True,
+    )
+    
+    cheat_type = discord.ui.TextInput(
+        label="Cheat Type",
+        placeholder="e.g., Aimbot, ESP, Wallhack, Speedhack, No Recoil",
+        required=True,
+    )
+    
+    description = discord.ui.TextInput(
+        label="Description",
+        style=discord.TextStyle.long,
+        placeholder="Describe what happened, when, and any specific suspicious behavior",
+        required=True,
+        max_length=1000,
+    )
+    
+    match_id = discord.ui.TextInput(
+        label="Match ID (optional)",
+        placeholder="Enter match ID if available",
+        required=False,
+    )
+    
+    evidence_urls = discord.ui.TextInput(
+        label="Evidence URLs (optional)",
+        style=discord.TextStyle.long,
+        placeholder="Paste URLs to screenshots/video clips (one per line)",
+        required=False,
+        max_length=1000,
+    )
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        reporter_name = interaction.user.display_name
+        accused_name = self.accused_name.value
+        cheat_type = self.cheat_type.value
+        description = self.description.value
+        match_id = self.match_id.value or None
+        evidence_urls = [url.strip() for url in self.evidence_urls.value.split('\n') if url.strip()] if self.evidence_urls.value else None
+        
+        await interaction.response.defer()
+        
+        try:
+            report_id = await storage.add_cheat_report(
+                interaction.guild_id,
+                reporter_name,
+                accused_name,
+                cheat_type,
+                description,
+                match_id,
+                evidence_urls,
+            )
+            
+            # Auto-detect if player is suspicious
+            guild_cfg = await storage.get_guild(interaction.guild_id)
+            players, _ = await pubg.get_players_and_stats([accused_name], game_mode=guild_cfg.get("game_mode", "squad-fpp"))
+            if players:
+                player = players[0]
+                stats = player.get("stats", {})
+                flags = _detect_suspicious_stats(stats)
+                if flags:
+                    await storage.update_suspicious_player(interaction.guild_id, accused_name, stats, flags)
+            
+            embed = discord.Embed(
+                title="🚨 Cheat Report Submitted",
+                color=discord.Color.red(),
+                timestamp=datetime.now(timezone.utc),
+            )
+            embed.add_field(name="Report ID", value=report_id, inline=False)
+            embed.add_field(name="Accused", value=accused_name, inline=True)
+            embed.add_field(name="Cheat Type", value=cheat_type, inline=True)
+            embed.add_field(name="Reporter", value=reporter_name, inline=True)
+            embed.add_field(name="Description", value=description[:500] + "..." if len(description) > 500 else description, inline=False)
+            if match_id:
+                embed.add_field(name="Match ID", value=match_id, inline=False)
+            if evidence_urls:
+                embed.add_field(name="Evidence", value=f"{len(evidence_urls)} file(s) attached", inline=False)
+            
+            await interaction.followup.send(embed=embed)
+            
+            # Notify admin channel if configured
+            channel_id = guild_cfg.get("cheat_report_channel_id")
+            if channel_id:
+                channel = bot.get_channel(channel_id)
+                if channel:
+                    await channel.send(f"🚨 New cheat report submitted by {reporter_name} against **{accused_name}**")
+                    
+        except Exception as e:
+            await interaction.followup.send(f"Error submitting report: {e}")
+
+
+@bot.tree.command(description="Report a suspected cheater with evidence")
+async def reportcheater(interaction: discord.Interaction):
+    await interaction.response.send_modal(CheatReportModal())
+
+
+def _detect_suspicious_stats(stats: dict) -> list[str]:
+    """Detect suspicious statistics that might indicate cheating."""
+    flags = []
+    
+    kills = stats.get("kills", 0)
+    deaths = stats.get("deaths", 0)
+    headshot_kills = stats.get("headshotKills", 0)
+    rounds = stats.get("roundsPlayed", 0)
+    wins = stats.get("wins", 0)
+    damage = stats.get("damageDealt", 0)
+    
+    if rounds == 0:
+        return flags
+    
+    kd = kills / max(deaths, 1)
+    kdr = kills / max(rounds - wins, 1)
+    headshot_rate = (headshot_kills / max(kills, 1)) * 100 if kills > 0 else 0
+    avg_damage = damage / max(rounds, 1)
+    
+    # Suspicious thresholds
+    if kd > 10:
+        flags.append(f"Extremely high K/D: {kd:.2f}")
+    if kdr > 8:
+        flags.append(f"Impossible kill rate: {kdr:.2f} kills/round")
+    if headshot_rate > 80:
+        flags.append(f"Suspicious headshot rate: {headshot_rate:.1f}%")
+    if avg_damage > 2000:
+        flags.append(f"Unrealistic average damage: {avg_damage:.0f}")
+    if wins / rounds > 0.5 and rounds > 10:
+        flags.append(f"Impossible win rate: {(wins/rounds)*100:.1f}%")
+    
+    return flags
 
 
 @bot.tree.command(description="Post aggregated clan stats right now")
