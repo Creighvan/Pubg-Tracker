@@ -150,7 +150,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
-| `/donate` | Show the optional Ko-fi donation link |
+| `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |
 | `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
 | `/setdonationtime <0-23>` | Choose the Sunday Eastern-time donation post time (defaults to noon) |
 | `/setchannel` | Set current channel as the auto-post destination |
