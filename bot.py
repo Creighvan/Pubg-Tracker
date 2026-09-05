@@ -81,6 +81,7 @@ from dotenv import load_dotenv
 
 import storage
 from pubg_api import PubgApiError, PubgClient
+import opgg_scraper
 
 load_dotenv()
 
@@ -628,8 +629,10 @@ def _format_time_ago(iso_str: str | None) -> str:
     return f"{int(hours // 24)} day(s) ago"
 
 
-def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
+    protected_lower = [p.lower() for p in (protected_players or [])]
+    
     embed = discord.Embed(
         title=f"{title} — Last Active Report",
         description=(
@@ -653,10 +656,20 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
         return "🔴"
 
     active_24h = sum(1 for p in players if p.get("last_match_at") and _recency_emoji(p["last_match_at"]) == "🟢")
+    protected_count = len(protected_players or [])
+    
     embed.add_field(name="🟢 Active last 24h", value=str(active_24h), inline=True)
     embed.add_field(name="👥 Tracked players", value=str(len(players)), inline=True)
+    if protected_count > 0:
+        embed.add_field(name="🛡️ Protected players", value=str(protected_count), inline=True)
 
-    lines = [f"{_recency_emoji(p.get('last_match_at'))} **{p['name']}** — {_format_time_ago(p.get('last_match_at'))}" for p in players]
+    lines = []
+    for p in players:
+        recency = _recency_emoji(p.get("last_match_at"))
+        protected_mark = " 🛡️" if p["name"].lower() in protected_lower else ""
+        source_note = f" *(op.gg)*" if p.get("data_source") == "op.gg" else ""
+        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(p.get('last_match_at'))}{source_note}")
+    
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
     chunk_size = 20
     for i in range(0, len(lines), chunk_size):
@@ -672,6 +685,8 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
+    if protected_count > 0:
+        embed.set_footer(text="🛡️ = Protected from inactivity removal (Data source: op.gg for historical data)")
     return embed
 
 
@@ -680,7 +695,21 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     if not guild_cfg["players"]:
         return None
     players, not_found = await pubg.get_last_active_times(guild_cfg["players"])
-    return build_last_active_embed(guild_name, guild_cfg, players, not_found), players
+    
+    # Try OP.GG fallback for players with no recent matches (beyond 14-day API limit)
+    protected_players = await storage.get_protected_players(guild_id)
+    protected_lower = [p.lower() for p in protected_players]
+    
+    for player in players:
+        if not player.get("last_match_date") and player["name"].lower() not in protected_lower:
+            # Player has no recent matches in PUBG API, try OP.GG
+            opgg_data = opgg_scraper.get_opgg_last_active(player["name"])
+            if opgg_data:
+                player["last_match_date"] = opgg_data["last_match_date"]
+                player["days_inactive"] = opgg_data["days_inactive"]
+                player["data_source"] = "op.gg"
+    
+    return build_last_active_embed(guild_name, guild_cfg, players, not_found, protected_players), players
 
 
 def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str) -> discord.Embed:
@@ -801,7 +830,7 @@ def _compute_award_winners(active_players: list[dict]) -> list[tuple[str, str, s
     if wookiee_candidates:
         wookiee = min(wookiee_candidates, key=lambda p: p["daily"]["best_zero_kill_placement"])
         placement = wookiee["daily"]["best_zero_kill_placement"]
-        winners.append(("🌳", "Bush Wookiee", wookiee["name"], f"placed #{placement} with 0 kills that match"))
+        winners.append(("🌳", "Tactical Shrub", wookiee["name"], f"placed #{placement} with 0 kills that match"))
 
     return winners
 
@@ -1677,6 +1706,37 @@ async def removeplayer(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(f"🗑️ Removed **{name}** from the roster.")
     else:
         await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
+
+
+@bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
+@app_commands.describe(name="PUBG name to protect")
+async def addprotected(interaction: discord.Interaction, name: str):
+    added = await storage.add_protected_player(interaction.guild_id, name)
+    if added:
+        await interaction.response.send_message(f"🛡️ Added **{name}** to the protected list. They won't be flagged for removal due to inactivity.")
+    else:
+        await interaction.response.send_message(f"**{name}** is already on the protected list.", ephemeral=True)
+
+
+@bot.tree.command(description="Remove a player from the protected list")
+@app_commands.describe(name="PUBG name to unprotect")
+async def removeprotected(interaction: discord.Interaction, name: str):
+    removed = await storage.remove_protected_player(interaction.guild_id, name)
+    if removed:
+        await interaction.response.send_message(f"🔓 Removed **{name}** from the protected list. They can now be flagged for inactivity removal.")
+    else:
+        await interaction.response.send_message(f"**{name}** wasn't on the protected list.", ephemeral=True)
+
+
+@bot.tree.command(description="List all protected players (immune to inactivity removal)")
+async def listprotected(interaction: discord.Interaction):
+    protected = await storage.get_protected_players(interaction.guild_id)
+    if not protected:
+        await interaction.response.send_message("No protected players. Use `/addprotected` to add players who should be immune to inactivity removal.")
+        return
+    await interaction.response.send_message(
+        f"**Protected players ({len(protected)}):**\n" + ", ".join(protected) + "\n\n🛡️ These players won't be flagged for removal due to inactivity."
+    )
 
 
 @bot.tree.command(description="List everyone currently tracked for this server's clan")

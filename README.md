@@ -18,6 +18,28 @@ stat site does: you manually add player names to a roster with
 `/addplayer`, and the bot looks each one up individually and aggregates
 the results.
 
+## Historical inactivity tracking (beyond 14 days)
+
+The official PUBG API only retains match data for 14 days. To track player
+inactivity beyond this limit, the bot uses **OP.GG as a data source** for
+historical match data when the PUBG API returns no recent matches.
+
+- OP.GG data is used as a fallback for players with no recent matches
+- Data source is properly attributed in reports
+- Rate limiting is implemented to respect OP.GG's service (2 requests/second)
+- This provides inactivity tracking similar to what you see on OP.GG
+
+## Protected player list
+
+You can protect certain players from being flagged for removal due to
+inactivity:
+
+- Use `/addprotected <name>` to add players to the protected list
+- Use `/removeprotected <name>` to remove protection
+- Use `/listprotected` to see all protected players
+- Protected players show with a 🛡️ shield icon in the last active report
+- This is useful for clan leaders, long-term members, or players on extended breaks
+
 ## What you'll need (all free)
 
 1. **A Discord bot token** — https://discord.com/developers/applications
@@ -135,6 +157,9 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/addplayers <names>` | Bulk-add players — paste names separated by commas or newlines |
 | `/removeplayer <name>` | Remove a player |
 | `/roster` | List tracked players |
+| `/addprotected <name>` | Add a player to the protected list (immune to inactivity removal) |
+| `/removeprotected <name>` | Remove a player from the protected list |
+| `/listprotected` | List all protected players |
 | `/clanstats` | Post aggregated stats right now |
 | `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |
