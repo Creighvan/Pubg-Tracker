@@ -5,6 +5,11 @@ stats from the official PUBG API, and posts an aggregated "clan report"
 (kills, wins, win rate, top fraggers) — both on a daily schedule and on
 demand via slash commands.
 
+**Perfect for roster cleanup** — Track inactive clan members who have been
+removed from the actual PUBG clan but still have Discord server access.
+Use the protected player list to keep key members while tracking others
+for removal decisions.
+
 ## Support server
 
 For Bot help, bug reports, feature requests, and service updates, join the
@@ -39,6 +44,31 @@ inactivity:
 - Use `/listprotected` to see all protected players
 - Protected players show with a 🛡️ shield icon in the last active report
 - This is useful for clan leaders, long-term members, or players on extended breaks
+
+### Roster Cleanup Workflow
+
+This feature is designed for managing inactive clan members who have been
+removed from the actual PUBG clan but still have Discord server access:
+
+1. **Protect key players first:**
+   ```
+   /addprotected ClanLeaderName
+   /addprotected Officers
+   /addprotected LongTermMembersOnBreak
+   ```
+
+2. **Monitor the rest:**
+   ```
+   /lastactive                    # Review inactivity regularly
+   ```
+
+3. **Clean up inactive members:**
+   ```
+   /removeplayer InactiveMember   # Remove from tracker
+   ```
+
+Protected players stay on the tracker regardless of inactivity, while
+non-protected players can be identified and removed for roster cleanup.
 
 ## What you'll need (all free)
 
@@ -134,6 +164,8 @@ Then in your Discord server:
 /setchannel                  (run this in the channel you want digests posted to)
 /setgamemode squad-fpp       (optional, this is already the default)
 /clanstats                   (test it immediately)
+/addprotected ClanLeader     (protect key members from inactivity removal)
+/lastactive                  (check inactivity for roster cleanup)
 ```
 
 
@@ -190,7 +222,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setrankedchannel` | Set channel for the daily ranked report (defaults to digest channel) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/setrankedtime <0-23>` | Fixed Eastern-time hour for the ranked report |
-| `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now |
+| `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now (includes 🌳 Tactical Shrub award) |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
@@ -342,3 +374,14 @@ expire, and doesn't require you to leave your own PC on.
   available for the last 14 days. If players haven't played in 15+ days,
   the bot will show a clear "No matches found in the last 14 days" message
   instead of a generic error.
+
+## Daily Highlights Awards
+
+The `/dailyhighlights` command includes fun achievement awards:
+
+- 🌳 **Tactical Shrub** — Awarded to the player with the best placement
+  in a single match with 0 kills (e.g., placed #5 with 0 kills)
+- Other awards for top 10 placements, human vs bot kills, and achievement stats
+
+**Note:** The "Tactical Shrub" award was previously known as "Bush Wookiee"
+and has been renamed for a more tactical-sounding designation.
