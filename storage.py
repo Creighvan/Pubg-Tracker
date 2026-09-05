@@ -11,6 +11,7 @@ import asyncio
 import copy
 import json
 import os
+from datetime import datetime, timezone
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data.json")
 _lock = asyncio.Lock()
@@ -73,6 +74,10 @@ _DEFAULT_GUILD = {
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
+    "cheat_reports": [],  # list of cheat report dicts
+    "suspicious_players": {},  # pubg_name.lower() -> {stats, flags, last_checked}
+    "cheat_report_channel_id": None,  # destination for cheat report notifications
+    "protected_players": [],  # list of PUBG player names protected from inactivity removal
 }
 
 
@@ -211,3 +216,115 @@ async def set_mentions_enabled(guild_id: int, enabled: bool):
     guild = await get_guild(guild_id)
     guild["mentions_enabled"] = enabled
     await save_guild(guild_id, guild)
+
+
+async def add_cheat_report(
+    guild_id: int,
+    reporter_name: str,
+    accused_name: str,
+    cheat_type: str,
+    description: str,
+    match_id: str | None = None,
+    evidence_urls: list[str] | None = None,
+) -> str:
+    """Add a cheat report and return the report ID."""
+    guild = await get_guild(guild_id)
+    report_id = f"report_{len(guild['cheat_reports']) + 1}_{int(datetime.now(timezone.utc).timestamp())}"
+    report = {
+        "report_id": report_id,
+        "reported_at": datetime.now(timezone.utc).isoformat(),
+        "reporter_name": reporter_name,
+        "accused_name": accused_name,
+        "accused_name_lower": accused_name.lower(),
+        "cheat_type": cheat_type,
+        "description": description,
+        "match_id": match_id,
+        "evidence_urls": evidence_urls or [],
+        "status": "pending",  # pending, submitted, resolved
+        "krafton_ticket_id": None,
+    }
+    guild["cheat_reports"].append(report)
+    await save_guild(guild_id, guild)
+    return report_id
+
+
+async def get_cheat_reports(guild_id: int) -> list[dict]:
+    """Get all cheat reports for a guild."""
+    guild = await get_guild(guild_id)
+    return guild.get("cheat_reports", [])
+
+
+async def get_cheat_report(guild_id: int, report_id: str) -> dict | None:
+    """Get a specific cheat report by ID."""
+    guild = await get_guild(guild_id)
+    for report in guild.get("cheat_reports", []):
+        if report["report_id"] == report_id:
+            return report
+    return None
+
+
+async def update_cheat_report_status(guild_id: int, report_id: str, status: str, krafton_ticket_id: str | None = None):
+    """Update the status of a cheat report."""
+    guild = await get_guild(guild_id)
+    for report in guild.get("cheat_reports", []):
+        if report["report_id"] == report_id:
+            report["status"] = status
+            if krafton_ticket_id:
+                report["krafton_ticket_id"] = krafton_ticket_id
+            await save_guild(guild_id, guild)
+            return True
+    return False
+
+
+async def update_suspicious_player(guild_id: int, player_name: str, stats: dict, flags: list[str]):
+    """Update or add a suspicious player entry."""
+    guild = await get_guild(guild_id)
+    player_lower = player_name.lower()
+    guild["suspicious_players"][player_lower] = {
+        "name": player_name,
+        "stats": stats,
+        "flags": flags,
+        "last_checked": datetime.now(timezone.utc).isoformat(),
+        "report_count": guild["suspicious_players"].get(player_lower, {}).get("report_count", 0) + 1,
+    }
+    await save_guild(guild_id, guild)
+
+
+async def get_suspicious_players(guild_id: int) -> dict[str, dict]:
+    """Get all suspicious players for a guild."""
+    guild = await get_guild(guild_id)
+    return guild.get("suspicious_players", {})
+
+
+async def add_protected_player(guild_id: int, player_name: str) -> bool:
+    """Add a player to the protected list (immune to inactivity removal). Returns True if added."""
+    guild = await get_guild(guild_id)
+    lowered = [p.lower() for p in guild["protected_players"]]
+    if player_name.lower() in lowered:
+        return False
+    guild["protected_players"].append(player_name)
+    await save_guild(guild_id, guild)
+    return True
+
+
+async def remove_protected_player(guild_id: int, player_name: str) -> bool:
+    """Remove a player from the protected list. Returns True if removed."""
+    guild = await get_guild(guild_id)
+    before = len(guild["protected_players"])
+    guild["protected_players"] = [p for p in guild["protected_players"] if p.lower() != player_name.lower()]
+    changed = len(guild["protected_players"]) != before
+    if changed:
+        await save_guild(guild_id, guild)
+    return changed
+
+
+async def get_protected_players(guild_id: int) -> list[str]:
+    """Get all protected players for a guild."""
+    guild = await get_guild(guild_id)
+    return guild.get("protected_players", [])
+
+
+async def is_protected_player(guild_id: int, player_name: str) -> bool:
+    """Check if a player is on the protected list."""
+    guild = await get_guild(guild_id)
+    return player_name.lower() in [p.lower() for p in guild.get("protected_players", [])]
