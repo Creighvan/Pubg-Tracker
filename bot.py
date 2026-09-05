@@ -81,7 +81,6 @@ from dotenv import load_dotenv
 
 import storage
 from pubg_api import PubgApiError, PubgClient
-import opgg_scraper
 
 load_dotenv()
 
@@ -665,10 +664,10 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
 
     lines = []
     for p in players:
-        recency = _recency_emoji(p.get("last_match_at"))
+        match_date = p.get("last_match_at")
+        recency = _recency_emoji(match_date)
         protected_mark = " 🛡️" if p["name"].lower() in protected_lower else ""
-        source_note = f" *(op.gg)*" if p.get("data_source") == "op.gg" else ""
-        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(p.get('last_match_at'))}{source_note}")
+        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}")
     
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
     chunk_size = 20
@@ -686,7 +685,7 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
             inline=False,
         )
     if protected_count > 0:
-        embed.set_footer(text="🛡️ = Protected from inactivity removal (Data source: op.gg for historical data)")
+        embed.set_footer(text="🛡️ = Protected from inactivity removal (PUBG API data: 14-day limit)")
     return embed
 
 
@@ -696,19 +695,11 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
         return None
     players, not_found = await pubg.get_last_active_times(guild_cfg["players"])
     
-    # Try OP.GG fallback for players with no recent matches (beyond 14-day API limit)
+    # Note: OP.GG scraping disabled due to website structure changes and blocking
+    # Historical data beyond 14 days is not available at this time
+    # The PUBG API has a hard 14-day limit for match data retention
+    
     protected_players = await storage.get_protected_players(guild_id)
-    protected_lower = [p.lower() for p in protected_players]
-    
-    for player in players:
-        if not player.get("last_match_date") and player["name"].lower() not in protected_lower:
-            # Player has no recent matches in PUBG API, try OP.GG
-            opgg_data = opgg_scraper.get_opgg_last_active(player["name"])
-            if opgg_data:
-                player["last_match_date"] = opgg_data["last_match_date"]
-                player["days_inactive"] = opgg_data["days_inactive"]
-                player["data_source"] = "op.gg"
-    
     return build_last_active_embed(guild_name, guild_cfg, players, not_found, protected_players), players
 
 
