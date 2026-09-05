@@ -23,16 +23,12 @@ stat site does: you manually add player names to a roster with
 `/addplayer`, and the bot looks each one up individually and aggregates
 the results.
 
-## Historical inactivity tracking (beyond 14 days)
+## Data retention limitation
 
-The official PUBG API only retains match data for 14 days. To track player
-inactivity beyond this limit, the bot uses **OP.GG as a data source** for
-historical match data when the PUBG API returns no recent matches.
-
-- OP.GG data is used as a fallback for players with no recent matches
-- Data source is properly attributed in reports
-- Rate limiting is implemented to respect OP.GG's service (2 requests/second)
-- This provides inactivity tracking similar to what you see on OP.GG
+The official PUBG API only retains match data for 14 days. Players with no
+recent matches will show "No recent matches found" which indicates they haven't
+played in the last 14 days according to the PUBG API. This is a hard limit
+imposed by PUBG's API and cannot be extended.
 
 ## Protected player list
 
@@ -222,7 +218,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setrankedchannel` | Set channel for the daily ranked report (defaults to digest channel) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/setrankedtime <0-23>` | Fixed Eastern-time hour for the ranked report |
-| `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now (includes 🌳 Tactical Shrub award) |
+| `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
