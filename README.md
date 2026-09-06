@@ -39,6 +39,7 @@ tracking beyond the PUBG API limit without manual intervention.
 - Auto-counting starts when a player has no recent matches (14+ days)
 - Days continue to increment with each check
 - Players show with *(auto-count)* marker in reports
+- **Auto-resets when player returns** - if a player plays a match, tracking automatically resets
 - More accurate than manual entry for ongoing inactivity
 
 ## Manual inactive date override
