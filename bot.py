@@ -176,7 +176,8 @@ async def send_audit_log(
     description: str,
     user: discord.User | discord.Member | None = None,
     details: dict | None = None,
-    is_automated: bool = False
+    is_automated: bool = False,
+    report_embed: discord.Embed | None = None
 ):
     """Send an audit log entry to the central audit server or custom channel."""
     if not AUDIT_SERVER_ID or not AUDIT_LOG_CHANNEL_ID:
@@ -213,30 +214,40 @@ async def send_audit_log(
         
         guild_name = source_guild.name if source_guild else f"Unknown ({guild_id})"
         
-        # Build embed
-        color = discord.Color.blue() if is_automated else discord.Color.green()
-        title = f"🤖 {event_type}" if is_automated else f"👤 {event_type}"
-        
-        embed = discord.Embed(
-            title=title,
-            description=description,
-            color=color,
-            timestamp=datetime.now(timezone.utc)
-        )
-        
-        embed.add_field(name="Server", value=f"{guild_name} (`{guild_id}`)", inline=True)
-        
-        if user:
-            embed.add_field(name="User", value=f"{user.display_name} (`{user.id}`)", inline=True)
+        # If we have a report embed, send it directly with a footer
+        if report_embed:
+            # Add footer with server info
+            report_embed.set_footer(
+                text=f"Server: {guild_name} ({guild_id}) | "
+                      f"User: {user.display_name if user else 'Automated'} ({user.id if user else 'N/A'}) | "
+                      f"Event: {event_type}"
+            )
+            await channel.send(embed=report_embed)
         else:
-            embed.add_field(name="User", value="Automated Event", inline=True)
-        
-        if details:
-            details_text = "\n".join(f"**{k}**: {v}" for k, v in details.items())
-            if details_text:
-                embed.add_field(name="Details", value=details_text[:1024], inline=False)
-        
-        await channel.send(embed=embed)
+            # Build metadata embed
+            color = discord.Color.blue() if is_automated else discord.Color.green()
+            title = f"🤖 {event_type}" if is_automated else f"👤 {event_type}"
+            
+            embed = discord.Embed(
+                title=title,
+                description=description,
+                color=color,
+                timestamp=datetime.now(timezone.utc)
+            )
+            
+            embed.add_field(name="Server", value=f"{guild_name} (`{guild_id}`)", inline=True)
+            
+            if user:
+                embed.add_field(name="User", value=f"{user.display_name} (`{user.id}`)", inline=True)
+            else:
+                embed.add_field(name="User", value="Automated Event", inline=True)
+            
+            if details:
+                details_text = "\n".join(f"**{k}**: {v}" for k, v in details.items())
+                if details_text:
+                    embed.add_field(name="Details", value=details_text[:1024], inline=False)
+            
+            await channel.send(embed=embed)
     except Exception as e:
         # Silently fail audit logging to avoid breaking bot functionality
         pass
@@ -1437,7 +1448,8 @@ async def auto_digest():
                     "Scheduled Report Posted",
                     f"Clan digest posted automatically",
                     is_automated=True,
-                    details={"Report Type": "Clan Digest", "Players": len(players)}
+                    details={"Report Type": "Clan Digest", "Players": len(players)},
+                    report_embed=embed
                 )
         except PubgApiError as e:
             print(f"[auto_digest] PUBG API error for guild {guild_id}: {e}")
@@ -1484,7 +1496,8 @@ async def auto_last_active():
                     "Scheduled Report Posted",
                     f"Last active report posted automatically",
                     is_automated=True,
-                    details={"Report Type": "Last Active", "Players": len(players)}
+                    details={"Report Type": "Last Active", "Players": len(players)},
+                    report_embed=embed
                 )
         except PubgApiError as e:
             print(f"[auto_last_active] PUBG API error for guild {guild_id}: {e}")
@@ -1684,12 +1697,20 @@ async def auto_donations():
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
             await storage.save_guild(guild_id, guild_cfg)
+            # Create embed for donation message
+            donation_embed = discord.Embed(
+                title="☕ Donation Message",
+                description=DONATION_MESSAGE,
+                color=discord.Color.gold(),
+                timestamp=datetime.now(timezone.utc)
+            )
             await send_audit_log(
                 guild_id,
                 "Scheduled Report Posted",
                 f"Donation message posted automatically",
                 is_automated=True,
-                details={"Report Type": "Donation Message"}
+                details={"Report Type": "Donation Message"},
+                report_embed=donation_embed
             )
         except Exception as e:
             print(f"[auto_donations] Could not post for guild {guild_id}: {e}")
@@ -1770,7 +1791,8 @@ async def auto_chicken_dinner():
                 "Automated Event",
                 f"Chicken dinner alert posted",
                 is_automated=True,
-                details={"Event Type": "Chicken Dinner", "Wins": len(new_wins)}
+                details={"Event Type": "Chicken Dinner", "Wins": len(new_wins)},
+                report_embed=embed
             )
         except Exception as e:
             print(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
@@ -2203,7 +2225,8 @@ async def clanstats(interaction: discord.Interaction):
         "Command Executed",
         f"Clan stats report generated manually",
         user=interaction.user,
-        details={"Command": "/clanstats", "Players": len(players)}
+        details={"Command": "/clanstats", "Players": len(players)},
+        report_embed=embed
     )
 
 
@@ -2520,7 +2543,8 @@ async def lastactive(interaction: discord.Interaction):
         "Command Executed",
         f"Last active report generated manually",
         user=interaction.user,
-        details={"Command": "/lastactive", "Players": len(players)}
+        details={"Command": "/lastactive", "Players": len(players)},
+        report_embed=embed
     )
 
 
@@ -2544,8 +2568,10 @@ async def setactivitytime(interaction: discord.Interaction, hour: app_commands.R
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["activity_hour_est"] = hour
     guild_cfg["activity_minute_est"] = minute.value if minute else 0
+    # Clear the last posted timestamp so it will post at the new time
+    guild_cfg["last_activity_posted_at"] = None
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Last-active report will now post daily at **{hour:02d}:{guild_cfg['activity_minute_est']:02d} Eastern**.")
+    await interaction.response.send_message(f"✅ Last-active report will now post daily at **{hour:02d}:{guild_cfg['activity_minute_est']:02d} Eastern**. It will post at the next scheduled time.")
 
 
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
