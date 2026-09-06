@@ -2534,6 +2534,68 @@ async def setactivitytime(interaction: discord.Interaction, hour: app_commands.R
     await interaction.response.send_message(f"✅ Last-active report will now post daily at **{hour:02d}:{guild_cfg['activity_minute_est']:02d} Eastern**.")
 
 
+@bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
+async def setauditchannel(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_USER_IDS:
+        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        return
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    guild_cfg["audit_log_channel_id"] = interaction.channel_id
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message(
+        f"✅ Audit logs for this server will now post in {interaction.channel.mention} instead of the central audit server."
+    )
+
+
+@bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
+async def showauditconfig(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_USER_IDS:
+        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        return
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    custom_channel_id = guild_cfg.get("audit_log_channel_id")
+    
+    embed = discord.Embed(
+        title="📋 Audit Logging Configuration",
+        color=discord.Color.blue(),
+        timestamp=datetime.now(timezone.utc)
+    )
+    
+    if AUDIT_SERVER_ID and AUDIT_LOG_CHANNEL_ID:
+        embed.add_field(
+            name="Central Audit Server",
+            value=f"Server ID: `{AUDIT_SERVER_ID}`\nChannel ID: `{AUDIT_LOG_CHANNEL_ID}`",
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="Central Audit Server",
+            value="❌ Not configured (AUDIT_SERVER_ID or AUDIT_LOG_CHANNEL_ID not set in .env)",
+            inline=False
+        )
+    
+    if custom_channel_id:
+        embed.add_field(
+            name="Custom Channel for This Server",
+            value=f"Channel ID: `{custom_channel_id}` (overrides central server)",
+            inline=False
+        )
+    else:
+        embed.add_field(
+            name="Custom Channel for This Server",
+            value="Not set (using central audit server)",
+            inline=False
+        )
+    
+    embed.add_field(
+        name="What Gets Logged",
+        value="• Manual commands (add/remove player, protected players, inactive dates)\n• Automated events (scheduled reports, chicken dinner alerts)\n• Bot server joins/leaves",
+        inline=False
+    )
+    
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
 async def _run_ranked_command(interaction: discord.Interaction, game_mode: str, queue_label: str):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
