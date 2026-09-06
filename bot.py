@@ -1755,6 +1755,45 @@ async def cleanprotected(interaction: discord.Interaction):
     await interaction.response.send_message(f"🧹 Cleaned up {removed} duplicate/empty entries. Protected players: {len(protected)}")
 
 
+@bot.tree.command(description="Clear and reset the entire protected player list")
+async def resetprotected(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    guild_cfg["protected_players"] = []
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message("🗑️ Protected player list has been cleared. Use `/addprotected` to rebuild it.")
+
+
+@bot.tree.command(description="Bulk add protected players (one per line or comma-separated)")
+@app_commands.describe(players="Player names (one per line or comma-separated)")
+async def addprotectedbulk(interaction: discord.Interaction, players: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    
+    # Parse the input - handle both comma and newline separators
+    player_list = [p.strip() for p in players.replace(',', '\n').split('\n')]
+    player_list = [p for p in player_list if p]  # Remove empty entries
+    
+    # Get current protected list
+    current_protected = set(p.lower() for p in guild_cfg["protected_players"])
+    
+    added = []
+    duplicates = []
+    
+    for player in player_list:
+        if player.lower() in current_protected:
+            duplicates.append(player)
+        else:
+            guild_cfg["protected_players"].append(player)
+            current_protected.add(player.lower())
+            added.append(player)
+    
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    
+    message = f"✅ Added **{len(added)}** protected player(s):\n" + ", ".join(added)
+    if duplicates:
+        message += f"\n⚠️ Skipped {len(duplicates)} already protected: " + ", ".join(duplicates)
+    await interaction.response.send_message(message)
+
+
 @bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
 async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
