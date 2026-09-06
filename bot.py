@@ -2515,7 +2515,7 @@ async def setactivitychannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["last_activity_channel_id"] = interaction.channel_id
     guild_cfg["activity_enabled"] = True
-    guild_cfg["last_activity_posted_at"] = datetime.now(timezone.utc).isoformat()
+    # Don't set last_activity_posted_at - let the scheduler post on the next scheduled time
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
         f"✅ Last-active report will post in {interaction.channel.mention} every 24 hours. "
