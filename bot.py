@@ -2547,6 +2547,19 @@ async def setauditchannel(interaction: discord.Interaction):
     )
 
 
+@bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
+async def clearauditchannel(interaction: discord.Interaction):
+    if interaction.user.id not in ADMIN_USER_IDS:
+        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        return
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    guild_cfg["audit_log_channel_id"] = None
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message(
+        "✅ Custom audit channel removed. This server will now use the central audit server for logs."
+    )
+
+
 @bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
 async def showauditconfig(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -2577,13 +2590,13 @@ async def showauditconfig(interaction: discord.Interaction):
     if custom_channel_id:
         embed.add_field(
             name="Custom Channel for This Server",
-            value=f"Channel ID: `{custom_channel_id}` (overrides central server)",
+            value=f"Channel ID: `{custom_channel_id}` (overrides central server)\nUse `/clearauditchannel` to remove and use central server",
             inline=False
         )
     else:
         embed.add_field(
             name="Custom Channel for This Server",
-            value="Not set (using central audit server)",
+            value="Not set (using central audit server)\nUse `/setauditchannel` to set a custom channel",
             inline=False
         )
     

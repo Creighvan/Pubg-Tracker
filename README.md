@@ -114,6 +114,7 @@ Each log entry includes:
 Each server can optionally have its own audit log channel instead of using the central one:
 
 - `/setauditchannel` - [Admin] Set a custom audit channel for this server (overrides central server)
+- `/clearauditchannel` - [Admin] Remove custom audit channel and use central audit server
 - `/showauditconfig` - [Admin] Show current audit logging configuration for this server
 
 These commands are admin-only and require your Discord user ID to be set in the `ADMIN_USER_IDS` environment variable.
@@ -325,6 +326,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/botservers [secret_key]` | **Admin/Owner**: List all servers the bot is in, member counts, and tracked player counts (ephemeral) |
 | `/askfeedback [channel] [secret_key]` | **Admin/Owner**: Post an interactive feedback & suggestions prompt embed with a submission popup modal |
 | `/setauditchannel` | **Admin**: Set a custom audit log channel for this server (overrides central audit server) |
+| `/clearauditchannel` | **Admin**: Remove custom audit channel and use central audit server |
 | `/showauditconfig` | **Admin**: Show current audit logging configuration for this server |
 
 ### Chicken Dinner win alerts
