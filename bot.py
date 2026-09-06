@@ -2198,6 +2198,13 @@ async def clanstats(interaction: discord.Interaction):
         return
     embed, players = result
     await interaction.followup.send(embed=embed)
+    await send_audit_log(
+        interaction.guild_id,
+        "Command Executed",
+        f"Clan stats report generated manually",
+        user=interaction.user,
+        details={"Command": "/clanstats", "Players": len(players)}
+    )
 
 
 @bot.tree.command(description="Manually post today's clan digest to this channel")
@@ -2508,6 +2515,13 @@ async def lastactive(interaction: discord.Interaction):
         return
     embed, players = result
     await interaction.followup.send(embed=embed)
+    await send_audit_log(
+        interaction.guild_id,
+        "Command Executed",
+        f"Last active report generated manually",
+        user=interaction.user,
+        details={"Command": "/lastactive", "Players": len(players)}
+    )
 
 
 @bot.tree.command(description="Set this channel for the 24-hour 'last active' report (defaults to the digest channel)")
