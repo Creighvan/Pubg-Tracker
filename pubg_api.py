@@ -439,7 +439,7 @@ class PubgClient:
         }
 
     async def get_daily_activity_report(
-        self, names: list[str], hours: int = 24, max_matches_checked: int = 10
+        self, names: list[str], hours: int = 24, max_matches_checked: int = None
     ) -> tuple[list[dict], list[str]]:
         """
         For each roster player, checks all matches since daily reset (3am KST)
@@ -450,7 +450,7 @@ class PubgClient:
 
         This is much heavier than the other reports: it downloads full
         match telemetry (can be a few MB per match). To keep this reliable
-        for large rosters, the report checks up to max_matches_checked matches per player.
+        for large rosters, the report checks all matches for each player in the daily window.
         Matches shared by multiple squadmates are fetched and parsed once.
 
         Returns (players, not_found) where each player dict has a "daily"
@@ -562,7 +562,7 @@ class PubgClient:
                 "kills": 0, "damageDealt": 0.0, "headshotKills": 0,
                 "best_match_kills": 0, "best_match_damage": 0.0, "best_match_headshots": 0,
             }
-            for match_id in p.get("match_ids", [])[:max_matches_checked]:
+            for match_id in p.get("match_ids", []):
                 try:
                     details = await get_match(match_id)
                 except PubgApiError as e:

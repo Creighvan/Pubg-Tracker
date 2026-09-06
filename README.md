@@ -478,7 +478,7 @@ The `/dailyhighlights` command includes fun achievement awards based on matches 
 
 **Important changes:**
 - The report now checks **all matches since 3am KST daily reset** (not just the last 24 hours)
-- It reviews **up to 10 matches per player** to find the **best single-match stats** (highest kills, damage, etc.)
+- It reviews **ALL matches for each player** in the daily window to find the **best single-match stats** (highest kills, damage, etc.)
 - Best single-match stats are displayed instead of aggregated totals
 - Supports **10 languages** with automatic detection: English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu
 
