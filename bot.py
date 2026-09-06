@@ -628,7 +628,7 @@ def _format_time_ago(iso_str: str | None) -> str:
     return f"{int(hours // 24)} day(s) ago"
 
 
-def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
@@ -664,13 +664,21 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
 
     lines = []
     for p in players:
-        match_date = p.get("last_match_at")
+        # Check for manual inactive date override
+        manual_date = guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower())
+        if manual_date:
+            match_date = manual_date
+            source_note = " *(manual)*"
+        else:
+            match_date = p.get("last_match_at")
+            source_note = ""
+        
         recency = _recency_emoji(match_date)
         # Case-insensitive comparison for protected players
         player_lower = p["name"].lower().strip()
         is_protected = player_lower in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
-        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}")
+        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}{source_note}")
     
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
     chunk_size = 20
@@ -688,7 +696,7 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
             inline=False,
         )
     if protected_count > 0:
-        embed.set_footer(text="🛡️ = Protected from inactivity removal (PUBG API data: 14-day limit)")
+        embed.set_footer(text="🛡️ = Protected from inactivity removal (PUBG API: 14-day limit, use /setinactivedate for historical data)")
     return embed
 
 
@@ -699,11 +707,11 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     players, not_found = await pubg.get_last_active_times(guild_cfg["players"])
     
     # Note: OP.GG scraping disabled due to website structure changes and blocking
-    # Historical data beyond 14 days is not available at this time
+    # Historical data beyond 14 days is now handled via manual inactive dates
     # The PUBG API has a hard 14-day limit for match data retention
     
     protected_players = await storage.get_protected_players(guild_id)
-    return build_last_active_embed(guild_name, guild_cfg, players, not_found, protected_players), players
+    return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
 
 
 def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str) -> discord.Embed:
@@ -1731,6 +1739,29 @@ async def listprotected(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"**Protected players ({len(protected)}):**\n" + ", ".join(protected) + "\n\n🛡️ These players won't be flagged for removal due to inactivity."
     )
+
+
+@bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")
+@app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
+async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    from datetime import datetime, timedelta, timezone
+    inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
+    guild_cfg["manual_inactive_dates"][name.lower()] = inactive_date
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will override the PUBG API data.")
+
+
+@bot.tree.command(description="Remove manual inactive date for a player")
+@app_commands.describe(name="PUBG name")
+async def removeinactivedate(interaction: discord.Interaction, name: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    if name.lower() in guild_cfg.get("manual_inactive_dates", {}):
+        del guild_cfg["manual_inactive_dates"][name.lower()]
+        await storage.save_guild(interaction.guild_id, guild_cfg)
+        await interaction.response.send_message(f"✅ Removed manual inactive date for **{name}**. Will use PUBG API data.")
+    else:
+        await interaction.response.send_message(f"**{name}** doesn't have a manual inactive date set.", ephemeral=True)
 
 
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
