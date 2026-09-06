@@ -46,8 +46,11 @@ You can protect certain players from being flagged for removal due to
 inactivity:
 
 - Use `/addprotected <name>` to add players to the protected list
+- Use `/addprotectedbulk <players>` to bulk add protected players (one per line or comma-separated)
 - Use `/removeprotected <name>` to remove protection
-- Use `/listprotected` to see all protected players
+- Use `/listprotected` to see all protected players (auto-cleans duplicates)
+- Use `/cleanprotected` to clean up duplicate/empty entries
+- Use `/resetprotected` to clear and rebuild the entire protected list
 - Protected players show with a 🛡️ shield icon in the last active report
 - This is useful for clan leaders, long-term members, or players on extended breaks
 
@@ -58,10 +61,14 @@ removed from the actual PUBG clan but still have Discord server access:
 
 1. **Protect key players first:**
    ```
-   /addprotected ClanLeaderName
-   /addprotected Officers
-   /addprotected LongTermMembersOnBreak
+   /addprotectedbulk
+   Cipher617
+   Creighvan
+   Azimuth-360
+   2dope_
+   rustybones49801
    ```
+   *(Paste your key members, one per line)*
 
 2. **Monitor the rest:**
    ```
@@ -71,6 +78,12 @@ removed from the actual PUBG clan but still have Discord server access:
 3. **Clean up inactive members:**
    ```
    /removeplayer InactiveMember   # Remove from tracker
+   ```
+
+4. **Fix corrupted lists:**
+   ```
+   /cleanprotected                # Remove duplicates/empty entries
+   /resetprotected               # Clear and rebuild if needed
    ```
 
 Protected players stay on the tracker regardless of inactivity, while
@@ -196,9 +209,11 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/removeplayer <name>` | Remove a player |
 | `/roster` | List tracked players |
 | `/addprotected <name>` | Add a player to the protected list (immune to inactivity removal) |
+| `/addprotectedbulk <players>` | Bulk add protected players (one per line or comma-separated) |
 | `/removeprotected <name>` | Remove a player from the protected list |
 | `/listprotected` | List all protected players (auto-cleans duplicates) |
 | `/cleanprotected` | Clean up protected player list (remove duplicates/empty entries) |
+| `/resetprotected` | Clear and reset the entire protected player list |
 | `/setinactivedate <name> <days_ago>` | Set manual inactive date for a player (beyond 14-day API limit) |
 | `/removeinactivedate <name>` | Remove manual inactive date for a player |
 | `/clanstats` | Post aggregated stats right now |
