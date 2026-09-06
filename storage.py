@@ -30,6 +30,7 @@ _DEFAULT_GUILD = {
     "activity_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
     "activity_minute_est": 0,  # 0, 15, 30, or 45
     "last_activity_posted_at": None,  # ISO timestamp of the last activity report
+    "last_activity_message_id": None,  # message ID for live-updating last active report
     "ranked_channel_id": None,  # where the 24h ranked TPP report posts
     "ranked_enabled": True,
     "ranked_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
