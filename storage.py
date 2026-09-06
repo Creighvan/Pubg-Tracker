@@ -78,7 +78,7 @@ _DEFAULT_GUILD = {
     "suspicious_players": {},  # pubg_name.lower() -> {stats, flags, last_checked}
     "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
-    "manual_inactive_dates": {},  # pubg_name.lower() -> iso date string for manual override
+    "manual_inactive_dates": {},  # pubg_name.lower() -> {"date": iso_date, "set_at": iso_timestamp}
     "inactive_since_dates": {},  # pubg_name.lower() -> iso date when player first hit 14-day mark
 }
 

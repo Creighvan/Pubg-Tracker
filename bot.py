@@ -721,8 +721,13 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
             # Player has no recent matches (beyond 14-day API limit)
             
             # Check if we have manual override first
-            if manual_date := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
-                player["last_match_date"] = manual_date
+            if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
+                # Increment manual date daily based on when it was set
+                manual_date = datetime.fromisoformat(manual_data["date"])
+                set_at = datetime.fromisoformat(manual_data["set_at"])
+                days_since_set = (datetime.now(timezone.utc) - set_at).days
+                incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
+                player["last_match_date"] = incremented_date
                 player["data_source"] = "manual"
                 continue
             
@@ -1843,9 +1848,12 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
     guild_cfg = await storage.get_guild(interaction.guild_id)
     from datetime import datetime, timedelta, timezone
     inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
-    guild_cfg["manual_inactive_dates"][name.lower()] = inactive_date
+    guild_cfg["manual_inactive_dates"][name.lower()] = {
+        "date": inactive_date,
+        "set_at": datetime.now(timezone.utc).isoformat()
+    }
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will override the PUBG API data.")
+    await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will increment daily until they return to PUBG.")
 
 
 @bot.tree.command(description="Remove manual inactive date for a player")

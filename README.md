@@ -48,10 +48,11 @@ tracking beyond the PUBG API limit without manual intervention.
 For more precise control or when you have specific historical data from other
 sources (like OP.GG manual lookup), you can manually set inactive dates:
 
-- `/setinactivedate <name> <days_ago>` - Set manual inactive date (1-365 days)
+- `/setinactivedate <name> <days_ago>` - Set manual inactive date (1-365 days, increments daily)
 - `/removeinactivedate <name>` - Remove manual override
 - `/resetinactivedate <name>` - Reset auto-counting for a specific player
 - Players with manual dates show with *(manual)* marker in reports
+- Manual dates increment daily just like auto-counting (both auto-reset when player returns)
 
 ## Protected player list
 
