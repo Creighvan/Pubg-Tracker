@@ -628,7 +628,7 @@ def _format_time_ago(iso_str: str | None) -> str:
     return f"{int(hours // 24)} day(s) ago"
 
 
-def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+async def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
@@ -698,7 +698,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             inline=False,
         )
     if protected_count > 0:
-        embed.set_footer(text="🛡️ = Protected from inactivity removal (Auto-count: days beyond 14-day API limit)")
+        embed.set_footer(text="🛡️ = Protected from inactivity removal (Auto-count & manual dates auto-reset when player returns)")
     return embed
 
 
@@ -743,9 +743,15 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                 player["data_source"] = "auto_count"
         else:
             # Player has recent matches (active within 14 days)
-            # Clean up their inactive_since_date if they were being auto-counted
+            # Clean up both auto-counting and manual overrides
+            cleaned = False
             if player_lower in guild_cfg.get("inactive_since_dates", {}):
                 del guild_cfg["inactive_since_dates"][player_lower]
+                cleaned = True
+            if player_lower in guild_cfg.get("manual_inactive_dates", {}):
+                del guild_cfg["manual_inactive_dates"][player_lower]
+                cleaned = True
+            if cleaned:
                 await storage.save_guild(guild_id, guild_cfg)
     
     return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
