@@ -718,10 +718,6 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
-    # Debug logging
-    print(f"[build_last_active_embed] Guild {guild_id}: {len(protected_players or [])} protected players: {protected_players}")
-    print(f"[build_last_active_embed] Protected lower: {protected_lower}")
-    
     embed = discord.Embed(
         title=f"{title} — Last Active Report",
         description=(
@@ -771,8 +767,6 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
         player_lower = p["name"].lower().strip()
         is_protected = player_lower in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
-        if is_protected:
-            print(f"[build_last_active_embed] Protected player found: {p['name']} (lower: {player_lower})")
         lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}{source_note}")
     
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
@@ -806,7 +800,6 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     # Historical data beyond 14 days: automatic day counting from 14-day mark
     # The PUBG API has a hard 14-day limit for match data retention
     protected_players = await storage.get_protected_players(guild_id)
-    print(f"[fetch_last_active_report] Guild {guild_id}: Retrieved {len(protected_players)} protected players: {protected_players}")
     
     from datetime import datetime, timedelta, timezone
     
