@@ -40,6 +40,7 @@ tracking beyond the PUBG API limit without manual intervention.
 - Days continue to increment with each check
 - Players show with *(auto-count)* marker in reports
 - **Auto-resets when player returns** - if a player plays a match, tracking automatically resets
+- **Manual dates also auto-reset** - when player returns, manual overrides are cleared too
 - More accurate than manual entry for ongoing inactivity
 
 ## Manual inactive date override
