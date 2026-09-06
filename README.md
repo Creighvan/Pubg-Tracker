@@ -312,7 +312,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setrankedchannel` | Set channel for the daily ranked report (defaults to digest channel) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/setrankedtime <0-23>` | Fixed Eastern-time hour for the ranked report |
-| `/dailyhighlights` | Show last-24h fun-title awards + top 10 + human/bot kills, right now |
+| `/dailyhighlights` | Show daily-reset fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
@@ -470,11 +470,17 @@ expire, and doesn't require you to leave your own PC on.
 
 ## Daily Highlights Awards
 
-The `/dailyhighlights` command includes fun achievement awards:
+The `/dailyhighlights` command includes fun achievement awards based on matches played since the daily reset (3am KST):
 
 - 🌳 **Tactical Shrub** — Awarded to the player with the best placement
   in a single match with 0 kills (e.g., placed #5 with 0 kills)
 - Other awards for top 10 placements, human vs bot kills, and achievement stats
+
+**Important changes:**
+- The report now checks **all matches since 3am KST daily reset** (not just the last 24 hours)
+- It reviews **up to 10 matches per player** to find the **best single-match stats** (highest kills, damage, etc.)
+- Best single-match stats are displayed instead of aggregated totals
+- Supports **10 languages** with automatic detection: English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu
 
 **Note:** The "Tactical Shrub" award was previously known as "Bush Wookiee"
 and has been renamed for a more tactical-sounding designation.

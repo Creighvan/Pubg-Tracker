@@ -974,10 +974,10 @@ def _compute_award_winners(active_players: list[dict]) -> list[tuple[str, str, s
 def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
     active_players = [p for p in players if p["daily"]["matches"] > 0]
-
+    
     embed = discord.Embed(
-        title=f"{title} — Last {hours}h Highlights",
-        description=f"Based on {len(active_players)} player(s) who played in the last {hours} hours.",
+        title=f"{title} — Daily Highlights (Fun Titles)",
+        description=f"Based on {len(active_players)} player(s) who played since daily reset (3am KST).",
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -998,13 +998,16 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
     for emoji, label, winner_name, val_str in _compute_award_winners(active_players):
         embed.add_field(name=f"{emoji} {label}", value=f"**{winner_name}** — {val_str}", inline=True)
 
-    # Top 10 overall, ranked by kills, with human/bot kill split
+    # Top 10 overall, ranked by best single-match kills, with human/bot kill split
     lines = []
     for i, p in enumerate(active_players[:10], start=1):
         d = p["daily"]
+        # Use best single-match stats instead of aggregated totals
+        best_kills = d.get("best_match_kills", d["kills"])
+        best_damage = d.get("best_match_damage", d["damageDealt"])
         lines.append(
-            f"{i}. **{p['name']}** — {d['kills']} kills ({d['human_kills']} human / {d['bot_kills']} bot), "
-            f"{d['damageDealt']:,.0f} dmg, {d['wins']}W, {d['matches']} match(es)"
+            f"{i}. **{p['name']}** — {best_kills} kills (best match), {best_damage:,.0f} dmg (best match), "
+            f"{d['human_kills']} human / {d['bot_kills']} bot, {d['wins']}W, {d['matches']} match(es)"
         )
     embed.add_field(name="Top 10", value="\n".join(lines), inline=False)
 
