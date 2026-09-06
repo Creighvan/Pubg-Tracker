@@ -300,10 +300,14 @@ async def get_suspicious_players(guild_id: int) -> dict[str, dict]:
 async def add_protected_player(guild_id: int, player_name: str) -> bool:
     """Add a player to the protected list (immune to inactivity removal). Returns True if added."""
     guild = await get_guild(guild_id)
+    # Clean the list first - remove empty entries and duplicates
+    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))  # Remove duplicates while preserving order
+    
     lowered = [p.lower() for p in guild["protected_players"]]
     if player_name.lower() in lowered:
         return False
-    guild["protected_players"].append(player_name)  # Store original case
+    guild["protected_players"].append(player_name.strip())  # Store cleaned name
     await save_guild(guild_id, guild)
     return True
 
@@ -311,6 +315,10 @@ async def add_protected_player(guild_id: int, player_name: str) -> bool:
 async def remove_protected_player(guild_id: int, player_name: str) -> bool:
     """Remove a player from the protected list. Returns True if removed."""
     guild = await get_guild(guild_id)
+    # Clean the list first
+    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
+    
     before = len(guild["protected_players"])
     guild["protected_players"] = [p for p in guild["protected_players"] if p.lower() != player_name.lower()]
     changed = len(guild["protected_players"]) != before
@@ -329,3 +337,15 @@ async def is_protected_player(guild_id: int, player_name: str) -> bool:
     """Check if a player is on the protected list."""
     guild = await get_guild(guild_id)
     return player_name.lower() in [p.lower() for p in guild.get("protected_players", [])]
+
+
+async def clean_protected_players(guild_id: int) -> int:
+    """Clean up the protected player list (remove duplicates, empty entries). Returns number of entries removed."""
+    guild = await get_guild(guild_id)
+    before = len(guild["protected_players"])
+    # Remove empty entries and duplicates
+    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
+    after = len(guild["protected_players"])
+    await save_guild(guild_id, guild)
+    return before - after
