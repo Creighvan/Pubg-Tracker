@@ -628,7 +628,7 @@ def _format_time_ago(iso_str: str | None) -> str:
     return f"{int(hours // 24)} day(s) ago"
 
 
-def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
@@ -664,11 +664,13 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
 
     lines = []
     for p in players:
-        # Check for manual inactive date override
-        manual_date = guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower())
-        if manual_date:
+        # Check for manual inactive date override or auto-counted date
+        if manual_date := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
             match_date = manual_date
             source_note = " *(manual)*"
+        elif p.get("data_source") == "auto_count":
+            match_date = p.get("last_match_date")
+            source_note = " *(auto-count)*"
         else:
             match_date = p.get("last_match_at")
             source_note = ""
@@ -696,7 +698,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             inline=False,
         )
     if protected_count > 0:
-        embed.set_footer(text="🛡️ = Protected from inactivity removal (PUBG API: 14-day limit, use /setinactivedate for historical data)")
+        embed.set_footer(text="🛡️ = Protected from inactivity removal (Auto-count: days beyond 14-day API limit)")
     return embed
 
 
@@ -706,11 +708,39 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
         return None
     players, not_found = await pubg.get_last_active_times(guild_cfg["players"])
     
-    # Note: OP.GG scraping disabled due to website structure changes and blocking
-    # Historical data beyond 14 days is now handled via manual inactive dates
+    # Historical data beyond 14 days: automatic day counting from 14-day mark
     # The PUBG API has a hard 14-day limit for match data retention
-    
     protected_players = await storage.get_protected_players(guild_id)
+    
+    from datetime import datetime, timedelta, timezone
+    
+    for player in players:
+        if not player.get("last_match_at"):
+            # Player has no recent matches (beyond 14-day API limit)
+            player_lower = player["name"].lower()
+            
+            # Check if we have manual override first
+            if manual_date := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
+                player["last_match_date"] = manual_date
+                player["data_source"] = "manual"
+                continue
+            
+            # Check if we have an inactive_since_date
+            if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_lower):
+                # Calculate days from when they first hit 14-day mark
+                inactive_since_date = datetime.fromisoformat(inactive_since)
+                days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
+                calculated_date = (datetime.now(timezone.utc) - timedelta(days=days_inactive)).isoformat()
+                player["last_match_date"] = calculated_date
+                player["data_source"] = "auto_count"
+            else:
+                # First time hitting 14-day mark - set inactive_since_date
+                guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
+                await storage.save_guild(guild_id, guild_cfg)
+                # Start counting from 14 days ago
+                player["last_match_date"] = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+                player["data_source"] = "auto_count"
+    
     return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
 
 
@@ -1815,6 +1845,16 @@ async def removeinactivedate(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(f"✅ Removed manual inactive date for **{name}**. Will use PUBG API data.")
     else:
         await interaction.response.send_message(f"**{name}** doesn't have a manual inactive date set.", ephemeral=True)
+
+
+@bot.tree.command(description="Reset auto-counting for a specific player (start counting from today)")
+@app_commands.describe(name="PUBG name")
+async def resetinactivedate(interaction: discord.Interaction, name: str):
+    reset = await storage.reset_inactive_count(interaction.guild_id, name)
+    if reset:
+        await interaction.response.send_message(f"✅ Reset auto-counting for **{name}**. Will start counting from 14 days from now.")
+    else:
+        await interaction.response.send_message(f"**{name}** doesn't have auto-counting active.", ephemeral=True)
 
 
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
