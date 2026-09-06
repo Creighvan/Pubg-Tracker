@@ -59,6 +59,22 @@ class RateLimiter:
             self._next_allowed = max(self._next_allowed, time.monotonic() + seconds)
 
 
+# Language support for top 10 most used languages
+LANGUAGE_NAMES = {
+    "en": "English",
+    "zh": "Mandarin Chinese",
+    "hi": "Hindi",
+    "es": "Spanish",
+    "ar": "Arabic",
+    "fr": "French",
+    "bn": "Bengali",
+    "pt": "Portuguese",
+    "id": "Indonesian",
+    "ur": "Urdu"
+}
+
+__all__ = ["PubgClient", "PubgApiError"]
+
 class PubgClient:
     def __init__(self, api_key: str, shard: str = "steam"):
         self.api_key = api_key
@@ -423,19 +439,18 @@ class PubgClient:
         }
 
     async def get_daily_activity_report(
-        self, names: list[str], hours: int = 24, max_matches_checked: int = 1
+        self, names: list[str], hours: int = 24, max_matches_checked: int = 10
     ) -> tuple[list[dict], list[str]]:
         """
-        For each roster player, checks their most recent match for activity
-        in the last `hours` hours and aggregates its kills/damage/headshots/
-        revives/assists/wins, and
-        — via match telemetry — splits kills into human vs AI-bot kills.
+        For each roster player, checks all matches since daily reset (3am KST)
+        and aggregates their best stats from that window (kills/damage/headshots/
+        revives/assists/wins, and via match telemetry — splits kills into human vs AI-bot kills).
         PUBG tags bot accounts with an "ai." accountId prefix; there's no
         stats-endpoint field for this, it only shows up in telemetry.
 
         This is much heavier than the other reports: it downloads full
         match telemetry (can be a few MB per match). To keep this reliable
-        for large rosters, the report checks only each player's newest match.
+        for large rosters, the report checks up to max_matches_checked matches per player.
         Matches shared by multiple squadmates are fetched and parsed once.
 
         Returns (players, not_found) where each player dict has a "daily"
@@ -448,7 +463,14 @@ class PubgClient:
         winPlace achieved in a match where they got 0 kills, or None if
         every match had at least 1 kill. Sorted by kills, highest first.
         """
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        # Use 3am KST (UTC+9) as daily reset time instead of rolling 24-hour window
+        from zoneinfo import ZoneInfo
+        kst = ZoneInfo("Asia/Seoul")
+        now_kst = datetime.now(kst)
+        reset_time_kst = now_kst.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now_kst < reset_time_kst:
+            reset_time_kst -= timedelta(days=1)
+        cutoff = reset_time_kst.astimezone(timezone.utc)
 
         found: list[dict] = []
         not_found: list[str] = []
@@ -535,6 +557,11 @@ class PubgClient:
                 "road_kills": 0, "swim_distance": 0.0, "weapons_acquired": 0,
                 "best_zero_kill_placement": None, "loot_ratio": 0.0,
             }
+            # Track best single-match stats
+            best_stats = {
+                "kills": 0, "damageDealt": 0.0, "headshotKills": 0,
+                "best_match_kills": 0, "best_match_damage": 0.0, "best_match_headshots": 0,
+            }
             for match_id in p.get("match_ids", [])[:max_matches_checked]:
                 try:
                     details = await get_match(match_id)
@@ -555,9 +582,14 @@ class PubgClient:
                 stats = details["participants"].get(p["id"])
                 if not stats:
                     continue
-                totals["kills"] += stats.get("kills", 0)
-                totals["damageDealt"] += stats.get("damageDealt", 0.0)
-                totals["headshotKills"] += stats.get("headshotKills", 0)
+                match_kills = stats.get("kills", 0)
+                match_damage = stats.get("damageDealt", 0.0)
+                match_headshots = stats.get("headshotKills", 0)
+                
+                # Update totals
+                totals["kills"] += match_kills
+                totals["damageDealt"] += match_damage
+                totals["headshotKills"] += match_headshots
                 totals["revives"] += stats.get("revives", 0)
                 totals["assists"] += stats.get("assists", 0)
                 totals["wins"] += 1 if stats.get("winPlace") == 1 else 0
@@ -569,7 +601,20 @@ class PubgClient:
                 totals["swim_distance"] += stats.get("swimDistance", 0.0)
                 totals["weapons_acquired"] += stats.get("weaponsAcquired", 0)
 
-                match_kills = stats.get("kills", 0)
+                # Track best single-match stats
+                if match_kills > best_stats["kills"]:
+                    best_stats["kills"] = match_kills
+                if match_damage > best_stats["damageDealt"]:
+                    best_stats["damageDealt"] = match_damage
+                if match_headshots > best_stats["headshotKills"]:
+                    best_stats["headshotKills"] = match_headshots
+                if match_kills > best_stats["best_match_kills"]:
+                    best_stats["best_match_kills"] = match_kills
+                if match_damage > best_stats["best_match_damage"]:
+                    best_stats["best_match_damage"] = match_damage
+                if match_headshots > best_stats["best_match_headshots"]:
+                    best_stats["best_match_headshots"] = match_headshots
+
                 win_place = stats.get("winPlace")
                 if match_kills == 0 and win_place:
                     if totals["best_zero_kill_placement"] is None or win_place < totals["best_zero_kill_placement"]:
@@ -582,6 +627,10 @@ class PubgClient:
                 totals["self_kills"] += self_kills
             totals["stooge_kills"] = totals["self_kills"] + totals["team_kills"]
             totals["loot_ratio"] = round(totals["weapons_acquired"] / max(totals["kills"], 1), 2)
+            # Include best single-match stats in the result
+            totals["best_match_kills"] = best_stats["best_match_kills"]
+            totals["best_match_damage"] = best_stats["best_match_damage"]
+            totals["best_match_headshots"] = best_stats["best_match_headshots"]
             p["daily"] = totals
             # Clean up temporary tracking
             p.pop("_expired_matches", None)
