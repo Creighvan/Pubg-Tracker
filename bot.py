@@ -2594,10 +2594,35 @@ async def setactivitychannel(interaction: discord.Interaction):
     guild_cfg["activity_enabled"] = True
     guild_cfg["last_activity_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(
-        f"✅ Last-active report will live-update in {interaction.channel.mention} at 3am KST daily reset. "
-        f"Use `/lastactive` any time for an immediate one."
-    )
+    
+    await interaction.response.defer()
+    
+    # Immediately post the report
+    try:
+        result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
+        if result:
+            embed, players = result
+            new_message = await interaction.channel.send(embed=embed)
+            guild_cfg["last_activity_message_id"] = new_message.id
+            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            await interaction.followup.send(
+                f"✅ Last-active report posted in {interaction.channel.mention}. "
+                f"It will live-update at 3am KST daily reset."
+            )
+            
+            await send_audit_log(
+                interaction.guild_id,
+                "Channel Configured & Report Posted",
+                f"Last active report channel set and initial report posted",
+                user=interaction.user,
+                details={"Channel": interaction.channel_id, "Players": len(players)},
+                report_embed=embed
+            )
+    except PubgApiError as e:
+        await interaction.followup.send(f"❌ Failed to generate report: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"❌ Something went wrong: {e}")
 
 
 @bot.tree.command(description="Last-active report now updates at 3am KST daily reset (no custom time needed)")
