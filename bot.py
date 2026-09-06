@@ -718,6 +718,10 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
+    # Debug logging
+    print(f"[build_last_active_embed] Guild {guild_id}: {len(protected_players or [])} protected players: {protected_players}")
+    print(f"[build_last_active_embed] Protected lower: {protected_lower}")
+    
     embed = discord.Embed(
         title=f"{title} — Last Active Report",
         description=(
@@ -767,6 +771,8 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
         player_lower = p["name"].lower().strip()
         is_protected = player_lower in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
+        if is_protected:
+            print(f"[build_last_active_embed] Protected player found: {p['name']} (lower: {player_lower})")
         lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}{source_note}")
     
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
@@ -800,6 +806,7 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     # Historical data beyond 14 days: automatic day counting from 14-day mark
     # The PUBG API has a hard 14-day limit for match data retention
     protected_players = await storage.get_protected_players(guild_id)
+    print(f"[fetch_last_active_report] Guild {guild_id}: Retrieved {len(protected_players)} protected players: {protected_players}")
     
     from datetime import datetime, timedelta, timezone
     
@@ -1910,6 +1917,8 @@ async def addplayer(interaction: discord.Interaction, name: str):
             user=interaction.user,
             details={"Player": name}
         )
+        # Refresh last active report if configured
+        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
     else:
         await interaction.response.send_message(f"**{name}** is already on the roster.", ephemeral=True)
 
@@ -1931,6 +1940,10 @@ async def addplayers(interaction: discord.Interaction, names: str):
     if duplicates:
         lines.append(f"⚠️ Skipped {len(duplicates)} already on the roster: " + ", ".join(duplicates))
     await interaction.response.send_message("\n".join(lines))
+    
+    # Refresh last active report if configured
+    if added:
+        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
 
 
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
@@ -1946,6 +1959,8 @@ async def removeplayer(interaction: discord.Interaction, name: str):
             user=interaction.user,
             details={"Player": name}
         )
+        # Refresh last active report if configured
+        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
     else:
         await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
 
@@ -2585,6 +2600,39 @@ async def lastactive(interaction: discord.Interaction):
         details={"Command": "/lastactive", "Players": len(players)},
         report_embed=embed
     )
+
+
+async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
+    """Refresh the live-updating last active report for a guild."""
+    guild_cfg = await storage.get_guild(guild_id)
+    channel_id = guild_cfg.get("last_activity_channel_id")
+    message_id = guild_cfg.get("last_activity_message_id")
+    
+    if not channel_id or not message_id:
+        return  # No live-updating report configured
+    
+    guild = bot.get_guild(guild_id)
+    if not guild:
+        return
+    
+    channel = bot.get_channel(channel_id)
+    if not channel:
+        return
+    
+    try:
+        result = await fetch_last_active_report(guild_id, guild_name)
+        if result:
+            embed, players = result
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.edit(embed=embed)
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                # Message deleted/inaccessible - post new one
+                new_message = await channel.send(embed=embed)
+                guild_cfg["last_activity_message_id"] = new_message.id
+                await storage.save_guild(guild_id, guild_cfg)
+    except Exception as e:
+        print(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}")
 
 
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 3am KST daily reset)")
