@@ -30,6 +30,16 @@ recent matches will show "No recent matches found" which indicates they haven't
 played in the last 14 days according to the PUBG API. This is a hard limit
 imposed by PUBG's API and cannot be extended.
 
+## Manual inactive date override
+
+For players beyond the 14-day PUBG API limit, you can manually set their
+last played date using the `/setinactivedate` command. This is useful when
+you have historical data from other sources (like OP.GG manual lookup).
+
+- `/setinactivedate <name> <days_ago>` - Set manual inactive date (1-365 days)
+- `/removeinactivedate <name>` - Remove manual override
+- Players with manual dates show with *(manual)* marker in reports
+
 ## Protected player list
 
 You can protect certain players from being flagged for removal due to
@@ -188,6 +198,8 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/addprotected <name>` | Add a player to the protected list (immune to inactivity removal) |
 | `/removeprotected <name>` | Remove a player from the protected list |
 | `/listprotected` | List all protected players |
+| `/setinactivedate <name> <days_ago>` | Set manual inactive date for a player (beyond 14-day API limit) |
+| `/removeinactivedate <name>` | Remove manual inactive date for a player |
 | `/clanstats` | Post aggregated stats right now |
 | `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |
