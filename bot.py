@@ -751,8 +751,9 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     lines = []
     for p in players:
         # Check for manual inactive date override or auto-counted date
-        if manual_date := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
-            match_date = manual_date
+        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
+            # manual_data is a dict with 'date' and 'set_at' keys
+            match_date = manual_data["date"] if isinstance(manual_data, dict) else manual_data
             source_note = " *(manual)*"
         elif p.get("data_source") == "auto_count":
             match_date = p.get("last_match_date")
@@ -783,8 +784,10 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
+    footer_text = "Updates daily at 3am KST (live-updating, not reposted)"
     if protected_count > 0:
-        embed.set_footer(text="🛡️ = Protected from inactivity removal (Auto-count & manual dates auto-reset when player returns)")
+        footer_text += " | 🛡️ = Protected from inactivity removal"
+    embed.set_footer(text=footer_text)
     return embed
 
 
@@ -815,6 +818,10 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                 incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
                 player["last_match_date"] = incremented_date
                 player["data_source"] = "manual"
+                # Also remove from auto-counting if it exists to avoid conflicts
+                if player_lower in guild_cfg.get("inactive_since_dates", {}):
+                    del guild_cfg["inactive_since_dates"][player_lower]
+                    await storage.save_guild(guild_id, guild_cfg)
                 continue
             
             # Check if we have an inactive_since_date
@@ -1470,8 +1477,24 @@ async def before_auto_digest():
 @tasks.loop(minutes=15)
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild, same
-    interval-based pattern as auto_digest."""
+    interval-based pattern as auto_digest. Updates a single message in place
+    at 3am KST daily reset instead of posting new messages."""
     now = datetime.now(timezone.utc)
+    
+    # Check if it's 3am KST daily reset time
+    from zoneinfo import ZoneInfo
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    reset_time_kst = now_kst.replace(hour=3, minute=0, second=0, microsecond=0)
+    if now_kst < reset_time_kst:
+        reset_time_kst -= timedelta(days=1)
+    
+    # Only update during a 15-minute window around 3am KST
+    reset_total = 3 * 60  # 3:00 AM in minutes
+    now_total = now_kst.hour * 60 + now_kst.minute
+    if not (reset_total <= now_total < reset_total + 15):
+        return
+    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("activity_enabled", True):
@@ -1479,25 +1502,38 @@ async def auto_last_active():
         channel_id = guild_cfg.get("last_activity_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
-        if not _is_due(guild_cfg, "activity_hour_est", "activity_minute_est", "last_activity_posted_at", 24):
-            continue
 
         guild = bot.get_guild(guild_id)
         channel = bot.get_channel(channel_id)
         if guild is None or channel is None:
             continue
-        guild_cfg["last_activity_posted_at"] = now.isoformat()
-        await storage.save_guild(guild_id, guild_cfg)
+        
         try:
             async with _scheduler_lock:
                 result = await fetch_last_active_report(guild_id, guild.name)
             if result:
                 embed, players = result
-                await channel.send(embed=embed)
+                message_id = guild_cfg.get("last_activity_message_id")
+                
+                # Edit existing message or post new one
+                if message_id:
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                        # Message deleted/inaccessible - post new one
+                        new_message = await channel.send(embed=embed)
+                        guild_cfg["last_activity_message_id"] = new_message.id
+                        await storage.save_guild(guild_id, guild_cfg)
+                else:
+                    new_message = await channel.send(embed=embed)
+                    guild_cfg["last_activity_message_id"] = new_message.id
+                    await storage.save_guild(guild_id, guild_cfg)
+                
                 await send_audit_log(
                     guild_id,
-                    "Scheduled Report Posted",
-                    f"Last active report posted automatically",
+                    "Scheduled Report Updated",
+                    f"Last active report updated at 3am KST daily reset",
                     is_automated=True,
                     details={"Report Type": "Last Active", "Players": len(players)},
                     report_embed=embed
@@ -2551,30 +2587,26 @@ async def lastactive(interaction: discord.Interaction):
     )
 
 
-@bot.tree.command(description="Set this channel for the 24-hour 'last active' report (defaults to the digest channel)")
+@bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 3am KST daily reset)")
 async def setactivitychannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["last_activity_channel_id"] = interaction.channel_id
     guild_cfg["activity_enabled"] = True
-    # Don't set last_activity_posted_at - let the scheduler post on the next scheduled time
+    guild_cfg["last_activity_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ Last-active report will post in {interaction.channel.mention} every 24 hours. "
+        f"✅ Last-active report will live-update in {interaction.channel.mention} at 3am KST daily reset. "
         f"Use `/lastactive` any time for an immediate one."
     )
 
 
-@bot.tree.command(description="Post the last-active report at a fixed Eastern-time each day")
-@app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
-@app_commands.choices(minute=QUARTER_HOUR_CHOICES)
-async def setactivitytime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["activity_hour_est"] = hour
-    guild_cfg["activity_minute_est"] = minute.value if minute else 0
-    # Clear the last posted timestamp so it will post at the new time
-    guild_cfg["last_activity_posted_at"] = None
-    await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Last-active report will now post daily at **{hour:02d}:{guild_cfg['activity_minute_est']:02d} Eastern**. It will post at the next scheduled time.")
+@bot.tree.command(description="Last-active report now updates at 3am KST daily reset (no custom time needed)")
+async def setactivitytime(interaction: discord.Interaction):
+    await interaction.response.send_message(
+        "ℹ️ The last-active report now automatically updates at **3am KST daily reset**. "
+        "Custom time scheduling is no longer available for this report. "
+        "Use `/setactivitychannel` to choose where it updates."
+    )
 
 
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
