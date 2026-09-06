@@ -630,7 +630,7 @@ def _format_time_ago(iso_str: str | None) -> str:
 
 def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
-    protected_lower = [p.lower() for p in (protected_players or [])]
+    protected_lower = [p.lower().strip() for p in (protected_players or [])]
     
     embed = discord.Embed(
         title=f"{title} — Last Active Report",
@@ -666,7 +666,10 @@ def build_last_active_embed(guild_name: str, guild_cfg: dict, players: list[dict
     for p in players:
         match_date = p.get("last_match_at")
         recency = _recency_emoji(match_date)
-        protected_mark = " 🛡️" if p["name"].lower() in protected_lower else ""
+        # Case-insensitive comparison for protected players
+        player_lower = p["name"].lower().strip()
+        is_protected = player_lower in protected_lower
+        protected_mark = " 🛡️" if is_protected else ""
         lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}")
     
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.

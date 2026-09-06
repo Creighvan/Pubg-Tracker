@@ -302,7 +302,7 @@ async def add_protected_player(guild_id: int, player_name: str) -> bool:
     lowered = [p.lower() for p in guild["protected_players"]]
     if player_name.lower() in lowered:
         return False
-    guild["protected_players"].append(player_name)
+    guild["protected_players"].append(player_name)  # Store original case
     await save_guild(guild_id, guild)
     return True
 
