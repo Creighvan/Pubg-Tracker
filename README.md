@@ -30,14 +30,25 @@ recent matches will show "No recent matches found" which indicates they haven't
 played in the last 14 days according to the PUBG API. This is a hard limit
 imposed by PUBG's API and cannot be extended.
 
+## Automatic day counting beyond 14 days
+
+The bot automatically tracks when a player first hits the 14-day inactive mark
+and continues counting days from there. This provides accurate inactivity
+tracking beyond the PUBG API limit without manual intervention.
+
+- Auto-counting starts when a player has no recent matches (14+ days)
+- Days continue to increment with each check
+- Players show with *(auto-count)* marker in reports
+- More accurate than manual entry for ongoing inactivity
+
 ## Manual inactive date override
 
-For players beyond the 14-day PUBG API limit, you can manually set their
-last played date using the `/setinactivedate` command. This is useful when
-you have historical data from other sources (like OP.GG manual lookup).
+For more precise control or when you have specific historical data from other
+sources (like OP.GG manual lookup), you can manually set inactive dates:
 
 - `/setinactivedate <name> <days_ago>` - Set manual inactive date (1-365 days)
 - `/removeinactivedate <name>` - Remove manual override
+- `/resetinactivedate <name>` - Reset auto-counting for a specific player
 - Players with manual dates show with *(manual)* marker in reports
 
 ## Protected player list
@@ -216,6 +227,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/resetprotected` | Clear and reset the entire protected player list |
 | `/setinactivedate <name> <days_ago>` | Set manual inactive date for a player (beyond 14-day API limit) |
 | `/removeinactivedate <name>` | Remove manual inactive date for a player |
+| `/resetinactivedate <name>` | Reset auto-counting for a specific player (start from today) |
 | `/clanstats` | Post aggregated stats right now |
 | `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |

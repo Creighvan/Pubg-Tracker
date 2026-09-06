@@ -79,6 +79,7 @@ _DEFAULT_GUILD = {
     "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # pubg_name.lower() -> iso date string for manual override
+    "inactive_since_dates": {},  # pubg_name.lower() -> iso date when player first hit 14-day mark
 }
 
 
@@ -349,3 +350,13 @@ async def clean_protected_players(guild_id: int) -> int:
     after = len(guild["protected_players"])
     await save_guild(guild_id, guild)
     return before - after
+
+
+async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
+    """Reset auto-counting for a specific player. Returns True if reset."""
+    guild = await get_guild(guild_id)
+    if player_name.lower() in guild.get("inactive_since_dates", {}):
+        del guild["inactive_since_dates"][player_name.lower()]
+        await save_guild(guild_id, guild)
+        return True
+    return False
