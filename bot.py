@@ -1733,12 +1733,26 @@ async def removeprotected(interaction: discord.Interaction, name: str):
 @bot.tree.command(description="List all protected players (immune to inactivity removal)")
 async def listprotected(interaction: discord.Interaction):
     protected = await storage.get_protected_players(interaction.guild_id)
+    # Clean the list first
+    removed = await storage.clean_protected_players(interaction.guild_id)
+    protected = await storage.get_protected_players(interaction.guild_id)
+    
     if not protected:
         await interaction.response.send_message("No protected players. Use `/addprotected` to add players who should be immune to inactivity removal.")
         return
-    await interaction.response.send_message(
-        f"**Protected players ({len(protected)}):**\n" + ", ".join(protected) + "\n\n🛡️ These players won't be flagged for removal due to inactivity."
-    )
+    
+    message = f"**Protected players ({len(protected)}):**\n" + ", ".join(protected)
+    if removed > 0:
+        message += f"\n\n🧹 Cleaned up {removed} duplicate/empty entries."
+    message += "\n\n🛡️ These players won't be flagged for removal due to inactivity."
+    await interaction.response.send_message(message)
+
+
+@bot.tree.command(description="Clean up protected player list (remove duplicates and empty entries)")
+async def cleanprotected(interaction: discord.Interaction):
+    removed = await storage.clean_protected_players(interaction.guild_id)
+    protected = await storage.get_protected_players(interaction.guild_id)
+    await interaction.response.send_message(f"🧹 Cleaned up {removed} duplicate/empty entries. Protected players: {len(protected)}")
 
 
 @bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")

@@ -197,7 +197,8 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/roster` | List tracked players |
 | `/addprotected <name>` | Add a player to the protected list (immune to inactivity removal) |
 | `/removeprotected <name>` | Remove a player from the protected list |
-| `/listprotected` | List all protected players |
+| `/listprotected` | List all protected players (auto-cleans duplicates) |
+| `/cleanprotected` | Clean up protected player list (remove duplicates/empty entries) |
 | `/setinactivedate <name> <days_ago>` | Set manual inactive date for a player (beyond 14-day API limit) |
 | `/removeinactivedate <name>` | Remove manual inactive date for a player |
 | `/clanstats` | Post aggregated stats right now |
