@@ -80,6 +80,7 @@ _DEFAULT_GUILD = {
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # pubg_name.lower() -> {"date": iso_date, "set_at": iso_timestamp}
     "inactive_since_dates": {},  # pubg_name.lower() -> iso date when player first hit 14-day mark
+    "audit_log_channel_id": None,  # custom channel for this server's audit logs (overrides default)
 }
 
 
@@ -360,3 +361,16 @@ async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
         await save_guild(guild_id, guild)
         return True
     return False
+
+
+async def get_audit_log_channel(guild_id: int) -> int | None:
+    """Get the custom audit log channel for a guild (if set)."""
+    guild = await get_guild(guild_id)
+    return guild.get("audit_log_channel_id")
+
+
+async def set_audit_log_channel(guild_id: int, channel_id: int | None):
+    """Set or clear the custom audit log channel for a guild."""
+    guild = await get_guild(guild_id)
+    guild["audit_log_channel_id"] = channel_id
+    await save_guild(guild_id, guild)

@@ -68,6 +68,51 @@ inactivity:
 - Protected players show with a 🛡️ shield icon in the last active report
 - This is useful for clan leaders, long-term members, or players on extended breaks
 
+## Audit logging (central admin server)
+
+The bot can log all commands and automated events to a central Discord server for administrative oversight. This is useful for:
+- Tracking who is making roster changes
+- Monitoring protected player additions/removals
+- Seeing all scheduled reports and automated events
+- Debugging issues across multiple servers
+
+### Setup
+
+1. Create a separate Discord server for bot administration (your "audit server")
+2. Create a channel in that server for audit logs (e.g., `#audit-logs`)
+3. Add the following to your `.env` file:
+   ```
+   AUDIT_SERVER_ID=your_audit_server_id
+   AUDIT_LOG_CHANNEL_ID=your_audit_channel_id
+   ```
+4. Restart the bot
+
+### What gets logged
+
+**Manual commands:**
+- `/addplayer` - Player added to roster
+- `/removeplayer` - Player removed from roster
+- `/addprotected` - Protected player added
+- `/removeprotected` - Protected player removed
+- `/setinactivedate` - Manual inactive date set
+- `/removeinactivedate` - Manual inactive date removed
+
+**Automated events:**
+- Scheduled reports (clan digest, last active, donations)
+- Chicken dinner alerts
+- Bot joining/leaving servers
+
+Each log entry includes:
+- Server name and ID
+- User who ran the command (or "Automated Event")
+- Event type and description
+- Timestamp
+- Relevant details (player name, days, etc.)
+
+### Optional per-server custom channel
+
+Each server can optionally have its own audit log channel instead of using the central one. Use a custom command (not yet implemented) to set a per-server audit channel if you want logs for specific servers to go to different places.
+
 ### Roster Cleanup Workflow
 
 This feature is designed for managing inactive clan members who have been

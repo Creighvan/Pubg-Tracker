@@ -92,6 +92,8 @@ ADMIN_USER_IDS = {int(x.strip()) for x in os.environ.get("ADMIN_USER_IDS", "").s
 SUPPORT_SERVER_URL = "https://discord.gg/KEUWmwBYV4"
 SUPPORT_SERVER_ID = int(os.environ.get("SUPPORT_SERVER_ID", "1539320166318481459"))
 SUPPORT_FEEDBACK_CHANNEL_ID = int(os.environ.get("SUPPORT_FEEDBACK_CHANNEL_ID", "0"))
+AUDIT_SERVER_ID = int(os.environ.get("AUDIT_SERVER_ID", "0")) if os.environ.get("AUDIT_SERVER_ID") else None
+AUDIT_LOG_CHANNEL_ID = int(os.environ.get("AUDIT_LOG_CHANNEL_ID", "0")) if os.environ.get("AUDIT_LOG_CHANNEL_ID") else None
 DONATION_URL = "https://ko-fi.com/creighvan"
 BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/creighvan"
 DONATION_MESSAGE = (
@@ -165,6 +167,79 @@ _bot_started_at = datetime.now(timezone.utc)
 # message being posted every time.
 _status_events: list[dict] = []
 _STATUS_LOG_LIMIT = 12
+
+
+# ---------- audit logging ----------
+async def send_audit_log(
+    guild_id: int,
+    event_type: str,
+    description: str,
+    user: discord.User | discord.Member | None = None,
+    details: dict | None = None,
+    is_automated: bool = False
+):
+    """Send an audit log entry to the central audit server or custom channel."""
+    if not AUDIT_SERVER_ID or not AUDIT_LOG_CHANNEL_ID:
+        return
+    
+    try:
+        # Check if guild has custom audit log channel
+        custom_channel_id = await storage.get_audit_log_channel(guild_id)
+        target_channel_id = custom_channel_id if custom_channel_id else AUDIT_LOG_CHANNEL_ID
+        
+        # Get the target guild (audit server)
+        audit_guild = bot.get_guild(AUDIT_SERVER_ID)
+        if not audit_guild:
+            try:
+                audit_guild = await bot.fetch_guild(AUDIT_SERVER_ID)
+            except:
+                return
+        
+        # Get the target channel
+        channel = audit_guild.get_channel(target_channel_id)
+        if not channel:
+            try:
+                channel = await audit_guild.fetch_channel(target_channel_id)
+            except:
+                return
+        
+        # Get source guild info
+        source_guild = bot.get_guild(guild_id)
+        if not source_guild:
+            try:
+                source_guild = await bot.fetch_guild(guild_id)
+            except:
+                source_guild = None
+        
+        guild_name = source_guild.name if source_guild else f"Unknown ({guild_id})"
+        
+        # Build embed
+        color = discord.Color.blue() if is_automated else discord.Color.green()
+        title = f"🤖 {event_type}" if is_automated else f"👤 {event_type}"
+        
+        embed = discord.Embed(
+            title=title,
+            description=description,
+            color=color,
+            timestamp=datetime.now(timezone.utc)
+        )
+        
+        embed.add_field(name="Server", value=f"{guild_name} (`{guild_id}`)", inline=True)
+        
+        if user:
+            embed.add_field(name="User", value=f"{user.display_name} (`{user.id}`)", inline=True)
+        else:
+            embed.add_field(name="User", value="Automated Event", inline=True)
+        
+        if details:
+            details_text = "\n".join(f"**{k}**: {v}" for k, v in details.items())
+            if details_text:
+                embed.add_field(name="Details", value=details_text[:1024], inline=False)
+        
+        await channel.send(embed=embed)
+    except Exception as e:
+        # Silently fail audit logging to avoid breaking bot functionality
+        pass
 _status_broadcast_lock = asyncio.Lock()
 _last_status_broadcast_at: datetime | None = None
 _STATUS_MIN_INTERVAL_SECONDS = 15  # collapses bursts (e.g. several reports failing at once) into one edit
@@ -1293,6 +1368,13 @@ async def on_resumed():
 async def on_guild_join(guild: discord.Guild):
     """Make commands available immediately when the bot is invited somewhere new."""
     await _record_status_event(f"➕ Joined server: {guild.name}")
+    await send_audit_log(
+        guild.id,
+        "Bot Joined Server",
+        f"Bot was added to server {guild.name}",
+        is_automated=True,
+        details={"Server Name": guild.name, "Member Count": guild.member_count}
+    )
     if not _commands_synced_once:
         return
     try:
@@ -1305,6 +1387,13 @@ async def on_guild_join(guild: discord.Guild):
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
     await _record_status_event(f"➖ Removed from server: {guild.name}")
+    await send_audit_log(
+        guild.id,
+        "Bot Left Server",
+        f"Bot was removed from server {guild.name}",
+        is_automated=True,
+        details={"Server Name": guild.name}
+    )
 
 
 # ---------- scheduled task ----------
@@ -1343,6 +1432,13 @@ async def auto_digest():
             if result:
                 embed, players = result
                 await channel.send(embed=embed)
+                await send_audit_log(
+                    guild_id,
+                    "Scheduled Report Posted",
+                    f"Clan digest posted automatically",
+                    is_automated=True,
+                    details={"Report Type": "Clan Digest", "Players": len(players)}
+                )
         except PubgApiError as e:
             print(f"[auto_digest] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_digest report failed for guild {guild_id}: {e}"[:200])
@@ -1383,6 +1479,13 @@ async def auto_last_active():
             if result:
                 embed, players = result
                 await channel.send(embed=embed)
+                await send_audit_log(
+                    guild_id,
+                    "Scheduled Report Posted",
+                    f"Last active report posted automatically",
+                    is_automated=True,
+                    details={"Report Type": "Last Active", "Players": len(players)}
+                )
         except PubgApiError as e:
             print(f"[auto_last_active] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_last_active report failed for guild {guild_id}: {e}"[:200])
@@ -1581,6 +1684,13 @@ async def auto_donations():
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
             await storage.save_guild(guild_id, guild_cfg)
+            await send_audit_log(
+                guild_id,
+                "Scheduled Report Posted",
+                f"Donation message posted automatically",
+                is_automated=True,
+                details={"Report Type": "Donation Message"}
+            )
         except Exception as e:
             print(f"[auto_donations] Could not post for guild {guild_id}: {e}")
 
@@ -1655,6 +1765,13 @@ async def auto_chicken_dinner():
             # instead of silently losing the alert.
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
             await storage.save_guild(guild_id, guild_cfg)
+            await send_audit_log(
+                guild_id,
+                "Automated Event",
+                f"Chicken dinner alert posted",
+                is_automated=True,
+                details={"Event Type": "Chicken Dinner", "Wins": len(new_wins)}
+            )
         except Exception as e:
             print(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
 
@@ -1725,6 +1842,13 @@ async def addplayer(interaction: discord.Interaction, name: str):
     added = await storage.add_player(interaction.guild_id, name)
     if added:
         await interaction.response.send_message(f"✅ Added **{name}** to the roster.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Player Added",
+            f"Added {name} to roster",
+            user=interaction.user,
+            details={"Player": name}
+        )
     else:
         await interaction.response.send_message(f"**{name}** is already on the roster.", ephemeral=True)
 
@@ -1754,6 +1878,13 @@ async def removeplayer(interaction: discord.Interaction, name: str):
     removed = await storage.remove_player(interaction.guild_id, name)
     if removed:
         await interaction.response.send_message(f"🗑️ Removed **{name}** from the roster.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Player Removed",
+            f"Removed {name} from roster",
+            user=interaction.user,
+            details={"Player": name}
+        )
     else:
         await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
 
@@ -1764,6 +1895,13 @@ async def addprotected(interaction: discord.Interaction, name: str):
     added = await storage.add_protected_player(interaction.guild_id, name)
     if added:
         await interaction.response.send_message(f"🛡️ Added **{name}** to the protected list. They won't be flagged for removal due to inactivity.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Protected Player Added",
+            f"Added {name} to protected list",
+            user=interaction.user,
+            details={"Player": name}
+        )
     else:
         await interaction.response.send_message(f"**{name}** is already on the protected list.", ephemeral=True)
 
@@ -1774,6 +1912,13 @@ async def removeprotected(interaction: discord.Interaction, name: str):
     removed = await storage.remove_protected_player(interaction.guild_id, name)
     if removed:
         await interaction.response.send_message(f"🔓 Removed **{name}** from the protected list. They can now be flagged for inactivity removal.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Protected Player Removed",
+            f"Removed {name} from protected list",
+            user=interaction.user,
+            details={"Player": name}
+        )
     else:
         await interaction.response.send_message(f"**{name}** wasn't on the protected list.", ephemeral=True)
 
@@ -1854,6 +1999,13 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
     }
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will increment daily until they return to PUBG.")
+    await send_audit_log(
+        interaction.guild_id,
+        "Manual Inactive Date Set",
+        f"Set {name} to {days_ago} days inactive",
+        user=interaction.user,
+        details={"Player": name, "Days Ago": days_ago}
+    )
 
 
 @bot.tree.command(description="Remove manual inactive date for a player")
@@ -1864,6 +2016,13 @@ async def removeinactivedate(interaction: discord.Interaction, name: str):
         del guild_cfg["manual_inactive_dates"][name.lower()]
         await storage.save_guild(interaction.guild_id, guild_cfg)
         await interaction.response.send_message(f"✅ Removed manual inactive date for **{name}**. Will use PUBG API data.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Manual Inactive Date Removed",
+            f"Removed manual date for {name}",
+            user=interaction.user,
+            details={"Player": name}
+        )
     else:
         await interaction.response.send_message(f"**{name}** doesn't have a manual inactive date set.", ephemeral=True)
 
