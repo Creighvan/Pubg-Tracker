@@ -304,7 +304,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setinterval <1-24>` | How often (hours) the digest auto-posts — ignored if `/setdigesttime` is set |
 | `/setdigesttime <0-23>` | Post the digest once/day at a fixed Eastern-time hour instead |
 | `/lastactive` | Show when each roster player last played, right now |
-| `/setactivitychannel` | Set channel for the live-updating last active report (updates at 3am KST daily reset) |
+| `/setactivitychannel` | Set channel for the live-updating last active report (posts immediately, then updates at 3am KST daily reset) |
 | `/rankedsquad`, `/rankedduo`, `/rankedsolo` | Show current-season ranked TPP standings for that queue |
 | `/rankedsquadfpp`, `/rankedduofpp`, `/rankedsolofpp` | Show current-season ranked FPP standings for that queue |
 | `/refreshrankedcache` | Make the next ranked check scan the full roster again |
