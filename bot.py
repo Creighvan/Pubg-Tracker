@@ -2397,13 +2397,25 @@ async def help(interaction: discord.Interaction):
 @bot.tree.command(description="Set the preferred language for this server")
 @app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
 async def setlanguage(interaction: discord.Interaction, language: str):
-    from pubg_api import LANGUAGE_NAMES
-    from translations import get_translation
+    # Valid language codes
+    VALID_LANGUAGES = {"en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur"}
+    LANGUAGE_NAMES = {
+        "en": "English",
+        "zh": "Mandarin Chinese",
+        "hi": "Hindi",
+        "es": "Spanish",
+        "ar": "Arabic",
+        "fr": "French",
+        "bn": "Bengali",
+        "pt": "Portuguese",
+        "id": "Indonesian",
+        "ur": "Urdu"
+    }
     
     language = language.lower()
-    if language not in LANGUAGE_NAMES:
+    if language not in VALID_LANGUAGES:
         await interaction.response.send_message(
-            f"❌ Invalid language code. Valid options: {', '.join(LANGUAGE_NAMES.keys())}\n"
+            f"❌ Invalid language code. Valid options: {', '.join(VALID_LANGUAGES)}\n"
             f"Example: English (en), Spanish (es), Chinese (zh)"
         )
         return
@@ -2421,8 +2433,18 @@ async def setlanguage(interaction: discord.Interaction, language: str):
 
 @bot.tree.command(description="Show the current language setting for this server")
 async def language(interaction: discord.Interaction):
-    from pubg_api import LANGUAGE_NAMES
-    from translations import get_translation
+    LANGUAGE_NAMES = {
+        "en": "English",
+        "zh": "Mandarin Chinese",
+        "hi": "Hindi",
+        "es": "Spanish",
+        "ar": "Arabic",
+        "fr": "French",
+        "bn": "Bengali",
+        "pt": "Portuguese",
+        "id": "Indonesian",
+        "ur": "Urdu"
+    }
     
     current_lang = await storage.get_language(interaction.guild_id)
     language_name = LANGUAGE_NAMES.get(current_lang, current_lang)
