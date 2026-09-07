@@ -187,8 +187,25 @@ async def before_auto_last_active():
 
 @tasks.loop(minutes=15)
 async def auto_ranked():
-    """Posts the ranked TPP report every 24 hours, per guild."""
+    """
+    Updates the ranked standings report daily at 5:30am KST.
+    Edits a single message in place instead of posting new messages.
+    """
     now = datetime.now(timezone.utc)
+    
+    # Check if it's 5:30am KST daily reset time
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    reset_time_kst = now_kst.replace(hour=5, minute=30, second=0, microsecond=0)
+    if now_kst < reset_time_kst:
+        reset_time_kst -= timedelta(days=1)
+    
+    # Only update during a 15-minute window around 5:30am KST
+    reset_total = 5 * 60 + 30  # 5:30 AM in minutes
+    now_total = now_kst.hour * 60 + now_kst.minute
+    if not (reset_total <= now_total < reset_total + 15):
+        return
+    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("ranked_enabled", True):
@@ -196,21 +213,42 @@ async def auto_ranked():
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
-        if not _is_due(guild_cfg, "ranked_hour_est", "ranked_minute_est", "ranked_posted_at", 24):
-            continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
             continue
-        guild_cfg["ranked_posted_at"] = now.isoformat()
-        await storage.save_guild(guild_id, guild_cfg)
+        
         try:
             async with get_scheduler_lock():
                 result = await fetch_ranked_report(guild_id, guild.name)
             if result:
                 embed, players = result
-                await channel.send(embed=embed)
+                message_id = guild_cfg.get("ranked_message_id")
+                
+                # Edit existing message or post new one
+                if message_id:
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                        # Message deleted/inaccessible - post new one
+                        new_message = await channel.send(embed=embed)
+                        guild_cfg["ranked_message_id"] = new_message.id
+                        await storage.save_guild(guild_id, guild_cfg)
+                else:
+                    new_message = await channel.send(embed=embed)
+                    guild_cfg["ranked_message_id"] = new_message.id
+                    await storage.save_guild(guild_id, guild_cfg)
+                
+                await send_audit_log(
+                    guild_id,
+                    "Scheduled Report Updated",
+                    f"Ranked standings report updated at 5:30am KST daily",
+                    is_automated=True,
+                    details={"Report Type": "Ranked Standings", "Players": len(players)},
+                    report_embed=embed
+                )
         except PubgApiError as e:
             print(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])
