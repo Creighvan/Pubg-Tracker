@@ -109,6 +109,9 @@ from modules.config import (
     _record_status_event,
     get_status_events,
     _bot_started_at,
+    _commands_synced_once,
+    _command_templates,
+    _bot_ready_once,
 )
 
 # Import utility helpers
@@ -452,7 +455,6 @@ async def _sync_guild_commands(guild: discord.Guild) -> int:
 
 @bot.event
 async def on_ready():
-    global _commands_synced_once, _command_templates, _bot_ready_once
     try:
         if not _commands_synced_once:
             # Guild commands are available immediately. Each sync bulk-replaces
@@ -479,24 +481,24 @@ async def on_ready():
     bot.add_view(FeedbackPromptView())
     print(f"Logged in as {bot.user} (id={bot.user.id})")
     if not _bot_ready_once:
-        _bot_ready_once = True
-        await _record_status_event("🟢 Bot started and connected to Discord")
+        mark_bot_ready()
+        await _record_status_event("Bot started and connected to Discord")
 
 
 @bot.event
 async def on_disconnect():
-    await _record_status_event("🔴 Lost connection to Discord — reconnecting...")
+    await _record_status_event("Lost connection to Discord — reconnecting...")
 
 
 @bot.event
 async def on_resumed():
-    await _record_status_event("🟢 Reconnected to Discord")
+    await _record_status_event("Reconnected to Discord")
 
 
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     """Make commands available immediately when the bot is invited somewhere new."""
-    await _record_status_event(f"➕ Joined server: {guild.name}")
+    await _record_status_event(f"Joined server: {guild.name}")
     await send_audit_log(
         guild.id,
         "Bot Joined Server",
@@ -504,7 +506,7 @@ async def on_guild_join(guild: discord.Guild):
         is_automated=True,
         details={"Server Name": guild.name, "Member Count": guild.member_count}
     )
-    if not _commands_synced_once:
+    if not have_commands_been_synced():
         return
     try:
         count = await _sync_guild_commands(guild)
@@ -515,7 +517,7 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
-    await _record_status_event(f"➖ Removed from server: {guild.name}")
+    await _record_status_event(f"Removed from server: {guild.name}")
     await send_audit_log(
         guild.id,
         "Bot Left Server",
