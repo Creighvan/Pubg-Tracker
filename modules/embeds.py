@@ -348,7 +348,7 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Stats from the official PUBG API · ranked, current season")
+    embed.set_footer(text="Updates daily at 5:30am KST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
     return embed
 
 
