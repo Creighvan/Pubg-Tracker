@@ -386,8 +386,9 @@ async def get_language(guild_id: int) -> str:
 
 async def set_language(guild_id: int, language_code: str) -> bool:
     """Set the preferred language for a guild. Returns True if valid."""
-    from pubg_api import LANGUAGE_NAMES
-    if language_code not in LANGUAGE_NAMES:
+    # Valid language codes
+    VALID_LANGUAGES = {"en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur"}
+    if language_code not in VALID_LANGUAGES:
         return False
     guild = await get_guild(guild_id)
     guild["language"] = language_code
