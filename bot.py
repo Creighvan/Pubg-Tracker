@@ -36,7 +36,7 @@ Slash commands:
   /rankedsquadfpp              - show current-season ranked Squad FPP standings
   /rankedduofpp                - show current-season ranked Duo FPP standings
   /rankedsolofpp               - show current-season ranked Solo FPP standings
-  /refreshrankedcache           - make the next ranked command rescan the roster
+  /refreshrankedcache           - rescan ranked roster and update the ranked report
   /setrankedchannel           - set current channel for the daily ranked report (updates at 5:30am KST)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /setrankedtime <0-23>         - time is fixed at 5:30am KST (this command is deprecated)
@@ -1514,12 +1514,47 @@ async def rankedsolofpp(interaction: discord.Interaction):
     await _run_ranked_command(interaction, "solo-fpp", "Solo FPP")
 
 
-@bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked")
+@bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
 async def refreshrankedcache(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["ranked_known_players"] = {}
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(
+    
+    await interaction.response.defer()
+    
+    # Update the ranked report if a message exists
+    channel_id = guild_cfg.get("ranked_channel_id")
+    message_id = guild_cfg.get("ranked_message_id")
+    
+    if channel_id and message_id:
+        try:
+            guild = bot.get_guild(interaction.guild_id)
+            channel = bot.get_channel(channel_id)
+            if guild and channel:
+                result = await fetch_ranked_report(interaction.guild_id, guild.name)
+                if result:
+                    embed, players = result
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                        await interaction.followup.send(
+                            "✅ Ranked-player cache cleared and report updated."
+                        )
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                        await interaction.followup.send(
+                            "✅ Ranked-player cache cleared. (Message not found - use /setrankedchannel to repost)"
+                        )
+                else:
+                    await interaction.followup.send("✅ Ranked-player cache cleared.")
+                return
+        except PubgApiError as e:
+            await interaction.followup.send(f"✅ Ranked-player cache cleared. (API error updating report: {e})")
+            return
+        except Exception as e:
+            await interaction.followup.send(f"✅ Ranked-player cache cleared. (Error updating report: {e})")
+            return
+    
+    await interaction.followup.send(
         "✅ Ranked-player cache cleared. The next check for each ranked queue will scan the full roster; "
         "later checks will only query players known to play that queue."
     )
