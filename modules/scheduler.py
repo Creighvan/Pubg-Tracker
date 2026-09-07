@@ -392,20 +392,18 @@ async def auto_survival_mastery():
             embeds, files = result
             message_id = guild_cfg.get("survival_message_id")
             
-            # Edit existing message or post new one
+            # Survival Mastery uses files (images), so we must delete and repost
+            # Discord doesn't allow editing files on existing messages
             if message_id:
                 try:
-                    message = await channel.fetch_message(message_id)
-                    await message.edit(embeds=embeds, files=files)
+                    old_message = await channel.fetch_message(message_id)
+                    await old_message.delete()
                 except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-                    # Message deleted/inaccessible - post new one
-                    new_message = await channel.send(embeds=embeds, files=files)
-                    guild_cfg["survival_message_id"] = new_message.id
-                    await storage.save_guild(guild_id, guild_cfg)
-            else:
-                new_message = await channel.send(embeds=embeds, files=files)
-                guild_cfg["survival_message_id"] = new_message.id
-                await storage.save_guild(guild_id, guild_cfg)
+                    # Message already deleted or inaccessible - just post new one
+                    pass
+            new_message = await channel.send(embeds=embeds, files=files)
+            guild_cfg["survival_message_id"] = new_message.id
+            await storage.save_guild(guild_id, guild_cfg)
             
             guild_cfg["survival_posted_at"] = now.isoformat()
             await storage.save_guild(guild_id, guild_cfg)

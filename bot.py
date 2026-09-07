@@ -1020,18 +1020,42 @@ async def setclanchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["clan_channel_id"] = interaction.channel_id
     guild_cfg["clan_level_enabled"] = True
+    guild_cfg["clan_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(
-        f"✅ Weekly clan-level reports will post in {interaction.channel.mention}. "
-        f"Choose the weekly time with `/setclantime`."
-    )
-    await send_audit_log(
-        interaction.guild_id,
-        "Channel Configured",
-        f"Clan level report channel set",
-        user=interaction.user,
-        details={"Channel": interaction.channel_id}
-    )
+    
+    await interaction.response.defer()
+    
+    # Immediately post the report
+    try:
+        result = await fetch_clan_level_report(interaction.guild_id)
+        if result:
+            embed, clan = result
+            new_message = await interaction.channel.send(embed=embed)
+            guild_cfg["clan_message_id"] = new_message.id
+            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            await interaction.followup.send(
+                f"✅ Clan level report posted in {interaction.channel.mention}. "
+                f"Choose the weekly time with `/setclantime`."
+            )
+            
+            await send_audit_log(
+                interaction.guild_id,
+                "Channel Configured & Report Posted",
+                f"Clan level report channel set and initial report posted",
+                user=interaction.user,
+                details={"Channel": interaction.channel_id, "Clan": clan["name"]},
+                report_embed=embed
+            )
+        else:
+            await interaction.followup.send(
+                f"✅ Weekly clan-level reports will post in {interaction.channel.mention}. "
+                f"Choose the weekly time with `/setclantime`."
+            )
+    except PubgApiError as e:
+        await interaction.followup.send(f"PUBG API error: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"Something went wrong: {e}")
 
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
@@ -1770,27 +1794,46 @@ async def setsurvivalchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["survival_channel_id"] = interaction.channel_id
     guild_cfg["survival_enabled"] = True
+    guild_cfg["survival_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    weekday = guild_cfg.get("survival_weekday_est")
-    if weekday is None:
-        await interaction.response.send_message(
-            f"✅ Weekly Survival Mastery reports will post in {interaction.channel.mention}. "
-            "Use `/setsurvivaltime` to choose the weekly day and time."
-        )
-    else:
-        weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[weekday]
-        await interaction.response.send_message(
-            f"✅ Weekly Survival Mastery reports will post in {interaction.channel.mention} every "
-            f"**{weekday_name} at {guild_cfg.get('survival_hour_est', 12):02d}:{guild_cfg.get('survival_minute_est', 0):02d} Eastern**. "
-            "Use `/setsurvivaltime` to change the schedule."
-        )
-    await send_audit_log(
-        interaction.guild_id,
-        "Channel Configured",
-        f"Survival Mastery report channel set",
-        user=interaction.user,
-        details={"Channel": interaction.channel_id}
-    )
+    
+    await interaction.response.defer()
+    
+    # Immediately post the report
+    try:
+        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
+        if result:
+            embeds, files = result
+            new_message = await interaction.channel.send(embeds=embeds, files=files)
+            guild_cfg["survival_message_id"] = new_message.id
+            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            weekday = guild_cfg.get("survival_weekday_est")
+            if weekday is None:
+                await interaction.followup.send(
+                    f"✅ Survival Mastery report posted in {interaction.channel.mention}. "
+                    "Use `/setsurvivaltime` to choose the weekly day and time."
+                )
+            else:
+                weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[weekday]
+                await interaction.followup.send(
+                    f"✅ Survival Mastery report posted in {interaction.channel.mention}. "
+                    f"Next update: every **{weekday_name} at {guild_cfg.get('survival_hour_est', 12):02d}:{guild_cfg.get('survival_minute_est', 0):02d} Eastern**."
+                )
+            
+            await send_audit_log(
+                interaction.guild_id,
+                "Channel Configured & Report Posted",
+                f"Survival Mastery report channel set and initial report posted",
+                user=interaction.user,
+                details={"Channel": interaction.channel_id}
+            )
+        else:
+            await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+    except PubgApiError as e:
+        await interaction.followup.send(f"PUBG API error: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"Something went wrong: {e}")
 
 
 @bot.tree.command(description="Set the weekly Survival Mastery report time in Eastern time")
