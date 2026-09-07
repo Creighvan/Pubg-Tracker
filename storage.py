@@ -46,6 +46,7 @@ _DEFAULT_GUILD = {
     "clan_name": None,
     "pubg_clan_name": None,  # exact PUBG clan name used by the clan-level report
     "pubg_clan_id": None,  # official clan ID, resolved from a clan member
+    "language": "en",  # preferred language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)
     "clan_channel_id": None,  # destination for the weekly clan-level report
     "clan_level_enabled": True,
     "clan_weekday_est": None,  # Monday=0 through Sunday=6; None disables scheduling
@@ -375,3 +376,20 @@ async def set_audit_log_channel(guild_id: int, channel_id: int | None):
     guild = await get_guild(guild_id)
     guild["audit_log_channel_id"] = channel_id
     await save_guild(guild_id, guild)
+
+
+async def get_language(guild_id: int) -> str:
+    """Get the preferred language for a guild."""
+    guild = await get_guild(guild_id)
+    return guild.get("language", "en")
+
+
+async def set_language(guild_id: int, language_code: str) -> bool:
+    """Set the preferred language for a guild. Returns True if valid."""
+    from pubg_api import LANGUAGE_NAMES
+    if language_code not in LANGUAGE_NAMES:
+        return False
+    guild = await get_guild(guild_id)
+    guild["language"] = language_code
+    await save_guild(guild_id, guild)
+    return True

@@ -81,6 +81,7 @@ from dotenv import load_dotenv
 
 import storage
 from pubg_api import PubgApiError, PubgClient
+import translations
 
 load_dotenv()
 
@@ -2390,6 +2391,46 @@ async def help(interaction: discord.Interaction):
         "Use `/` to browse the Bot's commands, or join the official support server for "
         "setup help, bug reports, feature requests, and Bot updates:\n"
         f"{SUPPORT_SERVER_URL}"
+    )
+
+
+@bot.tree.command(description="Set the preferred language for this server")
+@app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
+async def setlanguage(interaction: discord.Interaction, language: str):
+    from pubg_api import LANGUAGE_NAMES
+    from translations import get_translation
+    
+    language = language.lower()
+    if language not in LANGUAGE_NAMES:
+        await interaction.response.send_message(
+            f"❌ Invalid language code. Valid options: {', '.join(LANGUAGE_NAMES.keys())}\n"
+            f"Example: English (en), Spanish (es), Chinese (zh)"
+        )
+        return
+    
+    success = await storage.set_language(interaction.guild_id, language)
+    if success:
+        language_name = LANGUAGE_NAMES[language]
+        await interaction.response.send_message(
+            f"✅ Language set to **{language_name}** ({language}).\n"
+            f"Reports and messages will now appear in this language."
+        )
+    else:
+        await interaction.response.send_message("❌ Failed to set language. Please try again.")
+
+
+@bot.tree.command(description="Show the current language setting for this server")
+async def language(interaction: discord.Interaction):
+    from pubg_api import LANGUAGE_NAMES
+    from translations import get_translation
+    
+    current_lang = await storage.get_language(interaction.guild_id)
+    language_name = LANGUAGE_NAMES.get(current_lang, current_lang)
+    
+    await interaction.response.send_message(
+        f"🌐 Current language: **{language_name}** ({current_lang})\n"
+        f"Use `/setlanguage <code>` to change it.\n"
+        f"Available: {', '.join(LANGUAGE_NAMES.keys())}"
     )
 
 
