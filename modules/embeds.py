@@ -77,7 +77,15 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             continue
         if not guild_cfg.get(enabled_key, True):
             disabled_reports.append(name.replace("🟢 ", "").replace("🏆 ", "").replace("✨ ", ""))
-            continue
+        # Special handling for Last Active and Ranked reports - they update in place at fixed KST times
+        if name in ("🟢 Last Active", "🏆 Ranked"):
+            hour = guild_cfg.get(hour_key)
+            if hour is not None:
+                minute = guild_cfg.get(minute_key, 0)
+                schedule = f"Daily at {hour:02d}:{minute:02d} KST (updates in place)"
+                next_time = f"{hour:02d}:{minute:02d} KST"
+                embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
+                continue
         hour = guild_cfg.get(hour_key)
         if hour is None:
             schedule = f"Every {interval} hours"
