@@ -36,10 +36,10 @@ Slash commands:
   /rankedsquadfpp              - show current-season ranked Squad FPP standings
   /rankedduofpp                - show current-season ranked Duo FPP standings
   /rankedsolofpp               - show current-season ranked Solo FPP standings
-  /refreshrankedcache           - rescan ranked roster and update the ranked report
+  /refreshranked            - rescan ranked roster and update the ranked report
+  /updateranked              - update the ranked report with fresh data without clearing cache
   /setrankedchannel           - set current channel for the daily ranked report (updates at 5:30am KST)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
-  /setrankedtime <0-23>         - time is fixed at 5:30am KST (this command is deprecated)
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
   /sethighlightschannel          - set current channel for the 24h highlights report
   /sethighlightstime <0-23>       - fixed Eastern-time hour for the highlights report
@@ -1025,6 +1025,13 @@ async def setclanchannel(interaction: discord.Interaction):
         f"✅ Weekly clan-level reports will post in {interaction.channel.mention}. "
         f"Choose the weekly time with `/setclantime`."
     )
+    await send_audit_log(
+        interaction.guild_id,
+        "Channel Configured",
+        f"Clan level report channel set",
+        user=interaction.user,
+        details={"Channel": interaction.channel_id}
+    )
 
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
@@ -1515,7 +1522,7 @@ async def rankedsolofpp(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
-async def refreshrankedcache(interaction: discord.Interaction):
+async def refreshranked(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["ranked_known_players"] = {}
     await storage.save_guild(interaction.guild_id, guild_cfg)
@@ -1560,6 +1567,48 @@ async def refreshrankedcache(interaction: discord.Interaction):
     )
 
 
+@bot.tree.command(description="Update the ranked report with fresh data without clearing the cache")
+async def updateranked(interaction: discord.Interaction):
+    await interaction.response.defer()
+    
+    # Update the ranked report if a message exists
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    channel_id = guild_cfg.get("ranked_channel_id")
+    message_id = guild_cfg.get("ranked_message_id")
+    
+    if channel_id and message_id:
+        try:
+            guild = bot.get_guild(interaction.guild_id)
+            channel = bot.get_channel(channel_id)
+            if guild and channel:
+                result = await fetch_ranked_report(interaction.guild_id, guild.name)
+                if result:
+                    embed, players = result
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                        await interaction.followup.send(
+                            "✅ Ranked report updated with fresh data."
+                        )
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                        await interaction.followup.send(
+                            "✅ Message not found - use /setrankedchannel to repost"
+                        )
+                else:
+                    await interaction.followup.send("No players tracked yet.")
+                return
+        except PubgApiError as e:
+            await interaction.followup.send(f"API error updating report: {e}")
+            return
+        except Exception as e:
+            await interaction.followup.send(f"Error updating report: {e}")
+            return
+    
+    await interaction.followup.send(
+        "No ranked report message found. Use /setrankedchannel to set up the report first."
+    )
+
+
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 async def setrankedchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -1601,6 +1650,7 @@ async def setrankedchannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
+@app_commands.guild_only()
 @app_commands.choices(
     queue=[
         app_commands.Choice(name="Squad TPP", value="squad"),
@@ -1616,13 +1666,21 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
     guild_cfg["ranked_queue"] = queue.value
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(f"✅ Daily ranked reports will now track **{queue.name}**.")
+    await send_audit_log(
+        interaction.guild_id,
+        "Queue Configured",
+        f"Ranked report queue set to {queue.name}",
+        user=interaction.user,
+        details={"Queue": queue.value}
+    )
 
 
-@bot.tree.command(description="Post the selected ranked report at a fixed Eastern-time each day")
-@app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
-@app_commands.choices(minute=QUARTER_HOUR_CHOICES)
-async def setrankedtime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    await interaction.response.send_message("⚠️ This command is deprecated. The ranked report now updates daily at a fixed time of 5:30am KST.")
+# Deprecated: Time is now fixed at 5:30am KST
+# @bot.tree.command(description="Post the selected ranked report at a fixed Eastern-time each day")
+# @app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
+# @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
+# async def setrankedtime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
+#     await interaction.response.send_message("⚠️ This command is deprecated. The ranked report now updates daily at a fixed time of 5:30am KST.")
 
 
 @bot.tree.command(description="Show the last-24h highlights (fun titles, top 10, human vs bot kills), right now")
@@ -1654,6 +1712,13 @@ async def sethighlightschannel(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"✅ Daily highlights will post in {interaction.channel.mention} every 24 hours. "
         f"Use `/dailyhighlights` any time for an immediate one (it can take a minute — it reads match telemetry)."
+    )
+    await send_audit_log(
+        interaction.guild_id,
+        "Channel Configured",
+        f"Daily highlights channel set",
+        user=interaction.user,
+        details={"Channel": interaction.channel_id}
     )
 
 
@@ -1719,6 +1784,13 @@ async def setsurvivalchannel(interaction: discord.Interaction):
             f"**{weekday_name} at {guild_cfg.get('survival_hour_est', 12):02d}:{guild_cfg.get('survival_minute_est', 0):02d} Eastern**. "
             "Use `/setsurvivaltime` to change the schedule."
         )
+    await send_audit_log(
+        interaction.guild_id,
+        "Channel Configured",
+        f"Survival Mastery report channel set",
+        user=interaction.user,
+        details={"Channel": interaction.channel_id}
+    )
 
 
 @bot.tree.command(description="Set the weekly Survival Mastery report time in Eastern time")

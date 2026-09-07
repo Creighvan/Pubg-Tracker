@@ -307,10 +307,10 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setactivitychannel` | Set channel for the live-updating last active report (posts immediately, then updates at 3am KST daily reset) |
 | `/rankedsquad`, `/rankedduo`, `/rankedsolo` | Show current-season ranked TPP standings for that queue |
 | `/rankedsquadfpp`, `/rankedduofpp`, `/rankedsolofpp` | Show current-season ranked FPP standings for that queue |
-| `/refreshrankedcache` | Make the next ranked check scan the full roster again |
-| `/setrankedchannel` | Set channel for the daily ranked report (defaults to digest channel) |
+| `/refreshranked` | Rescan the full ranked roster and update the ranked report |
+| `/updateranked` | Update the ranked report with fresh data without clearing the cache |
+| `/setrankedchannel` | Set channel for the daily ranked report (posts immediately, then updates at 5:30am KST) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
-| `/setrankedtime <0-23>` | Fixed Eastern-time hour for the ranked report |
 | `/dailyhighlights` | Show daily-reset fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |

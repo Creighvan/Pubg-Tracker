@@ -105,7 +105,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         minute = guild_cfg.get("clan_minute_est", 0)
         weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[clan_weekday]
         next_time = _next_weekly_report(clan_weekday, hour, minute, guild_cfg.get("clan_posted_at"))
-        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern (updates in place)\n**Next:** {next_time}", inline=False)
     elif clan_channel and clan_weekday is not None:
         disabled_reports.append("Clan Level")
 
@@ -116,7 +116,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         minute = guild_cfg.get("survival_minute_est", 0)
         weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[survival_weekday]
         next_time = _next_weekly_report(survival_weekday, hour, minute, guild_cfg.get("survival_posted_at"))
-        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern (updates in place)\n**Next:** {next_time}", inline=False)
     elif survival_channel and survival_weekday is not None:
         disabled_reports.append("Survival Mastery")
 
@@ -211,7 +211,7 @@ def build_clan_level_embed(guild_cfg: dict, clan: dict) -> discord.Embed:
         ),
         inline=False,
     )
-    embed.set_footer(text="Weekly Clan Progress · Official PUBG API")
+    embed.set_footer(text="Updates weekly (live-updating, not reposted) · Weekly Clan Progress · Official PUBG API")
     return embed
 
 
@@ -623,7 +623,7 @@ def build_survival_mastery_embeds(
                 value="\n".join(lines[start:start + 15]),
                 inline=False,
             )
-        embed.set_footer(text="Stats from the official PUBG API · Survival Mastery")
+        embed.set_footer(text="Updates weekly (live-updating, not reposted) · Stats from the official PUBG API · Survival Mastery")
         embeds.append(embed)
 
     if unknown:
@@ -635,6 +635,7 @@ def build_survival_mastery_embeds(
         embed.description = "\n".join(
             f"**{p['name']}** — Lv.{p.get('mastery', {}).get('survival_level', 0)}" for p in unknown
         )
+        embed.set_footer(text="Updates weekly (live-updating, not reposted) · Stats from the official PUBG API · Survival Mastery")
         embeds.append(embed)
 
     if not_found:
@@ -643,6 +644,7 @@ def build_survival_mastery_embeds(
             color=discord.Color.dark_grey(),
         )
         embed.description = ", ".join(not_found[:25]) + (" ..." if len(not_found) > 25 else "")
+        embed.set_footer(text="Updates weekly (live-updating, not reposted) · Stats from the official PUBG API · Survival Mastery")
         embeds.append(embed)
 
     return embeds, files

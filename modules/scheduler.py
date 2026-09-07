@@ -318,7 +318,8 @@ async def auto_clan_level():
             continue
 
         channel = _get_bot().get_channel(channel_id)
-        if channel is None:
+        guild = _get_bot().get_guild(guild_id)
+        if channel is None or guild is None:
             continue
         try:
             async with get_scheduler_lock():
@@ -326,7 +327,23 @@ async def auto_clan_level():
             if result is None:
                 continue
             embed, clan = result
-            await channel.send(embed=embed)
+            message_id = guild_cfg.get("clan_message_id")
+            
+            # Edit existing message or post new one
+            if message_id:
+                try:
+                    message = await channel.fetch_message(message_id)
+                    await message.edit(embed=embed)
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                    # Message deleted/inaccessible - post new one
+                    new_message = await channel.send(embed=embed)
+                    guild_cfg["clan_message_id"] = new_message.id
+                    await storage.save_guild(guild_id, guild_cfg)
+            else:
+                new_message = await channel.send(embed=embed)
+                guild_cfg["clan_message_id"] = new_message.id
+                await storage.save_guild(guild_id, guild_cfg)
+            
             # A snapshot only counts after Discord accepted the report.
             guild_cfg["clan_posted_at"] = datetime.now(timezone.utc).isoformat()
             guild_cfg["clan_last_level"] = clan["level"]
@@ -373,7 +390,23 @@ async def auto_survival_mastery():
             if result is None:
                 continue
             embeds, files = result
-            await channel.send(embeds=embeds, files=files)
+            message_id = guild_cfg.get("survival_message_id")
+            
+            # Edit existing message or post new one
+            if message_id:
+                try:
+                    message = await channel.fetch_message(message_id)
+                    await message.edit(embeds=embeds, files=files)
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                    # Message deleted/inaccessible - post new one
+                    new_message = await channel.send(embeds=embeds, files=files)
+                    guild_cfg["survival_message_id"] = new_message.id
+                    await storage.save_guild(guild_id, guild_cfg)
+            else:
+                new_message = await channel.send(embeds=embeds, files=files)
+                guild_cfg["survival_message_id"] = new_message.id
+                await storage.save_guild(guild_id, guild_cfg)
+            
             guild_cfg["survival_posted_at"] = now.isoformat()
             await storage.save_guild(guild_id, guild_cfg)
         except PubgApiError as e:
