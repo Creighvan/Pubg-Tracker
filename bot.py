@@ -37,9 +37,9 @@ Slash commands:
   /rankedduofpp                - show current-season ranked Duo FPP standings
   /rankedsolofpp               - show current-season ranked Solo FPP standings
   /refreshrankedcache           - make the next ranked command rescan the roster
-  /setrankedchannel           - set current channel for the 24h ranked TPP report
+  /setrankedchannel           - set current channel for the daily ranked report (updates at 5:30am KST)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
-  /setrankedtime <0-23>         - fixed Eastern-time hour for the ranked report
+  /setrankedtime <0-23>         - time is fixed at 5:30am KST (this command is deprecated)
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
   /sethighlightschannel          - set current channel for the 24h highlights report
   /sethighlightstime <0-23>       - fixed Eastern-time hour for the highlights report
@@ -1530,12 +1530,39 @@ async def setrankedchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["ranked_channel_id"] = interaction.channel_id
     guild_cfg["ranked_enabled"] = True
-    guild_cfg["ranked_posted_at"] = datetime.now(timezone.utc).isoformat()
+    guild_cfg["ranked_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(
-        f"✅ Ranked report will post in {interaction.channel.mention} every 24 hours. "
-        f"Use one of the `/ranked...` commands any time for an immediate one."
-    )
+    
+    await interaction.response.defer()
+    
+    # Immediately post the report
+    try:
+        result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name)
+        if result:
+            embed, players = result
+            new_message = await interaction.channel.send(embed=embed)
+            guild_cfg["ranked_message_id"] = new_message.id
+            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            await interaction.followup.send(
+                f"✅ Ranked report posted in {interaction.channel.mention}. "
+                f"It will update at 5:30am KST daily."
+            )
+            
+            await send_audit_log(
+                interaction.guild_id,
+                "Channel Configured & Report Posted",
+                f"Ranked report channel set and initial report posted",
+                user=interaction.user,
+                details={"Channel": interaction.channel_id, "Players": len(players)},
+                report_embed=embed
+            )
+        else:
+            await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+    except PubgApiError as e:
+        await interaction.followup.send(f"PUBG API error: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"Something went wrong: {e}")
 
 
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
@@ -1560,11 +1587,7 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
 @app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setrankedtime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["ranked_hour_est"] = hour
-    guild_cfg["ranked_minute_est"] = minute.value if minute else 0
-    await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Ranked report will now post daily at **{hour:02d}:{guild_cfg['ranked_minute_est']:02d} Eastern**.")
+    await interaction.response.send_message("⚠️ This command is deprecated. The ranked report now updates daily at a fixed time of 5:30am KST.")
 
 
 @bot.tree.command(description="Show the last-24h highlights (fun titles, top 10, human vs bot kills), right now")
