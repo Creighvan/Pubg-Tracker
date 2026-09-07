@@ -109,10 +109,12 @@ from modules.config import (
     _record_status_event,
     get_status_events,
     _bot_started_at,
-    _commands_synced_once,
-    _command_templates,
-    _bot_ready_once,
 )
+
+# Global state for command sync
+_commands_synced_once = False
+_command_templates = None
+_bot_ready_once = False
 
 # Import utility helpers
 from modules.utils import (
@@ -455,6 +457,7 @@ async def _sync_guild_commands(guild: discord.Guild) -> int:
 
 @bot.event
 async def on_ready():
+    global _commands_synced_once, _command_templates, _bot_ready_once
     try:
         if not _commands_synced_once:
             # Guild commands are available immediately. Each sync bulk-replaces
@@ -481,7 +484,7 @@ async def on_ready():
     bot.add_view(FeedbackPromptView())
     print(f"Logged in as {bot.user} (id={bot.user.id})")
     if not _bot_ready_once:
-        mark_bot_ready()
+        _bot_ready_once = True
         await _record_status_event("Bot started and connected to Discord")
 
 
@@ -506,7 +509,7 @@ async def on_guild_join(guild: discord.Guild):
         is_automated=True,
         details={"Server Name": guild.name, "Member Count": guild.member_count}
     )
-    if not have_commands_been_synced():
+    if not _commands_synced_once:
         return
     try:
         count = await _sync_guild_commands(guild)
