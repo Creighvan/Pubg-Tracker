@@ -2003,6 +2003,12 @@ async def chickendinner(interaction: discord.Interaction):
     winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
     total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
     
+    # If total_wins is 0 but we have recent wins, initialize the tally
+    if total_wins == 0 and winners:
+        total_wins = len(winners)
+        guild_cfg["chicken_dinner_total_wins"] = total_wins
+        await storage.save_guild(interaction.guild_id, guild_cfg)
+    
     embed = build_chicken_dinner_embed(winners, is_automated=False, total_wins=total_wins)
     await interaction.followup.send(embed=embed)
 
