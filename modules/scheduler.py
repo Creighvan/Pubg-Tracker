@@ -465,10 +465,9 @@ async def before_auto_donations():
 async def auto_chicken_dinner():
     """
     Every 15 minutes, checks each opted-in guild's roster for new Chicken
-    Dinners in players' most recent matches. Dedupes per player against
-    chicken_dinner_posted_matches (pubg name -> last alerted match_id), so
-    the same win isn't reposted every tick just because nobody has played a
-    newer match since the last check.
+    Dinners in players' most recent matches. Updates a persistent message
+    with grouped wins (players who won together on the same line) and a
+    running tally of total wins.
     """
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -508,26 +507,51 @@ async def auto_chicken_dinner():
             if match_id:
                 updated_matches[key] = match_id
 
-        if not new_wins:
-            continue
+        # Update running tally
+        total_wins = guild_cfg.get("chicken_dinner_total_wins", 0) + len(new_wins)
 
         try:
             from modules.embeds import build_chicken_dinner_embed
-            embed = build_chicken_dinner_embed(new_wins, is_automated=True)
-            await channel.send(embed=embed)
+            
+            # Get all recent wins (not just new ones) for the display
+            all_winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
+            
+            if not all_winners:
+                # No recent wins, skip update
+                continue
+            
+            embed = build_chicken_dinner_embed(all_winners, is_automated=True, total_wins=total_wins)
+            
+            # Try to edit existing message
+            message_id = guild_cfg.get("chicken_dinner_message_id")
+            message = None
+            if message_id:
+                try:
+                    message = await channel.fetch_message(message_id)
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                    message = None
+            
+            if message is not None:
+                await message.edit(embed=embed)
+            else:
+                new_message = await channel.send(embed=embed)
+                guild_cfg["chicken_dinner_message_id"] = new_message.id
+            
             # Only record these matches as alerted once Discord actually
-            # accepted the message — a failed send retries next tick
-            # instead of silently losing the alert.
+            # accepted the message
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
+            guild_cfg["chicken_dinner_total_wins"] = total_wins
             await storage.save_guild(guild_id, guild_cfg)
-            await send_audit_log(
-                guild_id,
-                "Automated Event",
-                f"Chicken dinner alert posted",
-                is_automated=True,
-                details={"Event Type": "Chicken Dinner", "Wins": len(new_wins)},
-                report_embed=embed
-            )
+            
+            if new_wins:
+                await send_audit_log(
+                    guild_id,
+                    "Automated Event",
+                    f"Chicken dinner report updated",
+                    is_automated=True,
+                    details={"Event Type": "Chicken Dinner", "New Wins": len(new_wins), "Total Wins": total_wins},
+                    report_embed=embed
+                )
         except Exception as e:
             print(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
 

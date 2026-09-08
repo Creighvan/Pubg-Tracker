@@ -2001,8 +2001,9 @@ async def chickendinner(interaction: discord.Interaction):
         return
 
     winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
+    total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
     
-    embed = build_chicken_dinner_embed(winners, is_automated=False)
+    embed = build_chicken_dinner_embed(winners, is_automated=False, total_wins=total_wins)
     await interaction.followup.send(embed=embed)
 
 

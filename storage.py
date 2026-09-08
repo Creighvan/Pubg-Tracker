@@ -73,6 +73,8 @@ _DEFAULT_GUILD = {
     "chicken_dinner_channel_id": None,  # destination for automatic win alerts (defaults to post_channel_id)
     "chicken_dinner_enabled": True,
     "chicken_dinner_posted_matches": {},  # pubg_name.lower() -> match_id already alerted, so the same win isn't reposted every 15-min tick
+    "chicken_dinner_message_id": None,  # id of the persistent chicken dinner message this bot edits in place (None = post a fresh one next update)
+    "chicken_dinner_total_wins": 0,  # running tally of total chicken dinners
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
