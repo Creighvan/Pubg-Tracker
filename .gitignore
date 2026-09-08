@@ -1,6 +1,9 @@
 # Environment variables with sensitive data
 .env
 
+# Runtime data (contains sensitive guild/player data)
+data.json
+
 # Python cache
 __pycache__/
 *.py[cod]
