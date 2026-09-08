@@ -435,8 +435,11 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
         embed.add_field(name=f"{emoji} {label}", value=f"**{winner_name}** — {val_str}", inline=True)
 
     # Top 10 overall, ranked by best single-match kills, with human/bot kill split
+    # Sort players by best match kills (highest first)
+    top_players = sorted(active_players, key=lambda p: p["daily"].get("best_match_kills", p["daily"]["kills"]), reverse=True)[:10]
+    
     lines = []
-    for i, p in enumerate(active_players[:10], start=1):
+    for i, p in enumerate(top_players, start=1):
         d = p["daily"]
         # Use best single-match stats instead of aggregated totals
         best_kills = d.get("best_match_kills", d["kills"])
