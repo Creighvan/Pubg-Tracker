@@ -53,7 +53,7 @@ Slash commands:
   /links                                - show every PUBG-name-to-Discord link for this server
   /chickendinner                        - check the roster's most recent matches for wins right now
   /setchickendinnerchannel               - set current channel for win alerts (defaults to the digest channel)
-  /setapistatuschannel                   - set current channel for live PUBG API status updates
+  /setapistatuschannel                   - set current channel for live PUBG API status (updates only when status changes)
   /pingtoggle                           - toggle mention notifications for achievement awards
   /botservers                          - [Admin] list all Discord servers the bot is in
   /askfeedback [channel] [secret_key]  - [Admin] post feedback & support prompt to a server channel
@@ -2028,15 +2028,21 @@ async def setchickendinnerchannel(interaction: discord.Interaction):
     )
 
 
-@bot.tree.command(description="Set current channel for live PUBG API status updates")
+@bot.tree.command(description="Set this channel to show live PUBG API status (updates only when status changes)")
 async def setapistatuschannel(interaction: discord.Interaction):
+    """
+    Points a channel at a single persistent API status embed that gets EDITED
+    in place when the PUBG API status changes — never a new message per check.
+    Checks every 30 minutes but only updates if the status actually changed.
+    """
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["api_status_channel_id"] = interaction.channel_id
+    guild_cfg["api_status_message_id"] = None  # force a fresh message in the new channel
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ Live PUBG API status will update in {interaction.channel.mention}. "
-        "The bot posts a single message and updates it every 30 minutes. "
-        "Status includes API health and directs to official sources for downtime details."
+        f"✅ PUBG API status will be posted and kept up to date in {interaction.channel.mention}. "
+        "It only updates when the API status actually changes — going up/down, maintenance mode, etc. "
+        "Checks every 30 minutes but won't spam if nothing changed."
     )
     await send_audit_log(
         interaction.guild_id,
