@@ -594,18 +594,7 @@ async def before_auto_feedback_prompt():
     await _get_bot().wait_until_ready()
 
 
-# Import the shared audit log function from bot.py
-# We need to import it here to avoid circular imports
-# The actual implementation is in bot.py
-def send_audit_log(guild_id: int, title: str, description: str, is_automated: bool = False, details: dict = None, report_embed: discord.Embed = None):
-    """Send an audit log entry to the configured audit server."""
-    # This is a wrapper that will be replaced by the real implementation from bot.py
-    # The real implementation is set in main.py via _set_audit_log_func
-    if _audit_log_func:
-        return _audit_log_func(guild_id, title, description, is_automated, details, report_embed)
-    print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
-
-
+# Audit log function injection - set by bot.py during startup
 _audit_log_func = None
 
 
@@ -613,6 +602,15 @@ def _set_audit_log_func(func):
     """Set the audit log function from bot.py."""
     global _audit_log_func
     _audit_log_func = func
+
+
+async def send_audit_log(guild_id: int, title: str, description: str, is_automated: bool = False, details: dict = None, report_embed: discord.Embed = None):
+    """Send an audit log entry to the configured audit server."""
+    # This is a wrapper that will be replaced by the real implementation from bot.py
+    # The real implementation is set in main.py via _set_audit_log_func
+    if _audit_log_func:
+        return await _audit_log_func(guild_id, title, description, is_automated, details, report_embed)
+    print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
 
 
 def start_all_scheduled_tasks(bot_instance):

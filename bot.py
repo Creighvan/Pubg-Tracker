@@ -199,7 +199,7 @@ config_module.pubg = pubg
 # /setstatuschannel points a channel at a single persistent embed message
 # that gets EDITED in place whenever something happens, rather than a new
 # message being posted every time.
-_status_events: list[dict] = []
+# Note: The actual status event system lives in modules/config.py
 _STATUS_LOG_LIMIT = 12
 
 
