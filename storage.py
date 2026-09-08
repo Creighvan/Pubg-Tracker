@@ -129,6 +129,31 @@ async def save_guild(guild_id: int, guild_data: dict):
         _save(data)
 
 
+async def modify_guild(guild_id: int, modifier):
+    """
+    Atomically read, modify, and save a guild config.
+    
+    This prevents lost-update race conditions: the modifier callback
+    receives the guild dict and can mutate it, then the changes are
+    saved immediately while still holding the lock.
+    
+    Example:
+        await modify_guild(guild_id, lambda g: g["players"].append(name))
+    """
+    async with _lock:
+        data = _load()
+        guild = data.get(str(guild_id))
+        if guild is None:
+            guild = copy.deepcopy(_DEFAULT_GUILD)
+        else:
+            merged = copy.deepcopy(_DEFAULT_GUILD)
+            merged.update(guild)
+            guild = merged
+        modifier(guild)
+        data[str(guild_id)] = guild
+        _save(data)
+
+
 async def all_guild_ids() -> list[int]:
     async with _lock:
         data = _load()
@@ -234,7 +259,9 @@ async def add_cheat_report(
 ) -> str:
     """Add a cheat report and return the report ID."""
     guild = await get_guild(guild_id)
-    report_id = f"report_{len(guild['cheat_reports']) + 1}_{int(datetime.now(timezone.utc).timestamp())}"
+    # Use timestamp as primary key to avoid race conditions on length
+    timestamp = int(datetime.now(timezone.utc).timestamp())
+    report_id = f"report_{timestamp}"
     report = {
         "report_id": report_id,
         "reported_at": datetime.now(timezone.utc).isoformat(),
