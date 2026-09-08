@@ -81,7 +81,7 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     # The PUBG API has a hard 14-day limit for match data retention
     protected_players = await storage.get_protected_players(guild_id)
     
-    async def update_inactive_dates(guild_cfg):
+    def update_inactive_dates(guild_cfg):
         """Update inactive dates for players with no recent matches."""
         for player in players:
             player_lower = player["name"].lower()
