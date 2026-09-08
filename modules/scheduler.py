@@ -522,7 +522,15 @@ async def auto_chicken_dinner():
                 updated_matches[key] = match_id
 
         # Update running tally
-        total_wins = guild_cfg.get("chicken_dinner_total_wins", 0) + len(new_wins)
+        current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
+        
+        # If total is 0 and we have recent wins, initialize it (first-time setup)
+        if current_total == 0:
+            all_winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
+            if all_winners:
+                current_total = len(all_winners)
+        
+        total_wins = current_total + len(new_wins)
 
         try:
             from modules.embeds import build_chicken_dinner_embed
