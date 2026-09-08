@@ -664,84 +664,93 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
 @tasks.loop(minutes=30)
 async def auto_api_status():
     """
-    Check PUBG API status every 30 minutes and notify if there are issues.
+    Check PUBG API status every 30 minutes and update a single live embed.
     Uses the official /status endpoint to check service health.
-    Sends alerts to all guilds that have configured an api_status_channel_id.
+    Updates an existing message in each guild's configured api_status_channel_id.
     """
     try:
         async with get_scheduler_lock():
             pubg = _get_pubg()
             status = await pubg.get_api_status()
             
-            if "error" in status:
-                # API is down or unreachable - send to all configured guilds
-                bot = _get_bot()
-                guild_configs = storage.get_all_guild_configs()
-                
-                for guild_id, guild_cfg in guild_configs.items():
-                    channel_id = guild_cfg.get("api_status_channel_id")
-                    if not channel_id:
-                        continue
-                    
-                    guild = bot.get_guild(int(guild_id))
-                    if not guild:
-                        continue
-                    
-                    channel = guild.get_channel(channel_id)
-                    if channel:
-                        embed = discord.Embed(
-                            title="🚨 PUBG API Status Alert",
-                            description=f"Unable to check PUBG API status: {status['error']}",
-                            color=discord.Color.red(),
-                            timestamp=datetime.now(timezone.utc),
-                        )
-                        try:
-                            await channel.send(embed=embed)
-                        except Exception as e:
-                            print(f"[auto_api_status] Failed to send alert to guild {guild_id}: {e}")
-                
-                await _record_status_event("⚠️ PUBG API status check failed")
-                return
+            bot = _get_bot()
+            guild_configs = storage.get_all_guild_configs()
             
-            # Check if status indicates issues
-            released_at = status.get("releasedAt")
-            api_version = status.get("id")
-            
-            if released_at and api_version:
-                # Check if the release is very old (possible maintenance)
-                release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
-                days_old = (datetime.now(timezone.utc) - release_date).days
+            for guild_id, guild_cfg in guild_configs.items():
+                channel_id = guild_cfg.get("api_status_channel_id")
+                if not channel_id:
+                    continue
                 
-                if days_old > 365:
-                    # API version is over a year old - possible maintenance mode
-                    bot = _get_bot()
-                    guild_configs = storage.get_all_guild_configs()
+                guild = bot.get_guild(int(guild_id))
+                if not guild:
+                    continue
+                
+                channel = guild.get_channel(channel_id)
+                if not channel:
+                    continue
+                
+                # Determine status
+                if "error" in status:
+                    status_text = "🔴 DOWN"
+                    status_color = discord.Color.red()
+                    description = f"**Unable to reach PUBG API:** {status['error']}\n\n"
+                    description += "The bot cannot determine the reason or estimated downtime from the API. "
+                    description += "Check the following for official updates:\n"
+                    description += "• https://developer.pubg.com/status\n"
+                    description += "• @PUBG_Support on Twitter/X\n"
+                    description += "• Downdetector PUBG page"
+                else:
+                    released_at = status.get("releasedAt")
+                    api_version = status.get("id")
                     
-                    for guild_id, guild_cfg in guild_configs.items():
-                        channel_id = guild_cfg.get("api_status_channel_id")
-                        if not channel_id:
-                            continue
+                    if released_at and api_version:
+                        release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
+                        days_old = (datetime.now(timezone.utc) - release_date).days
                         
-                        guild = bot.get_guild(int(guild_id))
-                        if not guild:
-                            continue
-                        
-                        channel = guild.get_channel(channel_id)
-                        if channel:
-                            embed = discord.Embed(
-                                title="⚠️ PUBG API Status Warning",
-                                description=f"PUBG API version is {days_old} days old. This may indicate reduced service or maintenance mode.",
-                                color=discord.Color.orange(),
-                                timestamp=datetime.now(timezone.utc),
-                            )
-                            embed.add_field(name="API Version", value=api_version, inline=True)
-                            embed.add_field(name="Released", value=released_at, inline=True)
-                            try:
-                                await channel.send(embed=embed)
-                            except Exception as e:
-                                print(f"[auto_api_status] Failed to send warning to guild {guild_id}: {e}")
-                    
-                    await _record_status_event(f"⚠️ PUBG API version is {days_old} days old")
+                        if days_old > 365:
+                            status_text = "🟡 WARNING"
+                            status_color = discord.Color.orange()
+                            description = f"API version is {days_old} days old. This may indicate reduced service or maintenance mode.\n\n"
+                            description += "Check official channels for maintenance details:\n"
+                            description += "• https://developer.pubg.com/status\n"
+                            description += "• @PUBG_Support on Twitter/X"
+                        else:
+                            status_text = "🟢 OPERATIONAL"
+                            status_color = discord.Color.green()
+                            description = f"PUBG API is operational. Version: {api_version}\nReleased: {released_at}"
+                    else:
+                        status_text = "🟢 OPERATIONAL"
+                        status_color = discord.Color.green()
+                        description = "PUBG API is operational"
+                
+                # Build embed
+                embed = discord.Embed(
+                    title=f"PUBG API Status - {status_text}",
+                    description=description,
+                    color=status_color,
+                    timestamp=datetime.now(timezone.utc),
+                )
+                embed.set_footer(text="Updates every 30 minutes • Official info: developer.pubg.com/status")
+                
+                # Try to edit existing message, or post new one
+                message_id = guild_cfg.get("api_status_message_id")
+                message_edited = False
+                
+                if message_id:
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                        message_edited = True
+                    except Exception:
+                        # Message doesn't exist or can't be edited, will post new
+                        pass
+                
+                if not message_edited:
+                    new_message = await channel.send(embed=embed)
+                    guild_cfg["api_status_message_id"] = new_message.id
+                    await storage.save_guild(int(guild_id), guild_cfg)
+            
+            await _record_status_event("📊 API status check completed")
             
     except Exception as e:
         print(f"[auto_api_status] Error checking API status: {e}")
