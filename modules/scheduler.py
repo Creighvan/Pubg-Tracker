@@ -666,22 +666,28 @@ async def auto_api_status():
     """
     Check PUBG API status every 30 minutes and notify if there are issues.
     Uses the official /status endpoint to check service health.
+    Sends alerts to all guilds that have configured an api_status_channel_id.
     """
-    from modules.config import AUDIT_SERVER_ID, AUDIT_LOG_CHANNEL_ID
-    if not AUDIT_SERVER_ID or not AUDIT_LOG_CHANNEL_ID:
-        return
-    
     try:
         async with get_scheduler_lock():
             pubg = _get_pubg()
             status = await pubg.get_api_status()
             
             if "error" in status:
-                # API is down or unreachable
+                # API is down or unreachable - send to all configured guilds
                 bot = _get_bot()
-                audit_guild = bot.get_guild(AUDIT_SERVER_ID)
-                if audit_guild:
-                    channel = audit_guild.get_channel(AUDIT_LOG_CHANNEL_ID)
+                guild_configs = storage.get_all_guild_configs()
+                
+                for guild_id, guild_cfg in guild_configs.items():
+                    channel_id = guild_cfg.get("api_status_channel_id")
+                    if not channel_id:
+                        continue
+                    
+                    guild = bot.get_guild(int(guild_id))
+                    if not guild:
+                        continue
+                    
+                    channel = guild.get_channel(channel_id)
                     if channel:
                         embed = discord.Embed(
                             title="🚨 PUBG API Status Alert",
@@ -689,8 +695,12 @@ async def auto_api_status():
                             color=discord.Color.red(),
                             timestamp=datetime.now(timezone.utc),
                         )
-                        await channel.send(embed=embed)
-                        await _record_status_event("⚠️ PUBG API status check failed")
+                        try:
+                            await channel.send(embed=embed)
+                        except Exception as e:
+                            print(f"[auto_api_status] Failed to send alert to guild {guild_id}: {e}")
+                
+                await _record_status_event("⚠️ PUBG API status check failed")
                 return
             
             # Check if status indicates issues
@@ -705,9 +715,18 @@ async def auto_api_status():
                 if days_old > 365:
                     # API version is over a year old - possible maintenance mode
                     bot = _get_bot()
-                    audit_guild = bot.get_guild(AUDIT_SERVER_ID)
-                    if audit_guild:
-                        channel = audit_guild.get_channel(AUDIT_LOG_CHANNEL_ID)
+                    guild_configs = storage.get_all_guild_configs()
+                    
+                    for guild_id, guild_cfg in guild_configs.items():
+                        channel_id = guild_cfg.get("api_status_channel_id")
+                        if not channel_id:
+                            continue
+                        
+                        guild = bot.get_guild(int(guild_id))
+                        if not guild:
+                            continue
+                        
+                        channel = guild.get_channel(channel_id)
                         if channel:
                             embed = discord.Embed(
                                 title="⚠️ PUBG API Status Warning",
@@ -717,8 +736,12 @@ async def auto_api_status():
                             )
                             embed.add_field(name="API Version", value=api_version, inline=True)
                             embed.add_field(name="Released", value=released_at, inline=True)
-                            await channel.send(embed=embed)
-                            await _record_status_event(f"⚠️ PUBG API version is {days_old} days old")
+                            try:
+                                await channel.send(embed=embed)
+                            except Exception as e:
+                                print(f"[auto_api_status] Failed to send warning to guild {guild_id}: {e}")
+                    
+                    await _record_status_event(f"⚠️ PUBG API version is {days_old} days old")
             
     except Exception as e:
         print(f"[auto_api_status] Error checking API status: {e}")
