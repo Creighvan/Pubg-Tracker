@@ -138,22 +138,138 @@ def have_commands_been_synced() -> bool:
     return _commands_synced_once
 
 
+# ---------- Live status feed ----------
+# A rolling in-memory log of notable events (connect/disconnect, guild
+# join/leave, a scheduled report failing, PUBG rate-limit hits). Resets on
+# restart by design — this is a live feed, not a persisted audit log.
+# /setstatuschannel points a channel at a single persistent embed message
+# that gets EDITED in place whenever something happens, rather than a new
+# message being posted every time.
+_status_events: list[dict] = []
+_STATUS_LOG_LIMIT = 12
+_STATUS_MIN_INTERVAL_SECONDS = 15  # collapses bursts (e.g. several reports failing at once) into one edit
+_status_broadcast_lock = asyncio.Lock()
+_last_status_broadcast_at: datetime | None = None
+_bot_started_at = datetime.now(timezone.utc)
+
+
 async def _record_status_event(event_type: str, details: dict = None):
-    """Record a status event for the live status feed."""
+    """Record a status event for the live status feed. Can be called with just a string or with event_type and details."""
     global _status_events
-    _status_events.append({
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "event_type": event_type,
-        "details": details or {},
-    })
+    # For backward compatibility with bot.py which calls with just a string
+    if details is None and isinstance(event_type, str):
+        # Treat the string as both the event type and the text
+        _status_events.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event_type": event_type,
+            "details": {},
+        })
+    else:
+        _status_events.append({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "event_type": event_type,
+            "details": details or {},
+        })
     # Keep only the most recent events
     if len(_status_events) > _STATUS_LOG_LIMIT:
         _status_events = _status_events[-_STATUS_LOG_LIMIT:]
+    await _refresh_all_status_messages()
 
 
 def get_status_events() -> list[dict]:
     """Get the current status events list."""
     return _status_events.copy()
+
+
+def _build_status_embed() -> discord.Embed:
+    """Build the status embed for the live status feed."""
+    now = datetime.now(timezone.utc)
+    uptime = now - _bot_started_at
+    days, rem = divmod(int(uptime.total_seconds()), 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, _ = divmod(rem, 60)
+    uptime_str = (f"{days}d " if days else "") + f"{hours}h {minutes}m"
+
+    embed = discord.Embed(
+        title="🟢 PUBG Tracker — Bot Status",
+        description=(
+            "Updates automatically whenever something notable happens — "
+            "connects/disconnects, server joins/leaves, a report failing, "
+            "or a PUBG API rate-limit hit. Not on a timer."
+        ),
+        color=discord.Color.green(),
+        timestamp=now,
+    )
+    if bot:
+        embed.add_field(name="Uptime", value=uptime_str, inline=True)
+        embed.add_field(name="Servers", value=str(len(bot.guilds)), inline=True)
+
+    if _status_events:
+        # Discord's <t:unix:R> renders as a live "5 minutes ago"-style
+        # relative timestamp in the client, no manual formatting needed.
+        lines = [f"<t:{int(datetime.fromisoformat(e['timestamp']).timestamp())}:R> {e['event_type']}" for e in reversed(_status_events)]
+        embed.add_field(name="Recent Events", value="\n".join(lines)[:1024], inline=False)
+    else:
+        embed.add_field(name="Recent Events", value="No events recorded yet since this message was created.", inline=False)
+
+    embed.set_footer(text="This message is edited in place, not reposted.")
+    return embed
+
+
+async def _push_status_message(guild_id: int, guild_cfg: dict, channel_id: int) -> None:
+    """Push the current status embed to a specific guild's status channel."""
+    if not bot:
+        return
+    channel = bot.get_channel(channel_id)
+    if channel is None:
+        return
+    embed = _build_status_embed()
+    message = None
+    message_id = guild_cfg.get("status_message_id")
+    if message_id:
+        try:
+            message = await channel.fetch_message(message_id)
+        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            message = None  # deleted/inaccessible — fall through and post a fresh one
+    try:
+        if message is not None:
+            await message.edit(embed=embed)
+        else:
+            new_message = await channel.send(embed=embed)
+            guild_cfg["status_message_id"] = new_message.id
+            # Import storage here to avoid circular import
+            from storage import save_guild
+            await save_guild(guild_id, guild_cfg)
+    except discord.HTTPException as e:
+        print(f"[status] Could not update status message for guild {guild_id}: {e}")
+
+
+async def _refresh_all_status_messages(force: bool = False) -> None:
+    """
+    Pushes the current status embed to every guild that has configured a
+    status channel. Debounced to at most once every _STATUS_MIN_INTERVAL_SECONDS
+    so a burst of events (e.g. several reports failing back to back) collapses
+    into a single edit instead of hammering Discord's edit-rate limit.
+    """
+    global _last_status_broadcast_at
+    now = datetime.now(timezone.utc)
+    async with _status_broadcast_lock:
+        if not force and _last_status_broadcast_at is not None:
+            if (now - _last_status_broadcast_at).total_seconds() < _STATUS_MIN_INTERVAL_SECONDS:
+                return
+        _last_status_broadcast_at = now
+
+    if not bot:
+        return
+    
+    from storage import all_guild_ids, get_guild
+    
+    for guild_id in await all_guild_ids():
+        guild_cfg = await get_guild(guild_id)
+        channel_id = guild_cfg.get("status_channel_id")
+        if channel_id is None:
+            continue
+        await _push_status_message(guild_id, guild_cfg, channel_id)
 
 
 # Bot and pubg instances will be set in main.py after initialization

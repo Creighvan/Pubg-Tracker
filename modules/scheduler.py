@@ -600,42 +600,25 @@ async def before_auto_feedback_prompt():
     await _get_bot().wait_until_ready()
 
 
-async def send_audit_log(guild_id: int, title: str, description: str, is_automated: bool = False, details: dict = None, report_embed: discord.Embed = None):
+# Import the shared audit log function from bot.py
+# We need to import it here to avoid circular imports
+# The actual implementation is in bot.py
+def send_audit_log(guild_id: int, title: str, description: str, is_automated: bool = False, details: dict = None, report_embed: discord.Embed = None):
     """Send an audit log entry to the configured audit server."""
-    from modules.config import AUDIT_SERVER_ID, AUDIT_LOG_CHANNEL_ID
-    if not AUDIT_SERVER_ID or not AUDIT_LOG_CHANNEL_ID:
-        return
+    # This is a wrapper that will be replaced by the real implementation from bot.py
+    # The real implementation is set in main.py via _set_audit_log_func
+    if _audit_log_func:
+        return _audit_log_func(guild_id, title, description, is_automated, details, report_embed)
+    print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
 
-    audit_guild = _get_bot().get_guild(AUDIT_SERVER_ID)
-    if not audit_guild:
-        try:
-            audit_guild = await _get_bot().fetch_guild(AUDIT_SERVER_ID)
-        except:
-            return
 
-    channel = audit_guild.get_channel(AUDIT_LOG_CHANNEL_ID)
-    if not channel:
-        try:
-            channel = await audit_guild.fetch_channel(AUDIT_LOG_CHANNEL_ID)
-        except:
-            return
+_audit_log_func = None
 
-    embed = discord.Embed(
-        title=title,
-        description=description,
-        color=discord.Color.blue() if is_automated else discord.Color.green(),
-        timestamp=datetime.now(timezone.utc),
-    )
-    embed.add_field(name="Guild ID", value=str(guild_id), inline=True)
-    embed.add_field(name="Automated", value="Yes" if is_automated else "No", inline=True)
-    if details:
-        for key, value in details.items():
-            embed.add_field(name=key, value=str(value), inline=True)
-    if report_embed:
-        embed.add_field(name="Report Embed", value="See attached embed", inline=False)
-    await channel.send(embed=embed)
-    if report_embed:
-        await channel.send(embed=report_embed)
+
+def _set_audit_log_func(func):
+    """Set the audit log function from bot.py."""
+    global _audit_log_func
+    _audit_log_func = func
 
 
 def start_all_scheduled_tasks(bot_instance):
