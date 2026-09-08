@@ -163,14 +163,17 @@ async def all_guild_ids() -> list[int]:
 
 
 async def add_player(guild_id: int, name: str) -> bool:
-    guild = await get_guild(guild_id)
-    lowered = [p.lower() for p in guild["players"]]
-    if name.lower() in lowered:
-        return False
-    guild["players"].append(name)
-    guild["ranked_known_players"] = {}
-    await save_guild(guild_id, guild)
-    return True
+    result = {"added": False}
+    def modifier(guild):
+        lowered = [p.lower() for p in guild["players"]]
+        if name.lower() in lowered:
+            result["added"] = False
+            return
+        guild["players"].append(name)
+        guild["ranked_known_players"] = {}
+        result["added"] = True
+    await modify_guild(guild_id, modifier)
+    return result["added"]
 
 
 async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str]]:
@@ -179,57 +182,61 @@ async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[
     Preserves the casing of the first occurrence for duplicates within the
     input list itself.
     """
-    guild = await get_guild(guild_id)
-    existing_lower = {p.lower() for p in guild["players"]}
-    added: list[str] = []
-    duplicates: list[str] = []
-    seen_this_batch: set[str] = set()
+    result = {"added": [], "duplicates": []}
+    
+    def modifier(guild):
+        existing_lower = {p.lower() for p in guild["players"]}
+        seen_this_batch: set[str] = set()
 
-    for name in names:
-        name = name.strip()
-        if not name:
-            continue
-        lowered = name.lower()
-        if lowered in existing_lower or lowered in seen_this_batch:
-            duplicates.append(name)
-            continue
-        guild["players"].append(name)
-        existing_lower.add(lowered)
-        seen_this_batch.add(lowered)
-        added.append(name)
+        for name in names:
+            name = name.strip()
+            if not name:
+                continue
+            lowered = name.lower()
+            if lowered in existing_lower or lowered in seen_this_batch:
+                result["duplicates"].append(name)
+                continue
+            guild["players"].append(name)
+            existing_lower.add(lowered)
+            seen_this_batch.add(lowered)
+            result["added"].append(name)
 
-    if added:
-        guild["ranked_known_players"] = {}
-        await save_guild(guild_id, guild)
-    return added, duplicates
+        if result["added"]:
+            guild["ranked_known_players"] = {}
+    
+    await modify_guild(guild_id, modifier)
+    return result["added"], result["duplicates"]
 
 
 async def remove_player(guild_id: int, name: str) -> bool:
-    guild = await get_guild(guild_id)
-    before = len(guild["players"])
-    guild["players"] = [p for p in guild["players"] if p.lower() != name.lower()]
-    changed = len(guild["players"]) != before
-    if changed:
-        guild["ranked_known_players"] = {}
-        await save_guild(guild_id, guild)
-    return changed
+    result = {"changed": False}
+    def modifier(guild):
+        before = len(guild["players"])
+        guild["players"] = [p for p in guild["players"] if p.lower() != name.lower()]
+        changed = len(guild["players"]) != before
+        if changed:
+            guild["ranked_known_players"] = {}
+            result["changed"] = True
+    await modify_guild(guild_id, modifier)
+    return result["changed"]
 
 
 async def link_discord_account(guild_id: int, pubg_name: str, discord_user_id: int):
     """Links a PUBG name to a Discord user ID for this server, so reports
     can @mention the right person. Overwrites any existing link for that
     name."""
-    guild = await get_guild(guild_id)
-    guild["discord_links"][pubg_name.lower()] = discord_user_id
-    await save_guild(guild_id, guild)
+    def modifier(guild):
+        guild["discord_links"][pubg_name.lower()] = discord_user_id
+    await modify_guild(guild_id, modifier)
 
 
 async def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
-    guild = await get_guild(guild_id)
-    existed = guild["discord_links"].pop(pubg_name.lower(), None) is not None
-    if existed:
-        await save_guild(guild_id, guild)
-    return existed
+    result = {"existed": False}
+    def modifier(guild):
+        existed = guild["discord_links"].pop(pubg_name.lower(), None) is not None
+        result["existed"] = existed
+    await modify_guild(guild_id, modifier)
+    return result["existed"]
 
 
 async def get_discord_id(guild_id: int, pubg_name: str) -> int | None:
@@ -245,9 +252,9 @@ async def get_mentions_enabled(guild_id: int) -> bool:
 
 async def set_mentions_enabled(guild_id: int, enabled: bool):
     """Enable or disable mentions for a guild."""
-    guild = await get_guild(guild_id)
-    guild["mentions_enabled"] = enabled
-    await save_guild(guild_id, guild)
+    def modifier(guild):
+        guild["mentions_enabled"] = enabled
+    await modify_guild(guild_id, modifier)
 
 
 async def add_cheat_report(
@@ -260,26 +267,30 @@ async def add_cheat_report(
     evidence_urls: list[str] | None = None,
 ) -> str:
     """Add a cheat report and return the report ID."""
-    guild = await get_guild(guild_id)
-    # Use timestamp as primary key to avoid race conditions on length
-    timestamp = int(datetime.now(timezone.utc).timestamp())
-    report_id = f"report_{timestamp}"
-    report = {
-        "report_id": report_id,
-        "reported_at": datetime.now(timezone.utc).isoformat(),
-        "reporter_name": reporter_name,
-        "accused_name": accused_name,
-        "accused_name_lower": accused_name.lower(),
-        "cheat_type": cheat_type,
-        "description": description,
-        "match_id": match_id,
-        "evidence_urls": evidence_urls or [],
-        "status": "pending",  # pending, submitted, resolved
-        "krafton_ticket_id": None,
-    }
-    guild["cheat_reports"].append(report)
-    await save_guild(guild_id, guild)
-    return report_id
+    result = {"report_id": None}
+    
+    def modifier(guild):
+        # Use timestamp as primary key to avoid race conditions on length
+        timestamp = int(datetime.now(timezone.utc).timestamp())
+        report_id = f"report_{timestamp}"
+        report = {
+            "report_id": report_id,
+            "reported_at": datetime.now(timezone.utc).isoformat(),
+            "reporter_name": reporter_name,
+            "accused_name": accused_name,
+            "accused_name_lower": accused_name.lower(),
+            "cheat_type": cheat_type,
+            "description": description,
+            "match_id": match_id,
+            "evidence_urls": evidence_urls or [],
+            "status": "pending",  # pending, submitted, resolved
+            "krafton_ticket_id": None,
+        }
+        guild["cheat_reports"].append(report)
+        result["report_id"] = report_id
+    
+    await modify_guild(guild_id, modifier)
+    return result["report_id"]
 
 
 async def get_cheat_reports(guild_id: int) -> list[dict]:
@@ -299,29 +310,33 @@ async def get_cheat_report(guild_id: int, report_id: str) -> dict | None:
 
 async def update_cheat_report_status(guild_id: int, report_id: str, status: str, krafton_ticket_id: str | None = None):
     """Update the status of a cheat report."""
-    guild = await get_guild(guild_id)
-    for report in guild.get("cheat_reports", []):
-        if report["report_id"] == report_id:
-            report["status"] = status
-            if krafton_ticket_id:
-                report["krafton_ticket_id"] = krafton_ticket_id
-            await save_guild(guild_id, guild)
-            return True
-    return False
+    result = {"found": False}
+    
+    def modifier(guild):
+        for report in guild.get("cheat_reports", []):
+            if report["report_id"] == report_id:
+                report["status"] = status
+                if krafton_ticket_id:
+                    report["krafton_ticket_id"] = krafton_ticket_id
+                result["found"] = True
+                break
+    
+    await modify_guild(guild_id, modifier)
+    return result["found"]
 
 
 async def update_suspicious_player(guild_id: int, player_name: str, stats: dict, flags: list[str]):
     """Update or add a suspicious player entry."""
-    guild = await get_guild(guild_id)
-    player_lower = player_name.lower()
-    guild["suspicious_players"][player_lower] = {
-        "name": player_name,
-        "stats": stats,
-        "flags": flags,
-        "last_checked": datetime.now(timezone.utc).isoformat(),
-        "report_count": guild["suspicious_players"].get(player_lower, {}).get("report_count", 0) + 1,
-    }
-    await save_guild(guild_id, guild)
+    def modifier(guild):
+        player_lower = player_name.lower()
+        guild["suspicious_players"][player_lower] = {
+            "name": player_name,
+            "stats": stats,
+            "flags": flags,
+            "last_checked": datetime.now(timezone.utc).isoformat(),
+            "report_count": guild["suspicious_players"].get(player_lower, {}).get("report_count", 0) + 1,
+        }
+    await modify_guild(guild_id, modifier)
 
 
 async def get_suspicious_players(guild_id: int) -> dict[str, dict]:
@@ -332,32 +347,41 @@ async def get_suspicious_players(guild_id: int) -> dict[str, dict]:
 
 async def add_protected_player(guild_id: int, player_name: str) -> bool:
     """Add a player to the protected list (immune to inactivity removal). Returns True if added."""
-    guild = await get_guild(guild_id)
-    # Clean the list first - remove empty entries and duplicates
-    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
-    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))  # Remove duplicates while preserving order
+    result = {"added": False}
     
-    lowered = [p.lower() for p in guild["protected_players"]]
-    if player_name.lower() in lowered:
-        return False
-    guild["protected_players"].append(player_name.strip())  # Store cleaned name
-    await save_guild(guild_id, guild)
-    return True
+    def modifier(guild):
+        # Clean the list first - remove empty entries and duplicates
+        guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+        guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))  # Remove duplicates while preserving order
+        
+        lowered = [p.lower() for p in guild["protected_players"]]
+        if player_name.lower() in lowered:
+            result["added"] = False
+            return
+        guild["protected_players"].append(player_name.strip())  # Store cleaned name
+        result["added"] = True
+    
+    await modify_guild(guild_id, modifier)
+    return result["added"]
 
 
 async def remove_protected_player(guild_id: int, player_name: str) -> bool:
     """Remove a player from the protected list. Returns True if removed."""
-    guild = await get_guild(guild_id)
-    # Clean the list first
-    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
-    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
+    result = {"changed": False}
     
-    before = len(guild["protected_players"])
-    guild["protected_players"] = [p for p in guild["protected_players"] if p.lower() != player_name.lower()]
-    changed = len(guild["protected_players"]) != before
-    if changed:
-        await save_guild(guild_id, guild)
-    return changed
+    def modifier(guild):
+        # Clean the list first
+        guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+        guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
+        
+        before = len(guild["protected_players"])
+        guild["protected_players"] = [p for p in guild["protected_players"] if p.lower() != player_name.lower()]
+        changed = len(guild["protected_players"]) != before
+        if changed:
+            result["changed"] = True
+    
+    await modify_guild(guild_id, modifier)
+    return result["changed"]
 
 
 async def get_protected_players(guild_id: int) -> list[str]:
@@ -374,14 +398,18 @@ async def is_protected_player(guild_id: int, player_name: str) -> bool:
 
 async def clean_protected_players(guild_id: int) -> int:
     """Clean up the protected player list (remove duplicates, empty entries). Returns number of entries removed."""
-    guild = await get_guild(guild_id)
-    before = len(guild["protected_players"])
-    # Remove empty entries and duplicates
-    guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
-    guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
-    after = len(guild["protected_players"])
-    await save_guild(guild_id, guild)
-    return before - after
+    result = {"removed": 0}
+    
+    def modifier(guild):
+        before = len(guild["protected_players"])
+        # Remove empty entries and duplicates
+        guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
+        guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
+        after = len(guild["protected_players"])
+        result["removed"] = before - after
+    
+    await modify_guild(guild_id, modifier)
+    return result["removed"]
 
 
 async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
