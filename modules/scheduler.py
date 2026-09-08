@@ -654,8 +654,10 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
     """Send an audit log entry to the configured audit server."""
     # This is a wrapper that will be replaced by the real implementation from bot.py
     # The real implementation is set in main.py via _set_audit_log_func
+    # Note: bot.py signature is (guild_id, event_type, description, user, details, is_automated, report_embed)
+    # We map title->event_type and pass None for user since scheduled events have no user
     if _audit_log_func:
-        return await _audit_log_func(guild_id, title, description, is_automated, details, report_embed)
+        return await _audit_log_func(guild_id, title, description, None, details, is_automated, report_embed)
     print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
 
 
