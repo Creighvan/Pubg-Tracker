@@ -71,6 +71,7 @@ Setup:
 
 import asyncio
 import os
+import hmac
 from datetime import datetime, timedelta, timezone
 
 import discord
@@ -106,8 +107,13 @@ from modules.config import (
     has_bot_been_ready,
     mark_commands_synced,
     have_commands_been_synced,
+    _status_broadcast_lock,
+    _last_status_broadcast_at,
+    _STATUS_MIN_INTERVAL_SECONDS,
     _record_status_event,
-    get_status_events,
+    _build_status_embed,
+    _push_status_message,
+    _refresh_all_status_messages,
     _bot_started_at,
 )
 
@@ -173,6 +179,7 @@ from modules.scheduler import (
     auto_chicken_dinner,
     auto_feedback_prompt,
     start_all_scheduled_tasks,
+    _set_audit_log_func,
 )
 
 # Initialize bot and pubg instances
@@ -278,105 +285,7 @@ async def send_audit_log(
         # Log to console so admin knows if audit logging fails
         print(f"[audit_log] Failed to send audit log: {e}")
 
-_status_broadcast_lock = asyncio.Lock()
-_last_status_broadcast_at: datetime | None = None
-_STATUS_MIN_INTERVAL_SECONDS = 15  # collapses bursts (e.g. several reports failing at once) into one edit
 
-
-async def _record_status_event(text: str) -> None:
-    """Log an event and push it to every configured status channel (debounced)."""
-    _status_events.append({"at": datetime.now(timezone.utc), "text": text})
-    del _status_events[: -_STATUS_LOG_LIMIT]
-    await _refresh_all_status_messages()
-
-
-def _build_status_embed() -> discord.Embed:
-    now = datetime.now(timezone.utc)
-    uptime = now - _bot_started_at
-    days, rem = divmod(int(uptime.total_seconds()), 86400)
-    hours, rem = divmod(rem, 3600)
-    minutes, _ = divmod(rem, 60)
-    uptime_str = (f"{days}d " if days else "") + f"{hours}h {minutes}m"
-
-    embed = discord.Embed(
-        title="🟢 PUBG Tracker — Bot Status",
-        description=(
-            "Updates automatically whenever something notable happens — "
-            "connects/disconnects, server joins/leaves, a report failing, "
-            "or a PUBG API rate-limit hit. Not on a timer."
-        ),
-        color=discord.Color.green(),
-        timestamp=now,
-    )
-    embed.add_field(name="Uptime", value=uptime_str, inline=True)
-    embed.add_field(name="Servers", value=str(len(bot.guilds)), inline=True)
-
-    if _status_events:
-        # Discord's <t:unix:R> renders as a live "5 minutes ago"-style
-        # relative timestamp in the client, no manual formatting needed.
-        lines = [f"<t:{int(e['at'].timestamp())}:R> {e['text']}" for e in reversed(_status_events)]
-        embed.add_field(name="Recent Events", value="\n".join(lines)[:1024], inline=False)
-    else:
-        embed.add_field(name="Recent Events", value="No events recorded yet since this message was created.", inline=False)
-
-    embed.set_footer(text="This message is edited in place, not reposted.")
-    return embed
-
-
-async def _push_status_message(guild_id: int, guild_cfg: dict, channel_id: int) -> None:
-    channel = bot.get_channel(channel_id)
-    if channel is None:
-        return
-    embed = _build_status_embed()
-    message = None
-    message_id = guild_cfg.get("status_message_id")
-    if message_id:
-        try:
-            message = await channel.fetch_message(message_id)
-        except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-            message = None  # deleted/inaccessible — fall through and post a fresh one
-    try:
-        if message is not None:
-            await message.edit(embed=embed)
-        else:
-            new_message = await channel.send(embed=embed)
-            guild_cfg["status_message_id"] = new_message.id
-            await storage.save_guild(guild_id, guild_cfg)
-    except discord.HTTPException as e:
-        print(f"[status] Could not update status message for guild {guild_id}: {e}")
-
-
-async def _refresh_all_status_messages(force: bool = False) -> None:
-    """
-    Pushes the current status embed to every guild that has configured a
-    status channel. Debounced to at most once every _STATUS_MIN_INTERVAL_SECONDS
-    so a burst of events (e.g. several reports failing back to back) collapses
-    into a single edit instead of hammering Discord's edit-rate limit.
-    """
-    global _last_status_broadcast_at
-    now = datetime.now(timezone.utc)
-    async with _status_broadcast_lock:
-        if not force and _last_status_broadcast_at is not None:
-            if (now - _last_status_broadcast_at).total_seconds() < _STATUS_MIN_INTERVAL_SECONDS:
-                return
-        _last_status_broadcast_at = now
-
-    for guild_id in await storage.all_guild_ids():
-        guild_cfg = await storage.get_guild(guild_id)
-        channel_id = guild_cfg.get("status_channel_id")
-        if channel_id is None:
-            continue
-        await _push_status_message(guild_id, guild_cfg, channel_id)
-
-
-async def _on_pubg_rate_limited(delay_seconds: float) -> None:
-    """Called by pubg_api.py only when PUBG itself returns a 429 — not on
-    the routine self-imposed pacing wait, which happens on nearly every
-    call and isn't an 'issue'."""
-    await _record_status_event(f"⏳ PUBG API rate-limited us — pausing {delay_seconds:.0f}s then retrying")
-
-
-pubg.on_rate_limit_hit = _on_pubg_rate_limited
 
 
 @bot.tree.error
@@ -482,11 +391,16 @@ async def on_ready():
         print(f"[on_ready] Command sync failed (scheduled reports will still start): {e}")
     if not auto_digest.is_running():
         start_all_scheduled_tasks(bot)
+        # Wire up the audit log function so scheduler uses our implementation
+        _set_audit_log_func(send_audit_log)
     bot.add_view(FeedbackPromptView())
     print(f"Logged in as {bot.user} (id={bot.user.id})")
     if not _bot_ready_once:
         _bot_ready_once = True
         await _record_status_event("Bot started and connected to Discord")
+    
+    # Wire up the PUBG rate limit callback
+    pubg.on_rate_limit_hit = lambda delay: _record_status_event(f"⏳ PUBG API rate-limited us — pausing {delay:.0f}s then retrying")
 
 
 @bot.event
@@ -2141,12 +2055,12 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
         is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
 
     has_admin_id = interaction.user.id in ADMIN_USER_IDS
-    has_valid_key = bool(BOT_ADMIN_KEY) and (secret_key == BOT_ADMIN_KEY)
+    has_valid_key = bool(BOT_ADMIN_KEY) and hmac.compare_digest(secret_key.encode(), BOT_ADMIN_KEY.encode())
     return is_owner or has_admin_id or has_valid_key
 
 
-@bot.tree.command(description="[Admin] List all Discord servers the bot is in")
-@app_commands.describe(secret_key="Optional admin secret key to unlock this command")
+@bot.tree.command(description="[Admin] List all Discord servers the bot is in (use in private channel only)")
+@app_commands.describe(secret_key="Optional admin secret key to unlock this command (WARNING: visible in channel)")
 @app_commands.default_permissions(administrator=True)
 async def botservers(interaction: discord.Interaction, secret_key: str = None):
     if not await _is_admin_authorized(interaction, secret_key):
@@ -2293,10 +2207,10 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Post a feedback & suggestions prompt to a channel in this server")
+@bot.tree.command(description="[Admin] Post a feedback & suggestions prompt to a channel in this server (use in private channel only)")
 @app_commands.describe(
     channel="Channel to post the feedback prompt in (defaults to current channel)",
-    secret_key="Optional admin secret key to unlock this command",
+    secret_key="Optional admin secret key to unlock this command (WARNING: visible in channel)",
 )
 @app_commands.default_permissions(administrator=True)
 async def askfeedback(

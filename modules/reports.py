@@ -29,6 +29,9 @@ import translations
 
 from modules.config import VALID_GAME_MODES, RANKED_MODE_LABELS, EASTERN
 
+# Import storage's modify_guild for atomic operations
+modify_guild = storage.modify_guild
+
 # Import pubg client (set by bot.py after initialization)
 # This is a late import to avoid circular dependency
 def _get_pubg():
@@ -78,54 +81,52 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     # The PUBG API has a hard 14-day limit for match data retention
     protected_players = await storage.get_protected_players(guild_id)
     
-    for player in players:
-        player_lower = player["name"].lower()
-        
-        if not player.get("last_match_at"):
-            # Player has no recent matches (beyond 14-day API limit)
+    async def update_inactive_dates(guild_cfg):
+        """Update inactive dates for players with no recent matches."""
+        for player in players:
+            player_lower = player["name"].lower()
             
-            # Check if we have manual override first
-            if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
-                # Increment manual date daily based on when it was set
-                manual_date = datetime.fromisoformat(manual_data["date"])
-                set_at = datetime.fromisoformat(manual_data["set_at"])
-                days_since_set = (datetime.now(timezone.utc) - set_at).days
-                incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
-                player["last_match_date"] = incremented_date
-                player["data_source"] = "manual"
-                # Also remove from auto-counting if it exists to avoid conflicts
+            if not player.get("last_match_at"):
+                # Player has no recent matches (beyond 14-day API limit)
+                
+                # Check if we have manual override first
+                if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
+                    # Increment manual date daily based on when it was set
+                    manual_date = datetime.fromisoformat(manual_data["date"])
+                    set_at = datetime.fromisoformat(manual_data["set_at"])
+                    days_since_set = (datetime.now(timezone.utc) - set_at).days
+                    incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
+                    player["last_match_date"] = incremented_date
+                    player["data_source"] = "manual"
+                    # Also remove from auto-counting if it exists to avoid conflicts
+                    if player_lower in guild_cfg.get("inactive_since_dates", {}):
+                        del guild_cfg["inactive_since_dates"][player_lower]
+                    continue
+                
+                # Check if we have an inactive_since_date
+                if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_lower):
+                    # Calculate days from when they first hit 14-day mark
+                    inactive_since_date = datetime.fromisoformat(inactive_since)
+                    days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
+                    calculated_date = (datetime.now(timezone.utc) - timedelta(days=days_inactive)).isoformat()
+                    player["last_match_date"] = calculated_date
+                    player["data_source"] = "auto_count"
+                else:
+                    # First time hitting 14-day mark - set inactive_since_date
+                    guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
+                    # Start counting from 14 days ago
+                    player["last_match_date"] = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+                    player["data_source"] = "auto_count"
+            else:
+                # Player has recent matches (active within 14 days)
+                # Clean up both auto-counting and manual overrides
                 if player_lower in guild_cfg.get("inactive_since_dates", {}):
                     del guild_cfg["inactive_since_dates"][player_lower]
-                    await storage.save_guild(guild_id, guild_cfg)
-                continue
-            
-            # Check if we have an inactive_since_date
-            if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_lower):
-                # Calculate days from when they first hit 14-day mark
-                inactive_since_date = datetime.fromisoformat(inactive_since)
-                days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
-                calculated_date = (datetime.now(timezone.utc) - timedelta(days=days_inactive)).isoformat()
-                player["last_match_date"] = calculated_date
-                player["data_source"] = "auto_count"
-            else:
-                # First time hitting 14-day mark - set inactive_since_date
-                guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
-                await storage.save_guild(guild_id, guild_cfg)
-                # Start counting from 14 days ago
-                player["last_match_date"] = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
-                player["data_source"] = "auto_count"
-        else:
-            # Player has recent matches (active within 14 days)
-            # Clean up both auto-counting and manual overrides
-            cleaned = False
-            if player_lower in guild_cfg.get("inactive_since_dates", {}):
-                del guild_cfg["inactive_since_dates"][player_lower]
-                cleaned = True
-            if player_lower in guild_cfg.get("manual_inactive_dates", {}):
-                del guild_cfg["manual_inactive_dates"][player_lower]
-                cleaned = True
-            if cleaned:
-                await storage.save_guild(guild_id, guild_cfg)
+                if player_lower in guild_cfg.get("manual_inactive_dates", {}):
+                    del guild_cfg["manual_inactive_dates"][player_lower]
+    
+    # Apply inactive date updates atomically
+    await modify_guild(guild_id, update_inactive_dates)
     
     return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
 
