@@ -709,6 +709,9 @@ async def auto_api_status():
             bot = _get_bot()
             from storage import all_guild_ids, get_guild
             
+            # Save previous status before processing to detect actual changes
+            status_actually_changed = (current_status != _previous_api_status)
+            
             for guild_id in await all_guild_ids():
                 guild_cfg = await get_guild(guild_id)
                 channel_id = guild_cfg.get("api_status_channel_id")
@@ -780,7 +783,10 @@ async def auto_api_status():
             
             # Update global status after processing all guilds
             _previous_api_status = current_status
-            await _record_status_event(f"📊 API status check completed")
+            
+            # Only log if status actually changed (not every tick)
+            if status_actually_changed:
+                await _record_status_event(f"📊 API status changed to {current_status['status']}")
             
     except Exception as e:
         print(f"[auto_api_status] Error checking API status: {e}")
