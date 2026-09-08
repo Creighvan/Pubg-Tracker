@@ -190,6 +190,8 @@ async def auto_ranked():
     """
     Updates the ranked standings report daily at 5:30am KST.
     Edits a single message in place instead of posting new messages.
+    Uses a posted_at timestamp to ensure it runs once per day even if
+    the bot is offline during the 5:30am KST window.
     """
     now = datetime.now(timezone.utc)
     
@@ -200,12 +202,6 @@ async def auto_ranked():
     if now_kst < reset_time_kst:
         reset_time_kst -= timedelta(days=1)
     
-    # Only update during a 15-minute window around 5:30am KST
-    reset_total = 5 * 60 + 30  # 5:30 AM in minutes
-    now_total = now_kst.hour * 60 + now_kst.minute
-    if not (reset_total <= now_total < reset_total + 15):
-        return
-    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("ranked_enabled", True):
@@ -213,6 +209,20 @@ async def auto_ranked():
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
+        
+        # Check if already posted today (using KST date)
+        posted_at = guild_cfg.get("ranked_posted_at")
+        if posted_at:
+            posted_date = datetime.fromisoformat(posted_at).astimezone(kst).date()
+            today_kst = now_kst.date()
+            if posted_date >= today_kst:
+                continue  # Already posted today (or future date)
+        
+        # Only run during or after the 5:30am KST window
+        reset_total = 5 * 60 + 30  # 5:30 AM in minutes
+        now_total = now_kst.hour * 60 + now_kst.minute
+        if now_total < reset_total:
+            continue  # Not yet 5:30 AM KST
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
@@ -240,6 +250,10 @@ async def auto_ranked():
                     new_message = await channel.send(embed=embed)
                     guild_cfg["ranked_message_id"] = new_message.id
                     await storage.save_guild(guild_id, guild_cfg)
+                
+                # Mark as posted today
+                guild_cfg["ranked_posted_at"] = now.isoformat()
+                await storage.save_guild(guild_id, guild_cfg)
                 
                 await send_audit_log(
                     guild_id,
