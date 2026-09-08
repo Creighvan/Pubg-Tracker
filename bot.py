@@ -275,8 +275,9 @@ async def send_audit_log(
             
             await channel.send(embed=embed)
     except Exception as e:
-        # Silently fail audit logging to avoid breaking bot functionality
-        pass
+        # Log to console so admin knows if audit logging fails
+        print(f"[audit_log] Failed to send audit log: {e}")
+
 _status_broadcast_lock = asyncio.Lock()
 _last_status_broadcast_at: datetime | None = None
 _STATUS_MIN_INTERVAL_SECONDS = 15  # collapses bursts (e.g. several reports failing at once) into one edit
