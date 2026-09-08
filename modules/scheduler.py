@@ -705,12 +705,6 @@ async def auto_api_status():
                 else:
                     current_status["status"] = "operational"
             
-            # Only update if status changed
-            if current_status == _previous_api_status:
-                return  # No change, skip update
-            
-            _previous_api_status = current_status
-            
             # Build and send status message
             bot = _get_bot()
             from storage import all_guild_ids, get_guild
@@ -719,6 +713,13 @@ async def auto_api_status():
                 guild_cfg = await get_guild(guild_id)
                 channel_id = guild_cfg.get("api_status_channel_id")
                 if not channel_id:
+                    continue
+                
+                # Check if this guild needs an initial post (no message_id yet)
+                needs_initial_post = not guild_cfg.get("api_status_message_id")
+                
+                # Skip if status unchanged AND this guild already has a message
+                if not needs_initial_post and current_status == _previous_api_status:
                     continue
                 
                 guild = bot.get_guild(int(guild_id))
@@ -777,7 +778,9 @@ async def auto_api_status():
                     guild_cfg["api_status_message_id"] = new_message.id
                     await storage.save_guild(int(guild_id), guild_cfg)
             
-            await _record_status_event(f"📊 API status changed to {current_status['status']}")
+            # Update global status after processing all guilds
+            _previous_api_status = current_status
+            await _record_status_event(f"📊 API status check completed")
             
     except Exception as e:
         print(f"[auto_api_status] Error checking API status: {e}")
