@@ -737,11 +737,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             matches_dict[match_id] = []
         matches_dict[match_id].append((name, data))
     
-    # Debug: print match grouping to diagnose
-    print(f"[chicken_dinner] Found {len(winners)} winners in {len(matches_dict)} unique matches")
-    for match_id, players in matches_dict.items():
-        print(f"[chicken_dinner] Match {match_id[:12]}... has {len(players)} players: {[p[0] for p in players]}")
-    
     # Sort matches by total kills in that match (highest first)
     matches_list = []
     for match_id, players in matches_dict.items():
