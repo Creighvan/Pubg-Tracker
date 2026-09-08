@@ -179,6 +179,7 @@ from modules.scheduler import (
     auto_donations,
     auto_chicken_dinner,
     auto_feedback_prompt,
+    auto_api_status,
     start_all_scheduled_tasks,
     _set_audit_log_func,
 )

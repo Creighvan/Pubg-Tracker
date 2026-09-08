@@ -26,7 +26,7 @@ import discord
 from discord.ext import tasks
 
 import storage
-from pubg_api import PubgApiError
+from pubg_api import PubgApiError, PubgClient
 import translations
 
 from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, DONATION_MESSAGE, RANKED_MODE_LABELS
@@ -661,6 +661,75 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
     print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
 
 
+@tasks.loop(minutes=30)
+async def auto_api_status():
+    """
+    Check PUBG API status every 30 minutes and notify if there are issues.
+    Uses the official /status endpoint to check service health.
+    """
+    from modules.config import AUDIT_SERVER_ID, AUDIT_LOG_CHANNEL_ID
+    if not AUDIT_SERVER_ID or not AUDIT_LOG_CHANNEL_ID:
+        return
+    
+    try:
+        async with get_scheduler_lock():
+            pubg = _get_pubg()
+            status = await pubg.get_api_status()
+            
+            if "error" in status:
+                # API is down or unreachable
+                bot = _get_bot()
+                audit_guild = bot.get_guild(AUDIT_SERVER_ID)
+                if audit_guild:
+                    channel = audit_guild.get_channel(AUDIT_LOG_CHANNEL_ID)
+                    if channel:
+                        embed = discord.Embed(
+                            title="🚨 PUBG API Status Alert",
+                            description=f"Unable to check PUBG API status: {status['error']}",
+                            color=discord.Color.red(),
+                            timestamp=datetime.now(timezone.utc),
+                        )
+                        await channel.send(embed=embed)
+                        await _record_status_event("⚠️ PUBG API status check failed")
+                return
+            
+            # Check if status indicates issues
+            released_at = status.get("releasedAt")
+            api_version = status.get("id")
+            
+            if released_at and api_version:
+                # Check if the release is very old (possible maintenance)
+                release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
+                days_old = (datetime.now(timezone.utc) - release_date).days
+                
+                if days_old > 365:
+                    # API version is over a year old - possible maintenance mode
+                    bot = _get_bot()
+                    audit_guild = bot.get_guild(AUDIT_SERVER_ID)
+                    if audit_guild:
+                        channel = audit_guild.get_channel(AUDIT_LOG_CHANNEL_ID)
+                        if channel:
+                            embed = discord.Embed(
+                                title="⚠️ PUBG API Status Warning",
+                                description=f"PUBG API version is {days_old} days old. This may indicate reduced service or maintenance mode.",
+                                color=discord.Color.orange(),
+                                timestamp=datetime.now(timezone.utc),
+                            )
+                            embed.add_field(name="API Version", value=api_version, inline=True)
+                            embed.add_field(name="Released", value=released_at, inline=True)
+                            await channel.send(embed=embed)
+                            await _record_status_event(f"⚠️ PUBG API version is {days_old} days old")
+            
+    except Exception as e:
+        print(f"[auto_api_status] Error checking API status: {e}")
+        await _record_status_event(f"⚠️ auto_api_status error: {e}"[:200])
+
+
+@auto_api_status.before_loop
+async def before_auto_api_status():
+    await _get_bot().wait_until_ready()
+
+
 def start_all_scheduled_tasks(bot_instance):
     """Start all scheduled task loops."""
     auto_digest.start()
@@ -672,3 +741,4 @@ def start_all_scheduled_tasks(bot_instance):
     auto_donations.start()
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
+    auto_api_status.start()
