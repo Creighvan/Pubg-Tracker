@@ -28,6 +28,33 @@ import aiohttp
 BASE_URL = "https://api.pubg.com"
 
 
+def _friendly_map_name(map_code: str) -> str:
+    """Convert PUBG API map code to readable name."""
+    if not map_code:
+        return "Unknown Map"
+    
+    # PUBG API map codes to readable names
+    map_names = {
+        "Baltic_Main": "Erangel",
+        "Desert_Main": "Miramar",
+        "Savage_Main": "Sanhok",
+        "DihorOtok_Main": "Vikendi",
+        "Erangel_Main": "Erangel",
+        "Heaven_Main": "Karakin",
+        "Chimera_Main": "Taego",
+        "Summerland_Main": "Deston",
+        "Tiger_Main": "Rondo",
+        "Kiki_Main": "Rondo",
+        "Neon_Main": "Erangel",
+        "Jungle_Main": "Sanhok",
+        "Casino_Main": "Karakin",
+        "Range_Main": "Training Camp",
+        "Roulette_Main": "Care Package",
+    }
+    
+    return map_names.get(map_code, map_code.replace("_", " ").title())
+
+
 class PubgApiError(Exception):
     pass
 
@@ -350,7 +377,7 @@ class PubgClient:
             results[p["name"]] = {
                 "winPlace": stats.get("winPlace"),
                 "kills": stats.get("kills", 0),
-                "map_name": match.get("map_name"),
+                "map_name": _friendly_map_name(match.get("map_name")),
                 "match_id": match_id,
             }
 
@@ -439,7 +466,7 @@ class PubgClient:
             "created_at": attrs.get("createdAt"),
             "participants": participants,
             "telemetry_url": telemetry_url,
-            "map_name": attrs.get("mapName"),
+            "map_name": _friendly_map_name(attrs.get("mapName")),
         }
 
     async def get_daily_activity_report(
