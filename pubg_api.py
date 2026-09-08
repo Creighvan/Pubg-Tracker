@@ -128,9 +128,13 @@ class PubgClient:
                                 await self.on_rate_limit_hit(delay)
                             except Exception:
                                 pass  # a status-reporting hook must never break the actual request
-                        if rate_limited and attempt < 3:
+                        # Always retry on 429, even for non-rate-limited calls (telemetry/match details)
+                        if attempt < 3:
                             print(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
-                            await self._limiter.cool_down(delay)
+                            if rate_limited:
+                                await self._limiter.cool_down(delay)
+                            else:
+                                await asyncio.sleep(delay)
                             continue
                         raise PubgApiError("PUBG API is still rate-limiting requests. Please try again in a few minutes.")
                     if resp.status >= 400:
@@ -576,7 +580,11 @@ class PubgClient:
                 created_at = details.get("created_at")
                 if not created_at:
                     continue
-                created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                try:
+                    created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
+                except (ValueError, AttributeError) as e:
+                    print(f"[pubg] Malformed timestamp for match {match_id}: {created_at} - {e}")
+                    continue
                 if created_dt < cutoff:
                     break  # newest-first assumption: nothing after this is in-window either
                 stats = details["participants"].get(p["id"])
