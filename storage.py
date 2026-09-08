@@ -414,12 +414,15 @@ async def clean_protected_players(guild_id: int) -> int:
 
 async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
     """Reset auto-counting for a specific player. Returns True if reset."""
-    guild = await get_guild(guild_id)
-    if player_name.lower() in guild.get("inactive_since_dates", {}):
-        del guild["inactive_since_dates"][player_name.lower()]
-        await save_guild(guild_id, guild)
-        return True
-    return False
+    result = {"reset": False}
+    
+    def modifier(guild):
+        if player_name.lower() in guild.get("inactive_since_dates", {}):
+            del guild["inactive_since_dates"][player_name.lower()]
+            result["reset"] = True
+    
+    await modify_guild(guild_id, modifier)
+    return result["reset"]
 
 
 async def get_audit_log_channel(guild_id: int) -> int | None:
@@ -430,9 +433,9 @@ async def get_audit_log_channel(guild_id: int) -> int | None:
 
 async def set_audit_log_channel(guild_id: int, channel_id: int | None):
     """Set or clear the custom audit log channel for a guild."""
-    guild = await get_guild(guild_id)
-    guild["audit_log_channel_id"] = channel_id
-    await save_guild(guild_id, guild)
+    def modifier(guild):
+        guild["audit_log_channel_id"] = channel_id
+    await modify_guild(guild_id, modifier)
 
 
 async def get_language(guild_id: int) -> str:
@@ -447,7 +450,9 @@ async def set_language(guild_id: int, language_code: str) -> bool:
     VALID_LANGUAGES = {"en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur"}
     if language_code not in VALID_LANGUAGES:
         return False
-    guild = await get_guild(guild_id)
-    guild["language"] = language_code
-    await save_guild(guild_id, guild)
+    
+    def modifier(guild):
+        guild["language"] = language_code
+    
+    await modify_guild(guild_id, modifier)
     return True
