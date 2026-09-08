@@ -512,14 +512,8 @@ async def auto_chicken_dinner():
             continue
 
         try:
-            embed = discord.Embed(
-                title="🍗 Chicken Dinner!",
-                color=discord.Color.gold(),
-                timestamp=datetime.now(timezone.utc),
-            )
-            for name, data in sorted(new_wins, key=lambda item: item[1].get("kills", 0), reverse=True)[:15]:
-                map_name = data.get("map_name") or "Unknown map"
-                embed.add_field(name=name, value=f"{data.get('kills', 0)} kills · {map_name}", inline=True)
+            from modules.embeds import build_chicken_dinner_embed
+            embed = build_chicken_dinner_embed(new_wins, is_automated=True)
             await channel.send(embed=embed)
             # Only record these matches as alerted once Discord actually
             # accepted the message — a failed send retries next tick

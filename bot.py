@@ -153,6 +153,7 @@ from modules.embeds import (
     build_survival_mastery_embeds,
     build_leaderboard_embed,
     build_feedback_prompt_embed,
+    build_chicken_dinner_embed,
 )
 
 # Import report fetcher functions
@@ -2000,18 +2001,8 @@ async def chickendinner(interaction: discord.Interaction):
         return
 
     winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
-    if not winners:
-        await interaction.followup.send("🥈 No Chicken Dinners in anyone's most recent match right now.")
-        return
-
-    embed = discord.Embed(
-        title="🍗 Recent Chicken Dinners",
-        color=discord.Color.gold(),
-        timestamp=datetime.now(timezone.utc),
-    )
-    for name, data in sorted(winners, key=lambda item: item[1].get("kills", 0), reverse=True)[:15]:
-        map_name = data.get("map_name") or "Unknown map"
-        embed.add_field(name=name, value=f"{data.get('kills', 0)} kills · {map_name}", inline=True)
+    
+    embed = build_chicken_dinner_embed(winners, is_automated=False)
     await interaction.followup.send(embed=embed)
 
 

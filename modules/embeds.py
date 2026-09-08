@@ -16,6 +16,7 @@ Functions:
     build_survival_mastery_embeds: Survival mastery grouped by tier
     build_leaderboard_embed: Official leaderboard placements
     build_feedback_prompt_embed: Feedback collection prompt
+    build_chicken_dinner_embed: Flashy Chicken Dinner win display with kill counts
 
 Helper functions:
     _format_time_ago: Format ISO timestamp as relative time
@@ -703,4 +704,95 @@ def build_feedback_prompt_embed() -> discord.Embed:
         timestamp=datetime.now(timezone.utc),
     )
     embed.set_footer(text="PUBG Clan Tracker · Community Feedback & Support")
+    return embed
+
+
+def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bool = False) -> discord.Embed:
+    """
+    Build a flashy, live-update style Chicken Dinner embed.
+    
+    Args:
+        winners: List of (player_name, match_data) tuples where match_data contains
+                 kills, map_name, winPlace, match_id, etc.
+        is_automated: Whether this is an automated alert (True) or manual check (False)
+    
+    Returns:
+        A Discord embed with flashy formatting and kill counts
+    """
+    if not winners:
+        return discord.Embed(
+            title="🥈 No Chicken Dinners",
+            description="No recent wins found in the roster's latest matches.",
+            color=discord.Color.light_gray(),
+            timestamp=datetime.now(timezone.utc),
+        )
+    
+    # Sort by kills (highest first) and limit to top 15
+    sorted_winners = sorted(winners, key=lambda item: item[1].get("kills", 0), reverse=True)[:15]
+    
+    # Build the embed with flashy styling
+    embed = discord.Embed(
+        title="🍗 CHICKEN DINNER! 🍗",
+        description="🎉 **Victory Royale Achieved!** 🎉",
+        color=discord.Color.gold(),
+        timestamp=datetime.now(timezone.utc),
+    )
+    
+    # Add a flashy thumbnail
+    embed.set_thumbnail(url="https://i.imgur.com/7R8hZrQ.png")  # Golden chicken/food icon
+    
+    # Create a visually appealing display for each winner
+    # Using bullet points and emojis for the feed-like appearance
+    winner_lines = []
+    for idx, (name, data) in enumerate(sorted_winners, 1):
+        kills = data.get("kills", 0)
+        map_name = data.get("map_name") or "Unknown Map"
+        
+        # Medal emoji based on position
+        if idx == 1:
+            medal = "🥇"
+        elif idx == 2:
+            medal = "🥈"
+        elif idx == 3:
+            medal = "🥉"
+        else:
+            medal = "🔹"
+        
+        # Kill count styling
+        if kills >= 10:
+            kill_emoji = "💀"  # High kill game
+        elif kills >= 5:
+            kill_emoji = "🔥"  # Good kill game
+        else:
+            kill_emoji = "⚔️"  # Normal kill game
+        
+        winner_lines.append(f"{medal} **{name}** - {kill_emoji} **{kills}** kills on {map_name}")
+    
+    # Add the winners as a single field for better formatting
+    embed.add_field(
+        name="🏆 **Recent Winners**",
+        value="\n".join(winner_lines),
+        inline=False,
+    )
+    
+    # Add summary stats
+    total_kills = sum(data.get("kills", 0) for _, data in sorted_winners)
+    avg_kills = total_kills / len(sorted_winners) if sorted_winners else 0
+    max_kills = max((data.get("kills", 0) for _, data in sorted_winners), default=0)
+    
+    embed.add_field(
+        name="📊 **Stats**",
+        value=f"Total Wins: **{len(sorted_winners)}**\n"
+              f"Total Kills: **{total_kills}**\n"
+              f"Avg Kills: **{avg_kills:.1f}**\n"
+              f"Best Game: **{max_kills}** kills",
+        inline=True,
+    )
+    
+    # Footer based on whether it's automated or manual
+    if is_automated:
+        embed.set_footer(text="🔔 Automatic Win Alert · Checks every 15 minutes")
+    else:
+        embed.set_footer(text="🔍 Manual Check · Latest roster matches")
+    
     return embed
