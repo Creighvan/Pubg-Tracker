@@ -727,8 +727,8 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             timestamp=datetime.now(timezone.utc),
         )
     
-    # Sort by kills (highest first) and limit to top 15
-    sorted_winners = sorted(winners, key=lambda item: item[1].get("kills", 0), reverse=True)[:15]
+    # Sort by kills (highest first) - show all winners, no limit
+    sorted_winners = sorted(winners, key=lambda item: item[1].get("kills", 0), reverse=True)
     
     # Build the embed with flashy styling
     embed = discord.Embed(
@@ -737,9 +737,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
-    
-    # Add a flashy thumbnail
-    embed.set_thumbnail(url="https://i.imgur.com/7R8hZrQ.png")  # Golden chicken/food icon
     
     # Create a visually appealing display for each winner
     # Using bullet points and emojis for the feed-like appearance
