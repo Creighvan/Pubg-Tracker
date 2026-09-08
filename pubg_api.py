@@ -862,6 +862,23 @@ class PubgClient:
         return found, checked
 
 
+    async def get_api_status(self) -> dict:
+        """
+        Check the PUBG API status endpoint for service health and maintenance info.
+        
+        Returns:
+            dict with status information including:
+            - released_at: API version release date
+            - id: API version ID
+            - type: API type (e.g., "pcna")
+        """
+        try:
+            data = await self._request("/status", rate_limited=False)
+            return data.get("data", {}).get("attributes", {})
+        except PubgApiError as e:
+            return {"error": str(e)}
+
+
 def _chunk(items: list, size: int):
     for i in range(0, len(items), size):
         yield items[i : i + size]
