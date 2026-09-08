@@ -251,9 +251,10 @@ async def send_audit_log(
         # If we have a report embed, send it directly with a footer
         if report_embed:
             # Add footer with server info
+            user_info = f"{user.display_name} ({user.id})" if user else "Automated (N/A)"
             report_embed.set_footer(
                 text=f"Server: {guild_name} ({guild_id}) | "
-                      f"User: {user.display_name if user else 'Automated'} ({user.id if user else 'N/A'}) | "
+                      f"User: {user_info} | "
                       f"Event: {event_type}"
             )
             await channel.send(embed=report_embed)
