@@ -707,17 +707,18 @@ def build_feedback_prompt_embed() -> discord.Embed:
     return embed
 
 
-def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bool = False) -> discord.Embed:
+def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bool = False, total_wins: int = 0) -> discord.Embed:
     """
-    Build a flashy, live-update style Chicken Dinner embed.
+    Build a flashy, live-update style Chicken Dinner embed with grouped matches.
     
     Args:
         winners: List of (player_name, match_data) tuples where match_data contains
                  kills, map_name, winPlace, match_id, etc.
         is_automated: Whether this is an automated alert (True) or manual check (False)
+        total_wins: Running tally of total wins (for live-updating display)
     
     Returns:
-        A Discord embed with flashy formatting and kill counts
+        A Discord embed with flashy formatting, grouped by match, and kill counts
     """
     if not winners:
         return discord.Embed(
@@ -727,8 +728,20 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             timestamp=datetime.now(timezone.utc),
         )
     
-    # Sort by kills (highest first) - show all winners, no limit
-    sorted_winners = sorted(winners, key=lambda item: item[1].get("kills", 0), reverse=True)
+    # Group winners by match_id (players who won together)
+    matches_dict = {}
+    for name, data in winners:
+        match_id = data.get("match_id", "unknown")
+        if match_id not in matches_dict:
+            matches_dict[match_id] = []
+        matches_dict[match_id].append((name, data))
+    
+    # Sort matches by total kills in that match (highest first)
+    matches_list = []
+    for match_id, players in matches_dict.items():
+        total_kills = sum(data.get("kills", 0) for _, data in players)
+        matches_list.append((match_id, players, total_kills))
+    matches_list.sort(key=lambda x: x[2], reverse=True)
     
     # Build the embed with flashy styling
     embed = discord.Embed(
@@ -738,14 +751,23 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         timestamp=datetime.now(timezone.utc),
     )
     
-    # Create a visually appealing display for each winner
-    # Using bullet points and emojis for the feed-like appearance
-    winner_lines = []
-    for idx, (name, data) in enumerate(sorted_winners, 1):
-        kills = data.get("kills", 0)
-        map_name = data.get("map_name") or "Unknown Map"
+    # Create grouped display - players who won together on the same line
+    match_lines = []
+    for idx, (match_id, players, match_kills) in enumerate(matches_list, 1):
+        # Sort players in this match by kills
+        players_sorted = sorted(players, key=lambda x: x[1].get("kills", 0), reverse=True)
         
-        # Medal emoji based on position
+        # Build player line with kills
+        player_list = []
+        for name, data in players_sorted:
+            kills = data.get("kills", 0)
+            kill_emoji = "💀" if kills >= 10 else "🔥" if kills >= 5 else "⚔️"
+            player_list.append(f"{name} ({kill_emoji}{kills})")
+        
+        # Get map name from first player
+        map_name = players[0][1].get("map_name") or "Unknown Map"
+        
+        # Medal for the match
         if idx == 1:
             medal = "🥇"
         elif idx == 2:
@@ -755,31 +777,25 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         else:
             medal = "🔹"
         
-        # Kill count styling
-        if kills >= 10:
-            kill_emoji = "💀"  # High kill game
-        elif kills >= 5:
-            kill_emoji = "🔥"  # Good kill game
-        else:
-            kill_emoji = "⚔️"  # Normal kill game
-        
-        winner_lines.append(f"{medal} **{name}** - {kill_emoji} **{kills}** kills on {map_name}")
+        # Format: 🥇 Player1 (💀7), Player2 (🔥5), Player3 (⚔️3) - Erangel
+        match_lines.append(f"{medal} **{', '.join(player_list)}** on {map_name}")
     
-    # Add the winners as a single field for better formatting
+    # Add the matches as a single field
     embed.add_field(
-        name="🏆 **Recent Winners**",
-        value="\n".join(winner_lines),
+        name="🏆 **Recent Wins**",
+        value="\n".join(match_lines),
         inline=False,
     )
     
     # Add summary stats
-    total_kills = sum(data.get("kills", 0) for _, data in sorted_winners)
-    avg_kills = total_kills / len(sorted_winners) if sorted_winners else 0
-    max_kills = max((data.get("kills", 0) for _, data in sorted_winners), default=0)
+    total_kills = sum(data.get("kills", 0) for _, data in winners)
+    avg_kills = total_kills / len(winners) if winners else 0
+    max_kills = max((data.get("kills", 0) for _, data in winners), default=0)
     
     embed.add_field(
         name="📊 **Stats**",
-        value=f"Total Wins: **{len(sorted_winners)}**\n"
+        value=f"Total Wins: **{total_wins}**\n"
+              f"Recent Wins: **{len(matches_list)}**\n"
               f"Total Kills: **{total_kills}**\n"
               f"Avg Kills: **{avg_kills:.1f}**\n"
               f"Best Game: **{max_kills}** kills",
@@ -788,7 +804,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     # Footer based on whether it's automated or manual
     if is_automated:
-        embed.set_footer(text="🔔 Automatic Win Alert · Checks every 15 minutes")
+        embed.set_footer(text="🔔 Live-updating · Checks every 15 minutes")
     else:
         embed.set_footer(text="🔍 Manual Check · Latest roster matches")
     
