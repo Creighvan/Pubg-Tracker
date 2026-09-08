@@ -769,7 +769,7 @@ async def auto_api_status():
                         message = await channel.fetch_message(message_id)
                         await message.edit(embed=embed)
                         message_edited = True
-                    except Exception:
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                         # Message doesn't exist or can't be edited, will post new
                         pass
                 
