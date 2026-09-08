@@ -229,7 +229,7 @@ async def send_audit_log(
         if not audit_guild:
             try:
                 audit_guild = await bot.fetch_guild(AUDIT_SERVER_ID)
-            except:
+            except Exception:
                 return
         
         # Get the target channel
@@ -237,7 +237,7 @@ async def send_audit_log(
         if not channel:
             try:
                 channel = await audit_guild.fetch_channel(target_channel_id)
-            except:
+            except Exception:
                 return
         
         # Get source guild info
@@ -245,7 +245,7 @@ async def send_audit_log(
         if not source_guild:
             try:
                 source_guild = await bot.fetch_guild(guild_id)
-            except:
+            except Exception:
                 source_guild = None
         
         guild_name = source_guild.name if source_guild else f"Unknown ({guild_id})"
