@@ -6,8 +6,8 @@ discord.ext.tasks to automatically post reports at configured times.
 
 Functions:
     auto_digest: Clan digest every 15 minutes (checks if due)
-    auto_last_active: Last active report daily (at 3am KST)
-    auto_ranked: Ranked standings daily
+    auto_last_active: Last active report daily (after 3am KST, recovers from downtime)
+    auto_ranked: Ranked standings daily (after 5:30am KST, recovers from downtime)
     auto_highlights: Daily highlights every 24 hours
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
@@ -111,23 +111,10 @@ async def before_auto_digest():
 
 @tasks.loop(minutes=15)
 async def auto_last_active():
-    """Posts the 'last active' report every 24 hours, per guild, same
-    interval-based pattern as auto_digest. Updates a single message in place
-    at 3am KST daily reset instead of posting new messages."""
-    now = datetime.now(timezone.utc)
-    
-    # Check if it's 3am KST daily reset time
+    """Posts the 'last active' report every 24 hours, per guild.
+    Runs once per day after 3am KST daily reset. Recovers if bot was offline."""
     kst = ZoneInfo("Asia/Seoul")
     now_kst = datetime.now(kst)
-    reset_time_kst = now_kst.replace(hour=3, minute=0, second=0, microsecond=0)
-    if now_kst < reset_time_kst:
-        reset_time_kst -= timedelta(days=1)
-    
-    # Only update during a 15-minute window around 3am KST
-    reset_total = 3 * 60  # 3:00 AM in minutes
-    now_total = now_kst.hour * 60 + now_kst.minute
-    if not (reset_total <= now_total < reset_total + 15):
-        return
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -135,6 +122,17 @@ async def auto_last_active():
             continue
         channel_id = guild_cfg.get("last_activity_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
+            continue
+
+        # Check if we've already posted today (using last_activity_posted_at)
+        last_posted = guild_cfg.get("last_activity_posted_at")
+        if last_posted:
+            last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
+            if last_posted_date.date() == now_kst.date():
+                continue  # Already posted today
+        
+        # Only run after 3am KST daily reset
+        if now_kst.hour < 3:
             continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -163,6 +161,10 @@ async def auto_last_active():
                     new_message = await channel.send(embed=embed)
                     guild_cfg["last_activity_message_id"] = new_message.id
                     await storage.save_guild(guild_id, guild_cfg)
+                
+                # Mark as posted today
+                guild_cfg["last_activity_posted_at"] = datetime.now(timezone.utc).isoformat()
+                await storage.save_guild(guild_id, guild_cfg)
                 
                 await send_audit_log(
                     guild_id,
