@@ -24,6 +24,7 @@ Helper functions:
     _compute_award_winners: Calculate all award winners
     _friendly_weapon_name: Convert weapon ID to readable name
     _survival_tier_number: Normalize survival tier to 1-5
+    _friendly_map_name: Convert PUBG API map code to readable name
 """
 
 import os
@@ -736,11 +737,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             matches_dict[match_id] = []
         matches_dict[match_id].append((name, data))
     
-    # Debug: print match grouping
-    print(f"[chicken_dinner] Found {len(winners)} winners in {len(matches_dict)} unique matches")
-    for match_id, players in matches_dict.items():
-        print(f"[chicken_dinner] Match {match_id[:8]}... has {len(players)} players: {[p[0] for p in players]}")
-    
     # Sort matches by total kills in that match (highest first)
     matches_list = []
     for match_id, players in matches_dict.items():
@@ -769,7 +765,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             kill_emoji = "💀" if kills >= 10 else "🔥" if kills >= 5 else "⚔️"
             player_list.append(f"{name} ({kill_emoji}{kills})")
         
-        # Get map name from first player
+        # Get map name from first player (already converted to readable name by pubg_api.py)
         map_name = players[0][1].get("map_name") or "Unknown Map"
         
         # Medal for the match
