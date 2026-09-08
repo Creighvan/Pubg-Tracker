@@ -711,9 +711,10 @@ async def auto_api_status():
             
             # Build and send status message
             bot = _get_bot()
-            guild_configs = storage.get_all_guild_configs()
+            from storage import all_guild_ids, get_guild
             
-            for guild_id, guild_cfg in guild_configs.items():
+            for guild_id in await all_guild_ids():
+                guild_cfg = await get_guild(guild_id)
                 channel_id = guild_cfg.get("api_status_channel_id")
                 if not channel_id:
                     continue
