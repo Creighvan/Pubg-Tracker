@@ -2059,8 +2059,8 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
     return is_owner or has_admin_id or has_valid_key
 
 
-@bot.tree.command(description="[Admin] List all Discord servers the bot is in (use in private channel only)")
-@app_commands.describe(secret_key="Optional admin secret key to unlock this command (WARNING: visible in channel)")
+@bot.tree.command(description="[Admin] List all Discord servers the bot is in")
+@app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def botservers(interaction: discord.Interaction, secret_key: str = None):
     if not await _is_admin_authorized(interaction, secret_key):
@@ -2207,10 +2207,10 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Post a feedback & suggestions prompt to a channel in this server (use in private channel only)")
+@bot.tree.command(description="[Admin] Post feedback & suggestions prompt to a channel")
 @app_commands.describe(
     channel="Channel to post the feedback prompt in (defaults to current channel)",
-    secret_key="Optional admin secret key to unlock this command (WARNING: visible in channel)",
+    secret_key="Optional admin secret key to unlock this command",
 )
 @app_commands.default_permissions(administrator=True)
 async def askfeedback(
