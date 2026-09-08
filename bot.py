@@ -53,6 +53,7 @@ Slash commands:
   /links                                - show every PUBG-name-to-Discord link for this server
   /chickendinner                        - check the roster's most recent matches for wins right now
   /setchickendinnerchannel               - set current channel for win alerts (defaults to the digest channel)
+  /setapistatuschannel                   - set current channel for PUBG API status alerts
   /pingtoggle                           - toggle mention notifications for achievement awards
   /botservers                          - [Admin] list all Discord servers the bot is in
   /askfeedback [channel] [secret_key]  - [Admin] post feedback & support prompt to a server channel
@@ -2024,6 +2025,24 @@ async def setchickendinnerchannel(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"✅ Chicken Dinner win alerts will post in {interaction.channel.mention}. "
         "The bot checks every 15 minutes and only posts wins it hasn't posted before."
+    )
+
+
+@bot.tree.command(description="Set current channel for PUBG API status alerts")
+async def setapistatuschannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    guild_cfg["api_status_channel_id"] = interaction.channel_id
+    await storage.save_guild(interaction.guild_id, guild_cfg)
+    await interaction.response.send_message(
+        f"✅ PUBG API status alerts will post in {interaction.channel.mention}. "
+        "The bot checks every 30 minutes and alerts if the API is down or in maintenance mode."
+    )
+    await send_audit_log(
+        interaction.guild_id,
+        "API Status Channel Set",
+        f"API status alerts will post in {interaction.channel.mention}",
+        user=interaction.user,
+        is_automated=False,
     )
 
 
