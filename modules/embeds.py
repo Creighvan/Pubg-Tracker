@@ -264,8 +264,20 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     if protected_count > 0:
         embed.add_field(name="🛡️ Protected players", value=str(protected_count), inline=True)
 
+    def get_match_date(p):
+        """Extract the match date for sorting, defaulting to None (oldest)."""
+        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
+            return manual_data["date"] if isinstance(manual_data, dict) else manual_data
+        elif p.get("data_source") == "auto_count":
+            return p.get("last_match_date")
+        else:
+            return p.get("last_match_at")
+
+    # Sort players by match date (most recent first)
+    players_sorted = sorted(players, key=get_match_date, reverse=True)
+
     lines = []
-    for p in players:
+    for p in players_sorted:
         # Check for manual inactive date override or auto-counted date
         if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
             # manual_data is a dict with 'date' and 'set_at' keys
