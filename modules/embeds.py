@@ -300,7 +300,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    footer_text = "Updates daily at 3am KST (live-updating, not reposted)"
+    footer_text = "Updates hourly (live-updating, not reposted)"
     if protected_count > 0:
         footer_text += " | 🛡️ = Protected from inactivity removal"
     embed.set_footer(text=footer_text)
