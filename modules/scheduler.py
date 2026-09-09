@@ -703,7 +703,9 @@ async def auto_api_status():
                         current_status["status"] = "operational"
                         current_status["version"] = api_version
                 else:
+                    # No release date/version info - API is still operational
                     current_status["status"] = "operational"
+                    current_status["version"] = status.get("id", "unknown")
             
             # Build and send status message
             bot = _get_bot()

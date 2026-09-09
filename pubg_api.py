@@ -874,7 +874,17 @@ class PubgClient:
         """
         try:
             data = await self._request("/status", rate_limited=False)
-            return data.get("data", {}).get("attributes", {})
+            # The API returns either {"data":{"attributes":{...}}} or {"data":{"type":"status","id":"pubg-api"}}
+            # Handle both structures
+            result = data.get("data", {})
+            if "attributes" in result:
+                return result.get("attributes", {})
+            else:
+                # Return the basic status info when attributes are not available
+                return {
+                    "id": result.get("id", "unknown"),
+                    "type": result.get("type", "unknown")
+                }
         except PubgApiError as e:
             return {"error": str(e)}
 
