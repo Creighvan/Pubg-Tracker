@@ -914,7 +914,8 @@ class PubgClient:
             result["steam_status"] = "down"
             result["steam_error"] = str(e)
 
-        # Check PUBG.PLUS for actual game server status
+        # Check PUBG.PLUS for actual game server status (optional)
+        # Note: This endpoint may return 400/403 and is not critical for basic operation
         try:
             pubg_plus_url = "https://apiv1.pubg.plus/status/server"
             headers = {
@@ -941,7 +942,8 @@ class PubgClient:
                     result["pubg_plus_status"] = "down"
                     result["pubg_plus_error"] = f"HTTP {response.status}"
         except Exception as e:
-            result["pubg_plus_status"] = "down"
+            # PUBG.PLUS is optional - don't fail the entire status check
+            result["pubg_plus_status"] = "unavailable"
             result["pubg_plus_error"] = str(e)
 
         return result
