@@ -180,7 +180,7 @@ from modules.scheduler import (
     auto_donations,
     auto_chicken_dinner,
     auto_feedback_prompt,
-    auto_api_status,
+    # auto_api_status,  # DISABLED: API status feature removed
     start_all_scheduled_tasks,
     _set_audit_log_func,
 )
@@ -2025,31 +2025,6 @@ async def setchickendinnerchannel(interaction: discord.Interaction):
     await interaction.response.send_message(
         f"✅ Chicken Dinner win alerts will post in {interaction.channel.mention}. "
         "The bot checks every 15 minutes and only posts wins it hasn't posted before."
-    )
-
-
-@bot.tree.command(description="Set this channel to show live PUBG API status (updates only when status changes)")
-async def setapistatuschannel(interaction: discord.Interaction):
-    """
-    Points a channel at a single persistent API status embed that gets EDITED
-    in place when the PUBG API status changes — never a new message per check.
-    Checks every 30 minutes but only updates if the status actually changed.
-    """
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["api_status_channel_id"] = interaction.channel_id
-    guild_cfg["api_status_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(
-        f"✅ PUBG API status will be posted and kept up to date in {interaction.channel.mention}. "
-        "It only updates when the API status actually changes — going up/down, maintenance mode, etc. "
-        "Checks every 30 minutes but won't spam if nothing changed."
-    )
-    await send_audit_log(
-        interaction.guild_id,
-        "API Status Channel Set",
-        f"Live API status will update in {interaction.channel.mention}",
-        user=interaction.user,
-        is_automated=False,
     )
 
 
