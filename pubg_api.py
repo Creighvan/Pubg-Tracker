@@ -865,7 +865,7 @@ class PubgClient:
     async def get_api_status(self) -> dict:
         """
         Check the PUBG API status endpoint for service health and maintenance info.
-        Also checks Steam server status since PUBG runs on Steam.
+        Also checks Steam server status and PUBG.PLUS for actual game server status.
 
         Returns:
             dict with status information including:
@@ -875,6 +875,10 @@ class PubgClient:
             - steam_status: "up" or "down" based on Steam API
             - steam_error: error message if Steam check fails
             - steam_server_time: Steam server timestamp (if available)
+            - pubg_plus_status: Game server status from PUBG.PLUS
+            - pubg_plus_server_status: Numeric status (1=normal, 2=maintenance)
+            - pubg_plus_online: Current online player count
+            - pubg_plus_server_version: Server version string
         """
         result = {}
 
@@ -909,6 +913,30 @@ class PubgClient:
         except Exception as e:
             result["steam_status"] = "down"
             result["steam_error"] = str(e)
+
+        # Check PUBG.PLUS for actual game server status
+        try:
+            pubg_plus_url = "https://apiv1.pubg.plus/status/server"
+            async with self._session.get(pubg_plus_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                if response.status == 200:
+                    pubg_plus_data = await response.json()
+                    if pubg_plus_data.get("code") == 0 and "data" in pubg_plus_data:
+                        pc_data = pubg_plus_data["data"].get("pc", {})
+                        result["pubg_plus_status"] = "up"
+                        result["pubg_plus_server_status"] = pc_data.get("server_status")
+                        result["pubg_plus_maintenance"] = pc_data.get("maintenance")
+                        result["pubg_plus_online"] = pc_data.get("online")
+                        result["pubg_plus_server_version"] = pc_data.get("server_version")
+                        result["pubg_plus_client_version"] = pc_data.get("client_version")
+                    else:
+                        result["pubg_plus_status"] = "down"
+                        result["pubg_plus_error"] = pubg_plus_data.get("message", "Unknown error")
+                else:
+                    result["pubg_plus_status"] = "down"
+                    result["pubg_plus_error"] = f"HTTP {response.status}"
+        except Exception as e:
+            result["pubg_plus_status"] = "down"
+            result["pubg_plus_error"] = str(e)
 
         return result
 
