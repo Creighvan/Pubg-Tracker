@@ -668,183 +668,184 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
 _previous_api_status = {"status": None, "error": None, "version": None, "days_old": None}
 
 
-@tasks.loop(minutes=30)
-async def auto_api_status():
-    """
-    Check PUBG API status every 30 minutes and update the live embed ONLY if status changed.
-    Uses the official /status endpoint to check service health.
-    Similar to bot status - single message that gets edited in place.
-    """
-    global _previous_api_status
-    
-    try:
-        async with get_scheduler_lock():
-            pubg = _get_pubg()
-            status = await pubg.get_api_status()
-            
-            # Determine current status
-            current_status = {}
-
-            # Check PUBG.PLUS game server status first (most accurate for game servers)
-            pubg_plus_status = status.get("pubg_plus_status", "unknown")
-            if pubg_plus_status == "up":
-                server_status = status.get("pubg_plus_server_status", 1)
-                maintenance = status.get("pubg_plus_maintenance", 1)
-
-                # server_status: 1 = normal, 2 = maintenance
-                # maintenance: 1 = normal, 2 = maintenance
-                if server_status == 2 or maintenance == 2:
-                    current_status["status"] = "down"
-                    current_status["error"] = "PUBG game servers are under maintenance"
-                    current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
-                    current_status["online_players"] = status.get("pubg_plus_online", 0)
-                else:
-                    current_status["status"] = "operational"
-                    current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
-                    current_status["online_players"] = status.get("pubg_plus_online", 0)
-            elif pubg_plus_status == "down":
-                current_status["status"] = "down"
-                current_status["error"] = f"Unable to check PUBG.PLUS server status: {status.get('pubg_plus_error', 'Unknown error')}"
-            elif pubg_plus_status == "unavailable":
-                # PUBG.PLUS is unavailable - fall back to Steam and official API status
-                steam_status = status.get("steam_status", "unknown")
-                if steam_status == "down":
-                    current_status["status"] = "degraded"
-                    current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
-                elif "error" in status:
-                    current_status["status"] = "degraded"
-                    current_status["error"] = status.get("error", "Unknown API error")
-                else:
-                    # No errors - assume operational based on official API
-                    current_status["status"] = "operational"
-                    current_status["note"] = "PUBG.PLUS unavailable - using official API status"
-            else:
-                # Fallback to Steam status check
-                steam_status = status.get("steam_status", "unknown")
-                if steam_status == "down":
-                    current_status["status"] = "down"
-                    current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
-                elif "error" in status:
-                    current_status["status"] = "down"
-                    current_status["error"] = status["error"]
-                else:
-                    released_at = status.get("releasedAt")
-                    api_version = status.get("id")
-
-                    if released_at and api_version:
-                        release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
-                        days_old = (datetime.now(timezone.utc) - release_date).days
-
-                        if days_old > 365:
-                            current_status["status"] = "warning"
-                            current_status["version"] = api_version
-                            current_status["days_old"] = days_old
-                        else:
-                            current_status["status"] = "operational"
-                            current_status["version"] = api_version
-                    else:
-                        # No release date/version info - API is still operational
-                        current_status["status"] = "operational"
-                        current_status["version"] = status.get("id", "unknown")
-            
-            # Build and send status message
-            bot = _get_bot()
-            from storage import all_guild_ids, get_guild
-            
-            # Save previous status before processing to detect actual changes
-            status_actually_changed = (current_status != _previous_api_status)
-            
-            for guild_id in await all_guild_ids():
-                guild_cfg = await get_guild(guild_id)
-                channel_id = guild_cfg.get("api_status_channel_id")
-                if not channel_id:
-                    continue
-                
-                # Check if this guild needs an initial post (no message_id yet)
-                needs_initial_post = not guild_cfg.get("api_status_message_id")
-                
-                # Skip if status unchanged AND this guild already has a message
-                if not needs_initial_post and current_status == _previous_api_status:
-                    continue
-                
-                guild = bot.get_guild(int(guild_id))
-                if not guild:
-                    continue
-                
-                channel = guild.get_channel(channel_id)
-                if not channel:
-                    continue
-                
-                # Build embed based on status
-                if current_status["status"] == "down":
-                    status_text = "🔴 DOWN"
-                    status_color = discord.Color.red()
-                    description = f"**Unable to reach PUBG API:** {current_status['error']}\n\n"
-                    description += "The bot cannot determine the reason or estimated downtime from the API. "
-                    description += "Check the following for official updates:\n"
-                    description += "• https://developer.pubg.com/status\n"
-                    description += "• @PUBG_Support on Twitter/X\n"
-                    description += "• Downdetector PUBG page\n"
-                    description += "• Steam Server Status: https://steamstat.us"
-                elif current_status["status"] == "warning":
-                    status_text = "🟡 WARNING"
-                    status_color = discord.Color.orange()
-                    description = f"API version is {current_status['days_old']} days old. This may indicate reduced service or maintenance mode.\n\n"
-                    description += "Check official channels for maintenance details:\n"
-                    description += "• https://developer.pubg.com/status\n"
-                    description += "• @PUBG_Support on Twitter/X"
-                else:  # operational
-                    status_text = "🟢 OPERATIONAL"
-                    status_color = discord.Color.green()
-                    description = f"PUBG game servers are operational."
-                    if current_status.get("server_version"):
-                        description += f"\nServer Version: {current_status['server_version']}"
-                    if current_status.get("online_players"):
-                        description += f"\nOnline Players: {current_status['online_players']:,}"
-                    if current_status.get("version"):
-                        description += f"\nAPI Version: {current_status['version']}"
-                
-                embed = discord.Embed(
-                    title=f"PUBG Server Status - {status_text}",
-                    description=description,
-                    color=status_color,
-                    timestamp=datetime.now(timezone.utc),
-                )
-                embed.set_footer(text="Updates only when status changes • Game server data from PUBG.PLUS")
-                
-                # Try to edit existing message, or post new one
-                message_id = guild_cfg.get("api_status_message_id")
-                message_edited = False
-                
-                if message_id:
-                    try:
-                        message = await channel.fetch_message(message_id)
-                        await message.edit(embed=embed)
-                        message_edited = True
-                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-                        # Message doesn't exist or can't be edited, will post new
-                        pass
-                
-                if not message_edited:
-                    new_message = await channel.send(embed=embed)
-                    guild_cfg["api_status_message_id"] = new_message.id
-                    await storage.save_guild(int(guild_id), guild_cfg)
-            
-            # Update global status after processing all guilds
-            _previous_api_status = current_status
-            
-            # Only log if status actually changed (not every tick)
-            if status_actually_changed:
-                await _record_status_event(f"📊 API status changed to {current_status['status']}")
-            
-    except Exception as e:
-        print(f"[auto_api_status] Error checking API status: {e}")
-        await _record_status_event(f"⚠️ auto_api_status error: {e}"[:200])
-
-
-@auto_api_status.before_loop
-async def before_auto_api_status():
-    await _get_bot().wait_until_ready()
+# DISABLED: API status feature removed due to unreliable PUBG.PLUS integration
+# @tasks.loop(minutes=30)
+# async def auto_api_status():
+#     """
+#     Check PUBG API status every 30 minutes and update the live embed ONLY if status changed.
+#     Uses the official /status endpoint to check service health.
+#     Similar to bot status - single message that gets edited in place.
+#     """
+#     global _previous_api_status
+#     
+#     try:
+#         async with get_scheduler_lock():
+#             pubg = _get_pubg()
+#             status = await pubg.get_api_status()
+#             
+#             # Determine current status
+#             current_status = {}
+#
+#             # Check PUBG.PLUS game server status first (most accurate for game servers)
+#             pubg_plus_status = status.get("pubg_plus_status", "unknown")
+#             if pubg_plus_status == "up":
+#                 server_status = status.get("pubg_plus_server_status", 1)
+#                 maintenance = status.get("pubg_plus_maintenance", 1)
+#
+#                 # server_status: 1 = normal, 2 = maintenance
+#                 # maintenance: 1 = normal, 2 = maintenance
+#                 if server_status == 2 or maintenance == 2:
+#                     current_status["status"] = "down"
+#                     current_status["error"] = "PUBG game servers are under maintenance"
+#                     current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
+#                     current_status["online_players"] = status.get("pubg_plus_online", 0)
+#                 else:
+#                     current_status["status"] = "operational"
+#                     current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
+#                     current_status["online_players"] = status.get("pubg_plus_online", 0)
+#             elif pubg_plus_status == "down":
+#                 current_status["status"] = "down"
+#                 current_status["error"] = f"Unable to check PUBG.PLUS server status: {status.get('pubg_plus_error', 'Unknown error')}"
+#             elif pubg_plus_status == "unavailable":
+#                 # PUBG.PLUS is unavailable - fall back to Steam and official API status
+#                 steam_status = status.get("steam_status", "unknown")
+#                 if steam_status == "down":
+#                     current_status["status"] = "degraded"
+#                     current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
+#                 elif "error" in status:
+#                     current_status["status"] = "degraded"
+#                     current_status["error"] = status.get("error", "Unknown API error")
+#                 else:
+#                     # No errors - assume operational based on official API
+#                     current_status["status"] = "operational"
+#                     current_status["note"] = "PUBG.PLUS unavailable - using official API status"
+#             else:
+#                 # Fallback to Steam status check
+#                 steam_status = status.get("steam_status", "unknown")
+#                 if steam_status == "down":
+#                     current_status["status"] = "down"
+#                     current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
+#                 elif "error" in status:
+#                     current_status["status"] = "down"
+#                     current_status["error"] = status["error"]
+#                 else:
+#                     released_at = status.get("releasedAt")
+#                     api_version = status.get("id")
+#
+#                     if released_at and api_version:
+#                         release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
+#                         days_old = (datetime.now(timezone.utc) - release_date).days
+#
+#                         if days_old > 365:
+#                             current_status["status"] = "warning"
+#                             current_status["version"] = api_version
+#                             current_status["days_old"] = days_old
+#                         else:
+#                             current_status["status"] = "operational"
+#                             current_status["version"] = api_version
+#                     else:
+#                         # No release date/version info - API is still operational
+#                         current_status["status"] = "operational"
+#                         current_status["version"] = status.get("id", "unknown")
+#             
+#             # Build and send status message
+#             bot = _get_bot()
+#             from storage import all_guild_ids, get_guild
+#             
+#             # Save previous status before processing to detect actual changes
+#             status_actually_changed = (current_status != _previous_api_status)
+#             
+#             for guild_id in await all_guild_ids():
+#                 guild_cfg = await get_guild(guild_id)
+#                 channel_id = guild_cfg.get("api_status_channel_id")
+#                 if not channel_id:
+#                     continue
+#                 
+#                 # Check if this guild needs an initial post (no message_id yet)
+#                 needs_initial_post = not guild_cfg.get("api_status_message_id")
+#                 
+#                 # Skip if status unchanged AND this guild already has a message
+#                 if not needs_initial_post and current_status == _previous_api_status:
+#                     continue
+#                 
+#                 guild = bot.get_guild(int(guild_id))
+#                 if not guild:
+#                     continue
+#                 
+#                 channel = guild.get_channel(channel_id)
+#                 if not channel:
+#                     continue
+#                 
+#                 # Build embed based on status
+#                 if current_status["status"] == "down":
+#                     status_text = "🔴 DOWN"
+#                     status_color = discord.Color.red()
+#                     description = f"**Unable to reach PUBG API:** {current_status['error']}\n\n"
+#                     description += "The bot cannot determine the reason or estimated downtime from the API. "
+#                     description += "Check the following for official updates:\n"
+#                     description += "• https://developer.pubg.com/status\n"
+#                     description += "• @PUBG_Support on Twitter/X\n"
+#                     description += "• Downdetector PUBG page\n"
+#                     description += "• Steam Server Status: https://steamstat.us"
+#                 elif current_status["status"] == "warning":
+#                     status_text = "🟡 WARNING"
+#                     status_color = discord.Color.orange()
+#                     description = f"API version is {current_status['days_old']} days old. This may indicate reduced service or maintenance mode.\n\n"
+#                     description += "Check official channels for maintenance details:\n"
+#                     description += "• https://developer.pubg.com/status\n"
+#                     description += "• @PUBG_Support on Twitter/X"
+#                 else:  # operational
+#                     status_text = "🟢 OPERATIONAL"
+#                     status_color = discord.Color.green()
+#                     description = f"PUBG game servers are operational."
+#                     if current_status.get("server_version"):
+#                         description += f"\nServer Version: {current_status['server_version']}"
+#                     if current_status.get("online_players"):
+#                         description += f"\nOnline Players: {current_status['online_players']:,}"
+#                     if current_status.get("version"):
+#                         description += f"\nAPI Version: {current_status['version']}"
+#                 
+#                 embed = discord.Embed(
+#                     title=f"PUBG Server Status - {status_text}",
+#                     description=description,
+#                     color=status_color,
+#                     timestamp=datetime.now(timezone.utc),
+#                 )
+#                 embed.set_footer(text="Updates only when status changes • Game server data from PUBG.PLUS")
+#                 
+#                 # Try to edit existing message, or post new one
+#                 message_id = guild_cfg.get("api_status_message_id")
+#                 message_edited = False
+#                 
+#                 if message_id:
+#                     try:
+#                         message = await channel.fetch_message(message_id)
+#                         await message.edit(embed=embed)
+#                         message_edited = True
+#                     except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+#                         # Message doesn't exist or can't be edited, will post new
+#                         pass
+#                 
+#                 if not message_edited:
+#                     new_message = await channel.send(embed=embed)
+#                     guild_cfg["api_status_message_id"] = new_message.id
+#                     await storage.save_guild(int(guild_id), guild_cfg)
+#             
+#             # Update global status after processing all guilds
+#             _previous_api_status = current_status
+#             
+#             # Only log if status actually changed (not every tick)
+#             if status_actually_changed:
+#                 await _record_status_event(f"📊 API status changed to {current_status['status']}")
+#             
+#     except Exception as e:
+#         print(f"[auto_api_status] Error checking API status: {e}")
+#         await _record_status_event(f"⚠️ auto_api_status error: {e}"[:200])
+#
+#
+# @auto_api_status.before_loop
+# async def before_auto_api_status():
+#     await _get_bot().wait_until_ready()
 
 
 def start_all_scheduled_tasks(bot_instance):
@@ -858,4 +859,4 @@ def start_all_scheduled_tasks(bot_instance):
     auto_donations.start()
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
-    auto_api_status.start()
+    # auto_api_status.start()  # DISABLED: API status feature removed
