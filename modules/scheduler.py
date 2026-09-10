@@ -669,33 +669,54 @@ async def auto_api_status():
             # Determine current status
             current_status = {}
 
-            # Check Steam status first (PUBG runs on Steam)
-            steam_status = status.get("steam_status", "unknown")
-            if steam_status == "down":
-                current_status["status"] = "down"
-                current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
-            elif "error" in status:
-                current_status["status"] = "down"
-                current_status["error"] = status["error"]
-            else:
-                released_at = status.get("releasedAt")
-                api_version = status.get("id")
+            # Check PUBG.PLUS game server status first (most accurate for game servers)
+            pubg_plus_status = status.get("pubg_plus_status", "unknown")
+            if pubg_plus_status == "up":
+                server_status = status.get("pubg_plus_server_status", 1)
+                maintenance = status.get("pubg_plus_maintenance", 1)
 
-                if released_at and api_version:
-                    release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
-                    days_old = (datetime.now(timezone.utc) - release_date).days
-
-                    if days_old > 365:
-                        current_status["status"] = "warning"
-                        current_status["version"] = api_version
-                        current_status["days_old"] = days_old
-                    else:
-                        current_status["status"] = "operational"
-                        current_status["version"] = api_version
+                # server_status: 1 = normal, 2 = maintenance
+                # maintenance: 1 = normal, 2 = maintenance
+                if server_status == 2 or maintenance == 2:
+                    current_status["status"] = "down"
+                    current_status["error"] = "PUBG game servers are under maintenance"
+                    current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
+                    current_status["online_players"] = status.get("pubg_plus_online", 0)
                 else:
-                    # No release date/version info - API is still operational
                     current_status["status"] = "operational"
-                    current_status["version"] = status.get("id", "unknown")
+                    current_status["server_version"] = status.get("pubg_plus_server_version", "unknown")
+                    current_status["online_players"] = status.get("pubg_plus_online", 0)
+            elif pubg_plus_status == "down":
+                current_status["status"] = "down"
+                current_status["error"] = f"Unable to check PUBG.PLUS server status: {status.get('pubg_plus_error', 'Unknown error')}"
+            else:
+                # Fallback to Steam status check
+                steam_status = status.get("steam_status", "unknown")
+                if steam_status == "down":
+                    current_status["status"] = "down"
+                    current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
+                elif "error" in status:
+                    current_status["status"] = "down"
+                    current_status["error"] = status["error"]
+                else:
+                    released_at = status.get("releasedAt")
+                    api_version = status.get("id")
+
+                    if released_at and api_version:
+                        release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
+                        days_old = (datetime.now(timezone.utc) - release_date).days
+
+                        if days_old > 365:
+                            current_status["status"] = "warning"
+                            current_status["version"] = api_version
+                            current_status["days_old"] = days_old
+                        else:
+                            current_status["status"] = "operational"
+                            current_status["version"] = api_version
+                    else:
+                        # No release date/version info - API is still operational
+                        current_status["status"] = "operational"
+                        current_status["version"] = status.get("id", "unknown")
             
             # Build and send status message
             bot = _get_bot()
@@ -746,15 +767,21 @@ async def auto_api_status():
                 else:  # operational
                     status_text = "🟢 OPERATIONAL"
                     status_color = discord.Color.green()
-                    description = f"PUBG API is operational. Version: {current_status.get('version', 'unknown')}"
+                    description = f"PUBG game servers are operational."
+                    if current_status.get("server_version"):
+                        description += f"\nServer Version: {current_status['server_version']}"
+                    if current_status.get("online_players"):
+                        description += f"\nOnline Players: {current_status['online_players']:,}"
+                    if current_status.get("version"):
+                        description += f"\nAPI Version: {current_status['version']}"
                 
                 embed = discord.Embed(
-                    title=f"PUBG API Status - {status_text}",
+                    title=f"PUBG Server Status - {status_text}",
                     description=description,
                     color=status_color,
                     timestamp=datetime.now(timezone.utc),
                 )
-                embed.set_footer(text="Updates only when status changes • Official info: developer.pubg.com/status")
+                embed.set_footer(text="Updates only when status changes • Game server data from PUBG.PLUS")
                 
                 # Try to edit existing message, or post new one
                 message_id = guild_cfg.get("api_status_message_id")
