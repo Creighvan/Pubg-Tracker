@@ -705,6 +705,19 @@ async def auto_api_status():
             elif pubg_plus_status == "down":
                 current_status["status"] = "down"
                 current_status["error"] = f"Unable to check PUBG.PLUS server status: {status.get('pubg_plus_error', 'Unknown error')}"
+            elif pubg_plus_status == "unavailable":
+                # PUBG.PLUS is unavailable - fall back to Steam and official API status
+                steam_status = status.get("steam_status", "unknown")
+                if steam_status == "down":
+                    current_status["status"] = "degraded"
+                    current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
+                elif "error" in status:
+                    current_status["status"] = "degraded"
+                    current_status["error"] = status.get("error", "Unknown API error")
+                else:
+                    # No errors - assume operational based on official API
+                    current_status["status"] = "operational"
+                    current_status["note"] = "PUBG.PLUS unavailable - using official API status"
             else:
                 # Fallback to Steam status check
                 steam_status = status.get("steam_status", "unknown")
