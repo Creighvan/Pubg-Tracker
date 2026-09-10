@@ -668,18 +668,23 @@ async def auto_api_status():
             
             # Determine current status
             current_status = {}
-            
-            if "error" in status:
+
+            # Check Steam status first (PUBG runs on Steam)
+            steam_status = status.get("steam_status", "unknown")
+            if steam_status == "down":
+                current_status["status"] = "down"
+                current_status["error"] = f"Steam servers are down: {status.get('steam_error', 'Unknown error')}"
+            elif "error" in status:
                 current_status["status"] = "down"
                 current_status["error"] = status["error"]
             else:
                 released_at = status.get("releasedAt")
                 api_version = status.get("id")
-                
+
                 if released_at and api_version:
                     release_date = datetime.fromisoformat(released_at.replace("Z", "+00:00"))
                     days_old = (datetime.now(timezone.utc) - release_date).days
-                    
+
                     if days_old > 365:
                         current_status["status"] = "warning"
                         current_status["version"] = api_version
@@ -729,7 +734,8 @@ async def auto_api_status():
                     description += "Check the following for official updates:\n"
                     description += "• https://developer.pubg.com/status\n"
                     description += "• @PUBG_Support on Twitter/X\n"
-                    description += "• Downdetector PUBG page"
+                    description += "• Downdetector PUBG page\n"
+                    description += "• Steam Server Status: https://steamstat.us"
                 elif current_status["status"] == "warning":
                     status_text = "🟡 WARNING"
                     status_color = discord.Color.orange()

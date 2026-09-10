@@ -865,28 +865,52 @@ class PubgClient:
     async def get_api_status(self) -> dict:
         """
         Check the PUBG API status endpoint for service health and maintenance info.
-        
+        Also checks Steam server status since PUBG runs on Steam.
+
         Returns:
             dict with status information including:
             - released_at: API version release date
             - id: API version ID
             - type: API type (e.g., "pcna")
+            - steam_status: "up" or "down" based on Steam API
+            - steam_error: error message if Steam check fails
+            - steam_server_time: Steam server timestamp (if available)
         """
+        result = {}
+
+        # Check PUBG API status
         try:
             data = await self._request("/status", rate_limited=False)
             # The API returns either {"data":{"attributes":{...}}} or {"data":{"type":"status","id":"pubg-api"}}
             # Handle both structures
-            result = data.get("data", {})
-            if "attributes" in result:
-                return result.get("attributes", {})
+            api_result = data.get("data", {})
+            if "attributes" in api_result:
+                result.update(api_result.get("attributes", {}))
             else:
                 # Return the basic status info when attributes are not available
-                return {
-                    "id": result.get("id", "unknown"),
-                    "type": result.get("type", "unknown")
-                }
+                result.update({
+                    "id": api_result.get("id", "unknown"),
+                    "type": api_result.get("type", "unknown")
+                })
         except PubgApiError as e:
-            return {"error": str(e)}
+            result["error"] = str(e)
+
+        # Check Steam server status (PUBG runs on Steam)
+        try:
+            steam_url = "https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/"
+            async with self._session.get(steam_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                if response.status == 200:
+                    steam_data = await response.json()
+                    result["steam_status"] = "up"
+                    result["steam_server_time"] = steam_data.get("servertime")
+                else:
+                    result["steam_status"] = "down"
+                    result["steam_error"] = f"HTTP {response.status}"
+        except Exception as e:
+            result["steam_status"] = "down"
+            result["steam_error"] = str(e)
+
+        return result
 
 
 def _chunk(items: list, size: int):
