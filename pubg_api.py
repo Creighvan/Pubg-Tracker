@@ -917,7 +917,13 @@ class PubgClient:
         # Check PUBG.PLUS for actual game server status
         try:
             pubg_plus_url = "https://apiv1.pubg.plus/status/server"
-            async with self._session.get(pubg_plus_url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                "Accept": "application/json",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Referer": "https://pubg.plus/"
+            }
+            async with self._session.get(pubg_plus_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     pubg_plus_data = await response.json()
                     if pubg_plus_data.get("code") == 0 and "data" in pubg_plus_data:
