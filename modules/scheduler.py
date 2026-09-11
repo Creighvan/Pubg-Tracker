@@ -8,7 +8,7 @@ Functions:
     auto_digest: Clan digest every 15 minutes (checks if due)
     auto_last_active: Last active report daily (after 3am KST, recovers from downtime)
     auto_ranked: Ranked standings daily (after 5:30am KST, recovers from downtime)
-    auto_highlights: Daily highlights every 24 hours
+    auto_highlights: Highlights report daily (after 3am KST, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
     auto_donations: Donation message weekly (Sunday)
@@ -283,11 +283,12 @@ async def before_auto_ranked():
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours, per guild. This is the heaviest
-    report the bot runs (telemetry downloads), so it's worth giving it
-    plenty of headroom rather than tightening the interval.
+    human/bot kill split) every 24 hours, per guild. Runs once per day after 3am KST daily reset.
+    Edits existing message instead of posting new ones.
     """
-    now = datetime.now(timezone.utc)
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("highlights_enabled", True):
@@ -295,21 +296,56 @@ async def auto_highlights():
         channel_id = guild_cfg.get("highlights_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
-        if not _is_due(guild_cfg, "highlights_hour_est", "highlights_minute_est", "highlights_posted_at", 24):
+
+        # Check if we've already posted today (using highlights_posted_at)
+        last_posted = guild_cfg.get("highlights_posted_at")
+        if last_posted:
+            last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
+            if last_posted_date.date() == now_kst.date():
+                continue  # Already posted today
+        
+        # Only run after 3am KST daily reset
+        if now_kst.hour < 3:
             continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
             continue
-        guild_cfg["highlights_posted_at"] = now.isoformat()
-        await storage.save_guild(guild_id, guild_cfg)
+        
         try:
             async with get_scheduler_lock():
                 result = await fetch_highlights_report(guild_id, guild.name)
             if result:
                 embed, players = result
-                await channel.send(embed=embed)
+                message_id = guild_cfg.get("highlights_message_id")
+                
+                # Edit existing message or post new one
+                if message_id:
+                    try:
+                        message = await channel.fetch_message(message_id)
+                        await message.edit(embed=embed)
+                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                        # Message deleted/inaccessible - post new one
+                        new_message = await channel.send(embed=embed)
+                        guild_cfg["highlights_message_id"] = new_message.id
+                else:
+                    new_message = await channel.send(embed=embed)
+                    guild_cfg["highlights_message_id"] = new_message.id
+
+                # Mark as posted today and save using modify_guild for atomic write
+                def save_config(guild):
+                    guild["highlights_posted_at"] = datetime.now(timezone.utc).isoformat()
+                await storage.modify_guild(guild_id, save_config)
+                
+                await send_audit_log(
+                    guild_id,
+                    "Scheduled Report Updated",
+                    f"Highlights report updated at 3am KST daily reset",
+                    is_automated=True,
+                    details={"Report Type": "Highlights", "Players": len(players)},
+                    report_embed=embed
+                )
         except PubgApiError as e:
             print(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
