@@ -43,6 +43,7 @@ _DEFAULT_GUILD = {
     "highlights_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
     "highlights_minute_est": 0,  # 0, 15, 30, or 45
     "highlights_posted_at": None,  # ISO timestamp of the last highlights report
+    "highlights_message_id": None,  # message ID for live-updating highlights report
     "clan_name": None,
     "pubg_clan_name": None,  # exact PUBG clan name used by the clan-level report
     "pubg_clan_id": None,  # official clan ID, resolved from a clan member
