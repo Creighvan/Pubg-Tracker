@@ -2056,7 +2056,7 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
         is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
 
     has_admin_id = interaction.user.id in ADMIN_USER_IDS
-    has_valid_key = bool(BOT_ADMIN_KEY) and hmac.compare_digest(secret_key.encode(), BOT_ADMIN_KEY.encode())
+    has_valid_key = bool(BOT_ADMIN_KEY) and secret_key is not None and hmac.compare_digest(secret_key.encode(), BOT_ADMIN_KEY.encode())
     return is_owner or has_admin_id or has_valid_key
 
 
