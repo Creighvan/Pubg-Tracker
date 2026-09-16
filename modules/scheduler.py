@@ -520,8 +520,12 @@ async def auto_chicken_dinner():
     Every 15 minutes, checks each opted-in guild's roster for new Chicken
     Dinners in players' most recent matches. Updates a persistent message
     with grouped wins (players who won together on the same line) and a
-    running tally of total wins.
+    running tally of total wins for the current 24-hour period starting at 3am KST.
+    The tally and posted matches reset daily at 3am KST.
     """
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("chicken_dinner_enabled", True):
@@ -533,6 +537,29 @@ async def auto_chicken_dinner():
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
             continue
+
+        # Check if we need to reset for new day (3am KST daily reset)
+        last_reset = guild_cfg.get("chicken_dinner_reset_at")
+        needs_reset = False
+        if last_reset:
+            last_reset_date = datetime.fromisoformat(last_reset).astimezone(kst)
+            # Reset if we're on a different date AND it's after 3am KST
+            if last_reset_date.date() != now_kst.date() and now_kst.hour >= 3:
+                needs_reset = True
+        else:
+            # First time setup - set reset time
+            guild_cfg["chicken_dinner_reset_at"] = datetime.now(timezone.utc).isoformat()
+            await storage.save_guild(guild_id, guild_cfg)
+            guild_cfg = await storage.get_guild(guild_id)
+        
+        if needs_reset:
+            # New day - reset tally and posted matches
+            guild_cfg["chicken_dinner_posted_matches"] = {}
+            guild_cfg["chicken_dinner_total_wins"] = 0
+            guild_cfg["chicken_dinner_reset_at"] = datetime.now(timezone.utc).isoformat()
+            await storage.save_guild(guild_id, guild_cfg)
+            # Update guild_cfg after reset
+            guild_cfg = await storage.get_guild(guild_id)
 
         try:
             async with get_scheduler_lock():
@@ -560,15 +587,8 @@ async def auto_chicken_dinner():
             if match_id:
                 updated_matches[key] = match_id
 
-        # Update running tally
+        # Update running tally for current 24-hour period
         current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
-        
-        # If total is 0 and we have recent wins, initialize it (first-time setup)
-        if current_total == 0:
-            all_winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
-            if all_winners:
-                current_total = len(all_winners)
-        
         total_wins = current_total + len(new_wins)
 
         try:
