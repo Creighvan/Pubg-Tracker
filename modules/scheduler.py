@@ -283,47 +283,36 @@ async def before_auto_ranked():
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours, per guild. Runs once per day after 3am KST daily reset.
+    human/bot kill split) every 24 hours, per guild. Runs once per day at 3:30 KST.
     Edits existing message instead of posting new ones.
     """
     kst = ZoneInfo("Asia/Seoul")
     now_kst = datetime.now(kst)
-    print(f"[auto_highlights] Running at {now_kst}")
     
-    guild_count = 0
     for guild_id in await storage.all_guild_ids():
-        guild_count += 1
         guild_cfg = await storage.get_guild(guild_id)
-        print(f"[auto_highlights] Checking guild {guild_id} ({guild_count}/{len(await storage.all_guild_ids())})")
         if not guild_cfg.get("highlights_enabled", True):
-            print(f"[auto_highlights] Guild {guild_id}: highlights_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("highlights_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
-            print(f"[auto_highlights] Guild {guild_id}: No channel configured, skipping")
             continue
 
         # Check if we've already posted today (using highlights_posted_at)
         last_posted = guild_cfg.get("highlights_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
-            print(f"[auto_highlights] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date.date()}, now={now_kst.date()}")
             if last_posted_date.date() == now_kst.date():
-                print(f"[auto_highlights] Guild {guild_id}: Already posted today, skipping")
                 continue  # Already posted today
         
-        # Only run after 3am KST daily reset
-        if now_kst.hour < 3:
-            print(f"[auto_highlights] Guild {guild_id}: Before 3am KST ({now_kst.hour}), skipping")
-            continue
+        # Only run in the 3:30-3:45 KST window (gives 15-minute window for timing)
+        if not (now_kst.hour == 3 and 30 <= now_kst.minute < 45):
+            continue  # Not in the time window
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
-            print(f"[auto_highlights] Guild {guild_id}: Guild or channel not found, skipping")
             continue
         
-        print(f"[auto_highlights] Guild {guild_id}: All checks passed, posting highlights")
         try:
             async with get_scheduler_lock():
                 result = await fetch_highlights_report(guild_id, guild.name)
@@ -347,24 +336,20 @@ async def auto_highlights():
                 # Mark as posted today immediately after posting (before audit log)
                 def save_config(guild):
                     guild["highlights_posted_at"] = datetime.now(timezone.utc).isoformat()
-                try:
-                    await storage.modify_guild(guild_id, save_config)
-                    print(f"[auto_highlights] Guild {guild_id}: Saved highlights_posted_at")
-                except Exception as save_error:
-                    print(f"[auto_highlights] Guild {guild_id}: Failed to save highlights_posted_at: {save_error}")
+                await storage.modify_guild(guild_id, save_config)
                 
                 # Send audit log (non-critical if this fails)
                 try:
                     await send_audit_log(
                         guild_id,
                         "Scheduled Report Updated",
-                        f"Highlights report updated at 3am KST daily reset",
+                        f"Highlights report updated at 3:30 KST daily",
                         is_automated=True,
                         details={"Report Type": "Highlights", "Players": len(players)},
                         report_embed=embed
                     )
                 except Exception as audit_error:
-                    print(f"[auto_highlights] Audit log failed (non-critical): {audit_error}")
+                    pass  # Audit log failure is non-critical
         except PubgApiError as e:
             print(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
@@ -950,7 +935,7 @@ def start_all_scheduled_tasks(bot_instance):
     auto_digest.start()
     auto_last_active.start()
     auto_ranked.start()
-    # auto_highlights.start()  # DISABLED: Posting repeatedly, use /dailyhighlights manually
+    auto_highlights.start()
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_donations.start()
