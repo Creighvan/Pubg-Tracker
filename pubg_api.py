@@ -379,7 +379,7 @@ class PubgClient:
                 "kills": stats.get("kills", 0),
                 "map_name": _friendly_map_name(match.get("map_name")),
                 "match_id": match_id,
-                "match_date": match.get("data", {}).get("attributes", {}).get("createdAt"),
+                "match_date": match.get("created_at"),
             }
 
         await asyncio.gather(*(process(p) for p in found))
