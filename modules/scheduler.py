@@ -593,7 +593,8 @@ async def auto_chicken_dinner():
                 players_data.append((player["name"], {
                     "winPlace": player["winPlace"],
                     "kills": player["kills"],
-                    "match_id": match_id
+                    "match_id": match_id,
+                    "created_at": win.get("created_at")
                 }))
             
             new_wins.extend(players_data)
