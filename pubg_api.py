@@ -371,9 +371,10 @@ class PubgClient:
                 return
             match_id = p["match_ids"][0]
             match = await get_match(match_id)
-            stats = match["participants"].get(p["id"])
-            if stats is None:
+            participant_data = match["participants"].get(p["id"])
+            if participant_data is None:
                 return
+            stats = participant_data.get("stats", {})
             results[p["name"]] = {
                 "winPlace": stats.get("winPlace"),
                 "kills": stats.get("kills", 0),
@@ -447,24 +448,39 @@ class PubgClient:
             processed_matches.add(match_id)
 
             # Check if any roster player won this match
-            match_players = []
-            for account_id, stats in match["participants"].items():
+            roster_players_in_match = []
+            for account_id, participant_data in match["participants"].items():
                 if account_id in account_to_name:
+                    stats = participant_data.get("stats", {})
                     win_place = stats.get("winPlace")
                     if win_place == 1:
+                        roster_players_in_match.append(account_id)
+
+            # If any roster player won, get ALL players in the match
+            if roster_players_in_match:
+                match_players = []
+                for account_id, participant_data in match["participants"].items():
+                    stats = participant_data.get("stats", {})
+                    win_place = stats.get("winPlace")
+                    if win_place == 1:
+                        # Use roster name if available, otherwise use the name from match data
+                        name = account_to_name.get(account_id)
+                        if not name:
+                            # Use the name from participant data
+                            name = participant_data.get("name", f"Unknown-{account_id[:8]}")
                         match_players.append({
-                            "name": account_to_name[account_id],
+                            "name": name,
                             "kills": stats.get("kills", 0),
                             "winPlace": win_place
                         })
 
-            if match_players:
-                wins.append({
-                    "match_id": match_id,
-                    "map_name": match.get("map_name"),
-                    "created_at": match.get("created_at"),
-                    "players": match_players
-                })
+                if match_players:
+                    wins.append({
+                        "match_id": match_id,
+                        "map_name": match.get("map_name"),
+                        "created_at": match.get("created_at"),
+                        "players": match_players
+                    })
 
         # Sort wins by created_at (most recent first)
         wins.sort(key=lambda x: x.get("created_at") or "", reverse=True)
@@ -545,7 +561,11 @@ class PubgClient:
                 s = inc.get("attributes", {}).get("stats", {})
                 pid = s.get("playerId")
                 if pid:
-                    participants[pid] = s
+                    # Include the participant name from the attributes
+                    participants[pid] = {
+                        "stats": s,
+                        "name": inc.get("attributes", {}).get("name")
+                    }
             elif inc.get("type") == "asset":
                 telemetry_url = inc.get("attributes", {}).get("URL")
         return {
