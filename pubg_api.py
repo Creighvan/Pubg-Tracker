@@ -687,11 +687,13 @@ class PubgClient:
                 "team_kills": 0, "stooge_kills": 0, "boosts": 0, "heals": 0,
                 "road_kills": 0, "swim_distance": 0.0, "weapons_acquired": 0,
                 "best_zero_kill_placement": None, "loot_ratio": 0.0,
+                "longestKill": 0,
             }
             # Track best single-match stats
             best_stats = {
                 "kills": 0, "damageDealt": 0.0, "headshotKills": 0,
                 "best_match_kills": 0, "best_match_damage": 0.0, "best_match_headshots": 0,
+                "longestKill": 0,
             }
             for match_id in p.get("match_ids", []):
                 try:
@@ -753,6 +755,8 @@ class PubgClient:
                     best_stats["best_match_damage"] = match_damage
                 if match_headshots > best_stats["best_match_headshots"]:
                     best_stats["best_match_headshots"] = match_headshots
+                if stats_data.get("longestKill", 0) > best_stats["longestKill"]:
+                    best_stats["longestKill"] = stats_data.get("longestKill", 0)
 
                 win_place = stats_data.get("winPlace")
                 if match_kills == 0 and win_place:
@@ -770,6 +774,7 @@ class PubgClient:
             totals["best_match_kills"] = best_stats["best_match_kills"]
             totals["best_match_damage"] = best_stats["best_match_damage"]
             totals["best_match_headshots"] = best_stats["best_match_headshots"]
+            totals["longestKill"] = best_stats["longestKill"]
             p["daily"] = totals
             # Clean up temporary tracking
             p.pop("_expired_matches", None)
