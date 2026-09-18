@@ -2015,8 +2015,8 @@ async def chickendinner(interaction: discord.Interaction):
 
     total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
     
-    # If total_wins is 0 but we have recent wins, initialize the tally
-    if total_wins == 0 and winners:
+    # If total_wins is 0 but we have recent wins, initialize the tally (count matches, not players)
+    if total_wins == 0 and wins:
         total_wins = len(wins)
         guild_cfg["chicken_dinner_total_wins"] = total_wins
         await storage.save_guild(interaction.guild_id, guild_cfg)

@@ -600,9 +600,10 @@ async def auto_chicken_dinner():
             # Track this match as posted using match_id as key
             updated_matches[match_id] = match_id
 
-        # Update running tally for current 24-hour period
+        # Update running tally for current 24-hour period (count matches, not players)
         current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
-        total_wins = current_total + len(new_wins)
+        new_match_count = len([win for win in wins if win.get("match_id") not in posted_matches])
+        total_wins = current_total + new_match_count
 
         try:
             from modules.embeds import build_chicken_dinner_embed
