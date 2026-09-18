@@ -333,19 +333,23 @@ async def auto_highlights():
                     new_message = await channel.send(embed=embed)
                     guild_cfg["highlights_message_id"] = new_message.id
 
-                # Mark as posted today and save using modify_guild for atomic write
+                # Mark as posted today immediately after posting (before audit log)
                 def save_config(guild):
                     guild["highlights_posted_at"] = datetime.now(timezone.utc).isoformat()
                 await storage.modify_guild(guild_id, save_config)
                 
-                await send_audit_log(
-                    guild_id,
-                    "Scheduled Report Updated",
-                    f"Highlights report updated at 3am KST daily reset",
-                    is_automated=True,
-                    details={"Report Type": "Highlights", "Players": len(players)},
-                    report_embed=embed
-                )
+                # Send audit log (non-critical if this fails)
+                try:
+                    await send_audit_log(
+                        guild_id,
+                        "Scheduled Report Updated",
+                        f"Highlights report updated at 3am KST daily reset",
+                        is_automated=True,
+                        details={"Report Type": "Highlights", "Players": len(players)},
+                        report_embed=embed
+                    )
+                except Exception as audit_error:
+                    print(f"[auto_highlights] Audit log failed (non-critical): {audit_error}")
         except PubgApiError as e:
             print(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
