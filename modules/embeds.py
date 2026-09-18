@@ -468,7 +468,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Human vs bot kills come from match telemetry (PUBG tags bot accounts internally)")
+    embed.set_footer(text="Updates daily at 3am KST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
     return embed
 
 
