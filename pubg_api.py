@@ -384,6 +384,92 @@ class PubgClient:
         await asyncio.gather(*(process(p) for p in found))
         return results, not_found
 
+    async def get_squad_wins(self, names: list[str], matches_to_check: int = 5) -> tuple[list[dict], list[str]]:
+        """
+        Fetches recent match history for roster players and identifies wins
+        where clan members were in the same squad together. This properly
+        detects squad wins unlike get_recent_wins which only checks single matches.
+
+        Args:
+            names: List of PUBG player names to check
+            matches_to_check: Number of recent matches to check per player (default 5)
+
+        Returns:
+            (wins, not_found) where wins is a list of dicts:
+            {
+                "match_id": str,
+                "map_name": str,
+                "created_at": str,
+                "players": [{"name": str, "kills": int, "winPlace": int}]
+            }
+            Sorted by most recent first. not_found is the input names PUBG couldn't resolve.
+        """
+        found: list[dict] = []
+        not_found: list[str] = []
+        for chunk in _chunk(names, 10):
+            resolved = await self.get_players_by_name(chunk)
+            resolved_lower = {p["name"].lower() for p in resolved}
+            for n in chunk:
+                if n.lower() not in resolved_lower:
+                    not_found.append(n)
+            found.extend(resolved)
+
+        # Build a mapping of account IDs to player names
+        account_to_name = {p["id"]: p["name"] for p in found}
+        account_ids = list(account_to_name.keys())
+
+        # Fetch match history for each player
+        match_cache: dict[str, dict] = {}
+        cache_lock = asyncio.Lock()
+
+        async def get_match(match_id: str) -> dict:
+            async with cache_lock:
+                if match_id not in match_cache:
+                    match_cache[match_id] = await self._get_match_details(match_id)
+                return match_cache[match_id]
+
+        # Collect all matches to check
+        all_match_ids = set()
+        for p in found:
+            for match_id in p["match_ids"][:matches_to_check]:
+                all_match_ids.add(match_id)
+
+        # Fetch all matches
+        await asyncio.gather(*(get_match(mid) for mid in all_match_ids))
+
+        # Find wins and group by match
+        wins: list[dict] = []
+        processed_matches = set()
+
+        for match_id, match in match_cache.items():
+            if match_id in processed_matches:
+                continue
+            processed_matches.add(match_id)
+
+            # Check if any roster player won this match
+            match_players = []
+            for account_id, stats in match["participants"].items():
+                if account_id in account_to_name:
+                    win_place = stats.get("winPlace")
+                    if win_place == 1:
+                        match_players.append({
+                            "name": account_to_name[account_id],
+                            "kills": stats.get("kills", 0),
+                            "winPlace": win_place
+                        })
+
+            if match_players:
+                wins.append({
+                    "match_id": match_id,
+                    "map_name": match.get("map_name"),
+                    "created_at": match.get("created_at"),
+                    "players": match_players
+                })
+
+        # Sort wins by created_at (most recent first)
+        wins.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+        return wins, not_found
+
     async def get_current_season_id(self) -> str:
         """Cached for the life of the process. Restart the bot after a new
         PUBG season starts to pick up the new season id."""

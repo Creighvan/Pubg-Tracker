@@ -729,7 +729,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     Args:
         winners: List of (player_name, match_data) tuples where match_data contains
-                 kills, map_name, winPlace, match_id, etc.
+                 kills, winPlace, match_id, etc.
         is_automated: Whether this is an automated alert (True) or manual check (False)
         total_wins: Running tally of total wins (for live-updating display)
     
@@ -741,7 +741,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     if not winners:
         return discord.Embed(
             title="🥈 No Chicken Dinners",
-            description="No recent wins found in the roster's latest matches.",
+            description="No recent wins found in the roster's match history.",
             color=discord.Color.light_gray(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -802,6 +802,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     if is_automated:
         embed.set_footer(text="Live-updating · Resets daily at 3am KST")
     else:
-        embed.set_footer(text="Manual check · Latest roster matches")
+        embed.set_footer(text="Manual check · Last 5 matches per player")
     
     return embed
