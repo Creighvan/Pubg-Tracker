@@ -182,6 +182,7 @@ from modules.scheduler import (
     auto_feedback_prompt,
     # auto_api_status,  # DISABLED: API status feature removed
     start_all_scheduled_tasks,
+    run_auto_highlights,
     _set_audit_log_func,
 )
 
