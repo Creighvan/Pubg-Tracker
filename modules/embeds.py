@@ -29,6 +29,7 @@ Helper functions:
 
 import os
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 import discord
 
@@ -729,7 +730,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     Args:
         winners: List of (player_name, match_data) tuples where match_data contains
-                 kills, map_name, winPlace, match_id, etc.
+                 kills, map_name, winPlace, match_id, match_date, etc.
         is_automated: Whether this is an automated alert (True) or manual check (False)
         total_wins: Running tally of total wins (for live-updating display)
     
@@ -752,11 +753,14 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             matches_dict[match_id] = []
         matches_dict[match_id].append((name, data))
     
-    # Sort matches by time (most recent first)
+    # Sort matches by actual match date (most recent first)
     matches_list = []
     for match_id, players in matches_dict.items():
-        matches_list.append((match_id, players))
-    matches_list.sort(key=lambda x: x[0], reverse=True)
+        # Get match date from first player's data
+        match_date = players[0][1].get("match_date")
+        matches_list.append((match_id, players, match_date))
+    # Sort by match date (most recent first), with None dates at the end
+    matches_list.sort(key=lambda x: (x[2] is None, x[2] or ""), reverse=True)
     
     # Build the embed with simple styling
     embed = discord.Embed(
@@ -765,19 +769,28 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         timestamp=datetime.now(timezone.utc),
     )
     
-    # Get current date in the format shown in the image
-    now = datetime.now()
-    date_str = now.strftime("%Y.%m.%d.")
-    
     # Create feed-style display - players who won together on the same line
     match_lines = []
-    for match_id, players in matches_list:
+    for match_id, players, match_date in matches_list:
         # Sort players alphabetically for consistent display
         players_sorted = sorted(players, key=lambda x: x[0].lower())
         
         # Build player list (names only, no kills)
         player_names = [name for name, _ in players_sorted]
         players_str = ", ".join(player_names)
+        
+        # Format the match date
+        if match_date:
+            try:
+                # Parse ISO datetime and convert to KST, then format as YYYY.MM.DD.
+                dt = datetime.fromisoformat(match_date.replace("Z", "+00:00"))
+                kst = ZoneInfo("Asia/Seoul")
+                dt_kst = dt.astimezone(kst)
+                date_str = dt_kst.strftime("%Y.%m.%d.")
+            except:
+                date_str = "Unknown Date"
+        else:
+            date_str = "Unknown Date"
         
         # Format: ◆ 2026.09.17. **Player1, Player2** won a Chicken Dinner together!
         match_lines.append(f"◆ {date_str} **{players_str}** won a Chicken Dinner together!")
