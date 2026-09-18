@@ -517,10 +517,10 @@ async def before_auto_donations():
 @tasks.loop(minutes=15)
 async def auto_chicken_dinner():
     """
-    Every 15 minutes, checks each opted-in guild's roster for new Chicken
-    Dinners in players' most recent matches. Updates a persistent message
-    with grouped wins (players who won together on the same line) and a
-    running tally of total wins for the current 24-hour period starting at 3am KST.
+    Every 15 minutes, checks each opted-in guild's roster for recent squad wins
+    in the last 5 matches per player. Groups players who won together in the same match.
+    Updates a persistent message with the list of squad wins and a running tally
+    of total wins for the current 24-hour period starting at 3am KST.
     The tally and posted matches reset daily at 3am KST.
     """
     kst = ZoneInfo("Asia/Seoul")
@@ -563,7 +563,7 @@ async def auto_chicken_dinner():
 
         try:
             async with get_scheduler_lock():
-                results, _ = await _get_pubg().get_recent_wins(guild_cfg["players"])
+                wins, _ = await _get_pubg().get_squad_wins(guild_cfg["players"], matches_to_check=5)
         except PubgApiError as e:
             print(f"[auto_chicken_dinner] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_chicken_dinner report failed for guild {guild_id}: {e}"[:200])
@@ -576,16 +576,29 @@ async def auto_chicken_dinner():
         posted_matches = guild_cfg.get("chicken_dinner_posted_matches", {})
         updated_matches = dict(posted_matches)
         new_wins = []
-        for name, data in results.items():
-            if data.get("winPlace") != 1:
+        
+        # Process squad wins from the new format
+        for win in wins:
+            match_id = win.get("match_id")
+            if not match_id:
                 continue
-            match_id = data.get("match_id")
-            key = name.lower()
-            if match_id and posted_matches.get(key) == match_id:
-                continue  # already alerted for this exact match
-            new_wins.append((name, data))
-            if match_id:
-                updated_matches[key] = match_id
+            
+            # Check if this match was already posted
+            if match_id in posted_matches:
+                continue
+            
+            # Extract player data for this win
+            players_data = []
+            for player in win.get("players", []):
+                players_data.append((player["name"], {
+                    "winPlace": player["winPlace"],
+                    "kills": player["kills"],
+                    "match_id": match_id
+                }))
+            
+            new_wins.extend(players_data)
+            # Track this match as posted using match_id as key
+            updated_matches[match_id] = match_id
 
         # Update running tally for current 24-hour period
         current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
@@ -594,8 +607,15 @@ async def auto_chicken_dinner():
         try:
             from modules.embeds import build_chicken_dinner_embed
             
-            # Get all recent wins (not just new ones) for the display
-            all_winners = [(name, data) for name, data in results.items() if data.get("winPlace") == 1]
+            # Get all squad wins for the display
+            all_winners = []
+            for win in wins:
+                for player in win.get("players", []):
+                    all_winners.append((player["name"], {
+                        "winPlace": player["winPlace"],
+                        "kills": player["kills"],
+                        "match_id": win.get("match_id")
+                    }))
             
             if not all_winners:
                 # No recent wins, skip update
