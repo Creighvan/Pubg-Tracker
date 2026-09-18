@@ -735,7 +735,8 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         total_wins: Running tally of total wins (for live-updating display)
     
     Returns:
-        A Discord embed with simple feed-style formatting, grouped by match
+        A Discord embed with simple feed-style formatting, grouped by match.
+        Solo wins show "won a Chicken Dinner!" while squad wins show "won a Chicken Dinner together!"
     """
     if not winners:
         return discord.Embed(
@@ -792,8 +793,12 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         else:
             date_str = "Unknown Date"
         
-        # Format: ◆ 2026.09.17. **Player1, Player2** won a Chicken Dinner together!
-        match_lines.append(f"◆ {date_str} **{players_str}** won a Chicken Dinner together!")
+        # Format: ◆ 2026.09.17. **Player1** won a Chicken Dinner! (solo)
+        #         ◆ 2026.09.17. **Player1, Player2** won a Chicken Dinner together! (squad)
+        if len(player_names) == 1:
+            match_lines.append(f"◆ {date_str} **{players_str}** won a Chicken Dinner!")
+        else:
+            match_lines.append(f"◆ {date_str} **{players_str}** won a Chicken Dinner together!")
     
     # Add the matches as a single field
     embed.add_field(
