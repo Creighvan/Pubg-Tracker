@@ -288,6 +288,7 @@ async def auto_highlights():
     """
     kst = ZoneInfo("Asia/Seoul")
     now_kst = datetime.now(kst)
+    print(f"[auto_highlights] Running at {now_kst}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -336,7 +337,11 @@ async def auto_highlights():
                 # Mark as posted today immediately after posting (before audit log)
                 def save_config(guild):
                     guild["highlights_posted_at"] = datetime.now(timezone.utc).isoformat()
-                await storage.modify_guild(guild_id, save_config)
+                try:
+                    await storage.modify_guild(guild_id, save_config)
+                    print(f"[auto_highlights] Guild {guild_id}: Saved highlights_posted_at")
+                except Exception as save_error:
+                    print(f"[auto_highlights] Guild {guild_id}: Failed to save highlights_posted_at: {save_error}")
                 
                 # Send audit log (non-critical if this fails)
                 try:
