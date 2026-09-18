@@ -684,7 +684,7 @@ class PubgClient:
                 "kills": 0, "damageDealt": 0.0, "headshotKills": 0,
                 "revives": 0, "assists": 0, "wins": 0, "matches": 0,
                 "human_kills": 0, "bot_kills": 0, "self_kills": 0,
-                "team_kills": 0, "stooge_kills": 0, "boosts": 0, "heals": 0,
+                "team_kills": 0, "teamKills": 0, "stooge_kills": 0, "boosts": 0, "heals": 0,
                 "road_kills": 0, "roadKills": 0, "swim_distance": 0.0, "weapons_acquired": 0,
                 "best_zero_kill_placement": None, "loot_ratio": 0.0,
                 "longestKill": 0,
