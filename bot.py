@@ -1515,42 +1515,41 @@ async def refreshranked(interaction: discord.Interaction):
 async def updateranked(interaction: discord.Interaction):
     await interaction.response.defer()
     
-    # Update the ranked report if a message exists
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    channel_id = guild_cfg.get("ranked_channel_id")
-    message_id = guild_cfg.get("ranked_message_id")
-    
-    if channel_id and message_id:
-        try:
-            guild = bot.get_guild(interaction.guild_id)
-            channel = bot.get_channel(channel_id)
-            if guild and channel:
-                result = await fetch_ranked_report(interaction.guild_id, guild.name)
-                if result:
-                    embed, players = result
-                    try:
-                        message = await channel.fetch_message(message_id)
-                        await message.edit(embed=embed)
-                        await interaction.followup.send(
-                            "✅ Ranked report updated with fresh data."
-                        )
-                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-                        await interaction.followup.send(
-                            "✅ Message not found - use /setrankedchannel to repost"
-                        )
-                else:
-                    await interaction.followup.send("No players tracked yet.")
-                return
-        except PubgApiError as e:
-            await interaction.followup.send(f"API error updating report: {e}")
+    try:
+        # Update the ranked report if a message exists
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        channel_id = guild_cfg.get("ranked_channel_id")
+        message_id = guild_cfg.get("ranked_message_id")
+        
+        if not channel_id or not message_id:
+            await interaction.followup.send("⚠️ No ranked report message found. Use /setrankedchannel first.")
             return
-        except Exception as e:
-            await interaction.followup.send(f"Error updating report: {e}")
+        
+        guild = bot.get_guild(interaction.guild_id)
+        channel = bot.get_channel(channel_id)
+        if not guild or not channel:
+            await interaction.followup.send("⚠️ Guild or channel not found.")
             return
-    
-    await interaction.followup.send(
-        "No ranked report message found. Use /setrankedchannel to set up the report first."
-    )
+        
+        result = await fetch_ranked_report(interaction.guild_id, guild.name)
+        if result:
+            embed, players = result
+            try:
+                message = await channel.fetch_message(message_id)
+                await message.edit(embed=embed)
+                await interaction.followup.send(
+                    "✅ Ranked report updated with fresh data."
+                )
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
+                await interaction.followup.send(
+                    f"⚠️ Message not found or inaccessible: {e}. Use /setrankedchannel to repost"
+                )
+        else:
+            await interaction.followup.send("⚠️ No players tracked yet.")
+    except PubgApiError as e:
+        await interaction.followup.send(f"⚠️ PUBG API error: {e}")
+    except Exception as e:
+        await interaction.followup.send(f"⚠️ Error updating ranked report: {e}")
 
 
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
