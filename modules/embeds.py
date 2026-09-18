@@ -725,7 +725,7 @@ def build_feedback_prompt_embed() -> discord.Embed:
 
 def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bool = False, total_wins: int = 0) -> discord.Embed:
     """
-    Build a flashy, live-update style Chicken Dinner embed with grouped matches.
+    Build a simple Chicken Dinner embed with grouped matches in a feed-style format.
     
     Args:
         winners: List of (player_name, match_data) tuples where match_data contains
@@ -734,7 +734,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         total_wins: Running tally of total wins (for live-updating display)
     
     Returns:
-        A Discord embed with flashy formatting, grouped by match, and kill counts
+        A Discord embed with simple feed-style formatting, grouped by match
     """
     if not winners:
         return discord.Embed(
@@ -752,76 +752,54 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             matches_dict[match_id] = []
         matches_dict[match_id].append((name, data))
     
-    # Sort matches by total kills in that match (highest first)
+    # Sort matches by time (most recent first)
     matches_list = []
     for match_id, players in matches_dict.items():
-        total_kills = sum(data.get("kills", 0) for _, data in players)
-        matches_list.append((match_id, players, total_kills))
-    matches_list.sort(key=lambda x: x[2], reverse=True)
+        matches_list.append((match_id, players))
+    matches_list.sort(key=lambda x: x[0], reverse=True)
     
-    # Build the embed with flashy styling
+    # Build the embed with simple styling
     embed = discord.Embed(
-        title="🍗 CHICKEN DINNER! 🍗",
-        description="🎉 **Victory Royale Achieved!** 🎉",
+        title="🍗 Chicken Dinner",
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
     
-    # Create grouped display - players who won together on the same line
+    # Get current date in the format shown in the image
+    now = datetime.now()
+    date_str = now.strftime("%Y.%m.%d.")
+    
+    # Create feed-style display - players who won together on the same line
     match_lines = []
-    for idx, (match_id, players, match_kills) in enumerate(matches_list, 1):
-        # Sort players in this match by kills
-        players_sorted = sorted(players, key=lambda x: x[1].get("kills", 0), reverse=True)
+    for match_id, players in matches_list:
+        # Sort players alphabetically for consistent display
+        players_sorted = sorted(players, key=lambda x: x[0].lower())
         
-        # Build player line with kills
-        player_list = []
-        for name, data in players_sorted:
-            kills = data.get("kills", 0)
-            kill_emoji = "💀" if kills >= 10 else "🔥" if kills >= 5 else "⚔️"
-            player_list.append(f"{name} ({kill_emoji}{kills})")
+        # Build player list (names only, no kills)
+        player_names = [name for name, _ in players_sorted]
+        players_str = ", ".join(player_names)
         
-        # Get map name from first player (already converted to readable name by pubg_api.py)
-        map_name = players[0][1].get("map_name") or "Unknown Map"
-        
-        # Medal for the match
-        if idx == 1:
-            medal = "🥇"
-        elif idx == 2:
-            medal = "🥈"
-        elif idx == 3:
-            medal = "🥉"
-        else:
-            medal = "🔹"
-        
-        # Format: 🥇 Player1 (💀7), Player2 (🔥5), Player3 (⚔️3) - Erangel
-        match_lines.append(f"{medal} **{', '.join(player_list)}** on {map_name}")
+        # Format: ◆ 2026.09.17. **Player1, Player2** won a Chicken Dinner together!
+        match_lines.append(f"◆ {date_str} **{players_str}** won a Chicken Dinner together!")
     
     # Add the matches as a single field
     embed.add_field(
-        name="🏆 **Recent Wins**",
+        name="Recent Wins",
         value="\n".join(match_lines),
         inline=False,
     )
     
-    # Add summary stats
-    total_kills = sum(data.get("kills", 0) for _, data in winners)
-    avg_kills = total_kills / len(winners) if winners else 0
-    max_kills = max((data.get("kills", 0) for _, data in winners), default=0)
-    
+    # Add total wins summary
     embed.add_field(
-        name="📊 **Stats**",
-        value=f"Total Wins: **{total_wins}**\n"
-              f"Recent Wins: **{len(matches_list)}**\n"
-              f"Total Kills: **{total_kills}**\n"
-              f"Avg Kills: **{avg_kills:.1f}**\n"
-              f"Best Game: **{max_kills}** kills",
+        name="Total Wins",
+        value=f"**{total_wins}**",
         inline=True,
     )
     
     # Footer based on whether it's automated or manual
     if is_automated:
-        embed.set_footer(text="🔔 Live-updating · Checks every 15 minutes")
+        embed.set_footer(text="Live-updating · Resets daily at 3am KST")
     else:
-        embed.set_footer(text="🔍 Manual Check · Latest roster matches")
+        embed.set_footer(text="Manual check · Latest roster matches")
     
     return embed
