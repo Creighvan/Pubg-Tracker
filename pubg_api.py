@@ -456,23 +456,17 @@ class PubgClient:
                     if win_place == 1:
                         roster_players_in_match.append(account_id)
 
-            # If any roster player won, get ALL players in the match
+            # If any roster player won, include only roster players who won
             if roster_players_in_match:
                 match_players = []
-                for account_id, participant_data in match["participants"].items():
+                for account_id in roster_players_in_match:
+                    participant_data = match["participants"][account_id]
                     stats = participant_data.get("stats", {})
-                    win_place = stats.get("winPlace")
-                    if win_place == 1:
-                        # Use roster name if available, otherwise use the name from match data
-                        name = account_to_name.get(account_id)
-                        if not name:
-                            # Use the name from participant data
-                            name = participant_data.get("name", f"Unknown-{account_id[:8]}")
-                        match_players.append({
-                            "name": name,
-                            "kills": stats.get("kills", 0),
-                            "winPlace": win_place
-                        })
+                    match_players.append({
+                        "name": account_to_name[account_id],
+                        "kills": stats.get("kills", 0),
+                        "winPlace": stats.get("winPlace")
+                    })
 
                 if match_players:
                     wins.append({
