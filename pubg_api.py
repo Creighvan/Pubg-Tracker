@@ -723,24 +723,28 @@ class PubgClient:
                 stats = details["participants"].get(p["id"])
                 if not stats:
                     continue
-                match_kills = stats.get("kills", 0)
-                match_damage = stats.get("damageDealt", 0.0)
-                match_headshots = stats.get("headshotKills", 0)
+                stats_data = stats.get("stats", {})
+                match_kills = stats_data.get("kills", 0)
+                match_damage = stats_data.get("damageDealt", 0.0)
+                match_headshots = stats_data.get("headshotKills", 0)
                 
                 # Update totals
                 totals["kills"] += match_kills
                 totals["damageDealt"] += match_damage
                 totals["headshotKills"] += match_headshots
-                totals["revives"] += stats.get("revives", 0)
-                totals["assists"] += stats.get("assists", 0)
-                totals["wins"] += 1 if stats.get("winPlace") == 1 else 0
+                totals["revives"] += stats_data.get("revives", 0)
+                totals["longestKill"] = max(totals["longestKill"], stats_data.get("longestKill", 0))
+                totals["roadKills"] += stats_data.get("roadKills", 0)
+                totals["teamKills"] += stats_data.get("teamKills", 0)
+                totals["assists"] += stats_data.get("assists", 0)
+                totals["wins"] += 1 if stats_data.get("winPlace") == 1 else 0
                 totals["matches"] += 1
-                totals["team_kills"] += stats.get("teamKills", 0)
-                totals["boosts"] += stats.get("boosts", 0)
-                totals["heals"] += stats.get("heals", 0)
-                totals["road_kills"] += stats.get("roadKills", 0)
-                totals["swim_distance"] += stats.get("swimDistance", 0.0)
-                totals["weapons_acquired"] += stats.get("weaponsAcquired", 0)
+                totals["team_kills"] += stats_data.get("teamKills", 0)
+                totals["boosts"] += stats_data.get("boosts", 0)
+                totals["heals"] += stats_data.get("heals", 0)
+                totals["road_kills"] += stats_data.get("roadKills", 0)
+                totals["swim_distance"] += stats_data.get("swimDistance", 0.0)
+                totals["weapons_acquired"] += stats_data.get("weaponsAcquired", 0)
 
                 # Track best single-match stats
                 if match_kills > best_stats["kills"]:
@@ -756,7 +760,7 @@ class PubgClient:
                 if match_headshots > best_stats["best_match_headshots"]:
                     best_stats["best_match_headshots"] = match_headshots
 
-                win_place = stats.get("winPlace")
+                win_place = stats_data.get("winPlace")
                 if match_kills == 0 and win_place:
                     if totals["best_zero_kill_placement"] is None or win_place < totals["best_zero_kill_placement"]:
                         totals["best_zero_kill_placement"] = win_place
