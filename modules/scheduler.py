@@ -290,30 +290,40 @@ async def auto_highlights():
     now_kst = datetime.now(kst)
     print(f"[auto_highlights] Running at {now_kst}")
     
+    guild_count = 0
     for guild_id in await storage.all_guild_ids():
+        guild_count += 1
         guild_cfg = await storage.get_guild(guild_id)
+        print(f"[auto_highlights] Checking guild {guild_id} ({guild_count}/{len(await storage.all_guild_ids())})")
         if not guild_cfg.get("highlights_enabled", True):
+            print(f"[auto_highlights] Guild {guild_id}: highlights_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("highlights_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
+            print(f"[auto_highlights] Guild {guild_id}: No channel configured, skipping")
             continue
 
         # Check if we've already posted today (using highlights_posted_at)
         last_posted = guild_cfg.get("highlights_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
+            print(f"[auto_highlights] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date.date()}, now={now_kst.date()}")
             if last_posted_date.date() == now_kst.date():
+                print(f"[auto_highlights] Guild {guild_id}: Already posted today, skipping")
                 continue  # Already posted today
         
         # Only run after 3am KST daily reset
         if now_kst.hour < 3:
+            print(f"[auto_highlights] Guild {guild_id}: Before 3am KST ({now_kst.hour}), skipping")
             continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
+            print(f"[auto_highlights] Guild {guild_id}: Guild or channel not found, skipping")
             continue
         
+        print(f"[auto_highlights] Guild {guild_id}: All checks passed, posting highlights")
         try:
             async with get_scheduler_lock():
                 result = await fetch_highlights_report(guild_id, guild.name)
@@ -940,7 +950,7 @@ def start_all_scheduled_tasks(bot_instance):
     auto_digest.start()
     auto_last_active.start()
     auto_ranked.start()
-    auto_highlights.start()
+    # auto_highlights.start()  # DISABLED: Posting repeatedly, use /dailyhighlights manually
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_donations.start()
