@@ -754,11 +754,13 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             matches_dict[match_id] = []
         matches_dict[match_id].append((name, data))
     
-    # Sort matches by match_id (most recent first - newer match_ids are typically more recent)
+    # Sort matches by actual created_at timestamp (most recent first)
     matches_list = []
     for match_id, players in matches_dict.items():
-        matches_list.append((match_id, players))
-    matches_list.sort(key=lambda x: x[0], reverse=True)
+        # Get created_at from first player in this match
+        created_at = players[0][1].get("created_at")
+        matches_list.append((match_id, players, created_at))
+    matches_list.sort(key=lambda x: x[2] or "", reverse=True)
     
     # Build the embed with simple styling
     embed = discord.Embed(
@@ -769,7 +771,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     # Create feed-style display - players who won together on the same line
     match_lines = []
-    for match_id, players in matches_list:
+    for match_id, players, created_at in matches_list:
         # Sort players alphabetically for consistent display
         players_sorted = sorted(players, key=lambda x: x[0].lower())
         
@@ -783,9 +785,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
             match_lines.append(f"◆ **{players_str}** won a Chicken Dinner!")
         else:
             match_lines.append(f"◆ **{players_str}** won a Chicken Dinner together!")
-    
-    # Limit to most recent 10 wins to avoid embed overflow
-    match_lines = match_lines[:10]
     
     # Limit to most recent 10 wins to avoid embed overflow
     match_lines = match_lines[:10]

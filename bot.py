@@ -2010,7 +2010,8 @@ async def chickendinner(interaction: discord.Interaction):
             winners.append((player["name"], {
                 "winPlace": player["winPlace"],
                 "kills": player["kills"],
-                "match_id": win.get("match_id")
+                "match_id": win.get("match_id"),
+                "created_at": win.get("created_at")
             }))
 
     total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
