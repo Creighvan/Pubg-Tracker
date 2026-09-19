@@ -1531,7 +1531,16 @@ async def updateranked(interaction: discord.Interaction):
             await interaction.followup.send("⚠️ Guild or channel not found.")
             return
         
-        result = await fetch_ranked_report(interaction.guild_id, guild.name)
+        # Add timeout to prevent hanging
+        try:
+            result = await asyncio.wait_for(
+                fetch_ranked_report(interaction.guild_id, guild.name),
+                timeout=120  # 2 minute timeout
+            )
+        except asyncio.TimeoutError:
+            await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
+            return
+        
         if result:
             embed, players = result
             try:
