@@ -118,6 +118,9 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                     incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
                     player["last_match_date"] = incremented_date
                     player["data_source"] = "manual"
+                    # Calculate days inactive for manual dates
+                    current_manual_date = manual_date + timedelta(days=days_since_set)
+                    player["days_inactive"] = (datetime.now(timezone.utc) - current_manual_date).days
                     # Also remove from auto-counting if it exists to avoid conflicts
                     if player_lower in guild_cfg.get("inactive_since_dates", {}):
                         del guild_cfg["inactive_since_dates"][player_lower]
@@ -132,12 +135,20 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                     calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
                     player["last_match_date"] = calculated_date
                     player["data_source"] = "auto_count"
+                    # Store the actual days inactive for display
+                    player["days_inactive"] = days_inactive
                 else:
                     # First time hitting 14-day mark - set inactive_since_date
-                    guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
-                    # Start counting from 14 days ago
-                    player["last_match_date"] = (datetime.now(timezone.utc) - timedelta(days=14)).isoformat()
+                    # Only set if not already set (to preserve dates during downtime)
+                    if player_lower not in guild_cfg.get("inactive_since_dates", {}):
+                        guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
+                    # Start counting from 14 days ago from the inactive_since_date
+                    inactive_since_date = datetime.fromisoformat(guild_cfg["inactive_since_dates"][player_lower])
+                    days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
+                    calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
+                    player["last_match_date"] = calculated_date
                     player["data_source"] = "auto_count"
+                    player["days_inactive"] = days_inactive
         
         # Also clear manual/auto inactivity for players not found in API results
         # This handles name changes or players who were removed from PUBG API

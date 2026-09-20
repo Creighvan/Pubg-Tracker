@@ -217,7 +217,10 @@ def build_clan_level_embed(guild_cfg: dict, clan: dict) -> discord.Embed:
     return embed
 
 
-def _format_time_ago(iso_str: str | None) -> str:
+def _format_time_ago(iso_str: str | None, days_inactive: int = None) -> str:
+    if days_inactive is not None:
+        # Use the explicit days_inactive count for auto-counted players
+        return f"{days_inactive} day(s) ago"
     if not iso_str:
         return "No recent matches found"
     then = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
@@ -278,25 +281,27 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     players_sorted = sorted(players, key=get_match_date, reverse=True)
 
     lines = []
-    for p in players_sorted:
+    for idx, p in enumerate(players_sorted, start=1):
         # Check for manual inactive date override or auto-counted date
         if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
             # manual_data is a dict with 'date' and 'set_at' keys
             match_date = manual_data["date"] if isinstance(manual_data, dict) else manual_data
             source_note = " *(manual)*"
+            days_inactive = p.get("days_inactive")
         elif p.get("data_source") == "auto_count":
             match_date = p.get("last_match_date")
             source_note = " *(auto-count)*"
+            days_inactive = p.get("days_inactive")
         else:
             match_date = p.get("last_match_at")
             source_note = ""
+            days_inactive = None
 
-        recency = _recency_emoji(match_date)
         # Case-insensitive comparison for protected players
         player_lower = p["name"].lower().strip()
         is_protected = player_lower in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
-        lines.append(f"{recency} **{p['name']}**{protected_mark} — {_format_time_ago(match_date)}{source_note}")
+        lines.append(f"{idx}. **{p['name']}**{protected_mark} — {_format_time_ago(match_date, days_inactive)}{source_note}")
 
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
     chunk_size = 20
