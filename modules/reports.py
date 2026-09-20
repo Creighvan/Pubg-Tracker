@@ -121,7 +121,8 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                     # Calculate days from when they first hit 14-day mark
                     inactive_since_date = datetime.fromisoformat(inactive_since)
                     days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
-                    calculated_date = (datetime.now(timezone.utc) - timedelta(days=days_inactive)).isoformat()
+                    # The last match date is 14 days before they hit the inactive mark
+                    calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
                     player["last_match_date"] = calculated_date
                     player["data_source"] = "auto_count"
                 else:
