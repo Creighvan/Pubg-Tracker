@@ -83,6 +83,13 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     
     def update_inactive_dates(guild_cfg):
         """Update inactive dates for players with no recent matches."""
+        # Clean up protected players who are not in the tracked list to prevent mismatch
+        tracked_lower = [p.lower() for p in guild_cfg["players"]]
+        guild_cfg["protected_players"] = [
+            p for p in guild_cfg.get("protected_players", [])
+            if p.lower() in tracked_lower
+        ]
+        
         # First, clear manual/auto inactivity for players who have recent matches
         for player in players:
             player_lower = player["name"].lower()
