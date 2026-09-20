@@ -154,8 +154,11 @@ async def auto_last_active():
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None or channel is None:
-            print(f"[auto_last_active] Guild {guild_id}: Guild or channel not found, skipping")
+        if guild is None:
+            print(f"[auto_last_active] Guild {guild_id}: Guild not found (bot may have been removed), skipping")
+            continue
+        if channel is None:
+            print(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found (may have been deleted or bot lacks permission), skipping")
             continue
         
         print(f"[auto_last_active] Guild {guild_id}: All checks passed, posting report")
