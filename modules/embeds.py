@@ -257,7 +257,8 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
         return "🔴"
 
     active_24h = sum(1 for p in players if p.get("last_match_at") and _recency_emoji(p["last_match_at"]) == "🟢")
-    protected_count = len(protected_players or [])
+    # Count only protected players who are actually in the tracked list
+    protected_count = sum(1 for p in players if p["name"].lower().strip() in protected_lower)
 
     embed.add_field(name="🟢 Active last 24h", value=str(active_24h), inline=True)
     embed.add_field(name="👥 Tracked players", value=str(len(players)), inline=True)
