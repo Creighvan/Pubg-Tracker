@@ -1627,21 +1627,6 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
     )
 
 
-# Deprecated: Time is now fixed at 5:30am EST
-# @bot.tree.command(description="Post the selected ranked report at a fixed Eastern-time each day")
-# @app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
-# @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
-# async def setrankedtime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-#     await interaction.response.send_message("⚠️ This command is deprecated. The ranked report now updates daily at a fixed time of 5:30am EST.")
-
-
-@bot.tree.command(description="Show the last-24h highlights (fun titles, top 10, human vs bot kills), right now")
-async def dailyhighlights(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
-        return
-    await interaction.response.defer()  # this one can take a while — it downloads match telemetry
     try:
         result = await fetch_highlights_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
