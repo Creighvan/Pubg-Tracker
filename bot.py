@@ -38,7 +38,7 @@ Slash commands:
   /rankedsolofpp               - show current-season ranked Solo FPP standings
   /refreshranked            - rescan ranked roster and update the ranked report
   /updateranked              - update the ranked report with fresh data without clearing cache
-  /setrankedchannel           - set current channel for the daily ranked report (updates at 5:30am EST)
+  /setrankedchannel           - set current channel for the daily ranked report (updates at 12:30am EST)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
   /sethighlightschannel          - set current channel for the 24h highlights report
@@ -1285,7 +1285,7 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
         print(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}")
 
 
-@bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 3am EST daily reset)")
+@bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 10pm EST daily reset)")
 async def setactivitychannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["last_activity_channel_id"] = interaction.channel_id
@@ -1306,7 +1306,7 @@ async def setactivitychannel(interaction: discord.Interaction):
             
             await interaction.followup.send(
                 f"✅ Last-active report posted in {interaction.channel.mention}. "
-                f"It will live-update at 3am EST daily reset."
+                f"It will live-update at 10pm EST daily reset."
             )
             
             await send_audit_log(
@@ -1323,10 +1323,10 @@ async def setactivitychannel(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ Something went wrong: {e}")
 
 
-@bot.tree.command(description="Last-active report now updates at 3am EST daily reset (no custom time needed)")
+@bot.tree.command(description="Last-active report now updates at 10pm EST daily reset (no custom time needed)")
 async def setactivitytime(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "ℹ️ The last-active report now automatically updates at **3am EST daily reset**. "
+        "ℹ️ The last-active report now automatically updates at **10pm EST daily reset**. "
         "Custom time scheduling is no longer available for this report. "
         "Use `/setactivitychannel` to choose where it updates."
     )
@@ -1582,7 +1582,7 @@ async def setrankedchannel(interaction: discord.Interaction):
             
             await interaction.followup.send(
                 f"✅ Ranked report posted in {interaction.channel.mention}. "
-                f"It will update at 5:30am EST daily."
+                f"It will update at 12:30am EST daily."
             )
             
             await send_audit_log(

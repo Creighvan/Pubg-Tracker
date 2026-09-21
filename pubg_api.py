@@ -594,14 +594,14 @@ class PubgClient:
         winPlace achieved in a match where they got 0 kills, or None if
         every match had at least 1 kill. Sorted by kills, highest first.
         """
-        # Use 3am KST (UTC+9) as daily reset time instead of rolling 24-hour window
+        # Use 12:00am EST (UTC-5) as daily reset time instead of rolling 24-hour window
         from zoneinfo import ZoneInfo
-        kst = ZoneInfo("America/New_York")
-        now_kst = datetime.now(kst)
-        reset_time_kst = now_kst.replace(hour=3, minute=0, second=0, microsecond=0)
-        if now_kst < reset_time_kst:
-            reset_time_kst -= timedelta(days=1)
-        cutoff = reset_time_kst.astimezone(timezone.utc)
+        est = ZoneInfo("America/New_York")
+        now_est = datetime.now(est)
+        reset_time_est = now_est.replace(hour=0, minute=0, second=0, microsecond=0)
+        if now_est < reset_time_est:
+            reset_time_est -= timedelta(days=1)
+        cutoff = reset_time_est.astimezone(timezone.utc)
 
         found: list[dict] = []
         not_found: list[str] = []

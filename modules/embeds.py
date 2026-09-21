@@ -318,7 +318,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    footer_text = "Updates daily at 3am EST (live-updating, not reposted)"
+    footer_text = "Updates daily at 10pm EST (live-updating, not reposted)"
     if protected_count > 0:
         footer_text += " | 🛡️ = Protected from inactivity removal"
     embed.set_footer(text=footer_text)
@@ -368,7 +368,7 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 5:30am EST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
+    embed.set_footer(text="Updates daily at 12:30am EST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
     return embed
 
 
@@ -474,7 +474,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 3am EST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
+    embed.set_footer(text="Updates daily at 10:00pm EST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
     return embed
 
 

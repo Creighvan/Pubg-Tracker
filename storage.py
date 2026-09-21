@@ -76,7 +76,7 @@ _DEFAULT_GUILD = {
     "chicken_dinner_posted_matches": {},  # match_id -> match_id tracking for squad wins (avoids reposting same match)
     "chicken_dinner_message_id": None,  # id of the persistent chicken dinner message this bot edits in place (None = post a fresh one next update)
     "chicken_dinner_total_wins": 0,  # running tally of total chicken dinners for current 24-hour period
-    "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (3am EST)
+    "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (12:00am EST)
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
