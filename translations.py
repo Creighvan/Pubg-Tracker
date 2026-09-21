@@ -59,7 +59,7 @@ TRANSLATIONS = {
         "protected_players": "Protected players",
         "not_found": "Not found",
         "protected_footer": "🛡️ = Protected from inactivity removal",
-        "updates_daily": "Updates daily at 3am EST (live-updating, not reposted)",
+        "updates_daily": "Updates daily at 10pm EST (live-updating, not reposted)",
         
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
@@ -121,7 +121,7 @@ TRANSLATIONS = {
         "protected_players": "受保护的玩家",
         "not_found": "未找到",
         "protected_footer": "🛡️ = 免受不活跃移除保护",
-        "updates_daily": "每天KST凌晨3点更新（实时更新，不重新发布）",
+        "updates_daily": "每天EST晚上10点更新（实时更新，不重新发布）",
         
         # Command responses
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
@@ -183,7 +183,7 @@ TRANSLATIONS = {
         "protected_players": "Jugadores protegidos",
         "not_found": "No encontrado",
         "protected_footer": "🛡️ = Protegido de eliminación por inactividad",
-        "updates_daily": "Actualizaciones diarias a las 3am EST (actualización en vivo, no republicado)",
+        "updates_daily": "Actualizaciones diarias a las 10:00pm EST (actualización en vivo, no republicado)",
         
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
