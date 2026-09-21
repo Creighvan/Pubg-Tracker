@@ -6,9 +6,9 @@ discord.ext.tasks to automatically post reports at configured times.
 
 Functions:
     auto_digest: Clan digest every 15 minutes (checks if due)
-    auto_last_active: Last active report daily (after 3am KST, recovers from downtime)
-    auto_ranked: Ranked standings daily (after 5:30am KST, recovers from downtime)
-    auto_highlights: Highlights report daily (after 3am KST, recovers from downtime)
+    auto_last_active: Last active report daily (after 3am EST, recovers from downtime)
+    auto_ranked: Ranked standings daily (after 5:30am EST, recovers from downtime)
+    auto_highlights: Highlights report daily (after 3am EST, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
     auto_donations: Donation message weekly (Sunday)
@@ -114,8 +114,8 @@ async def before_auto_digest():
 @tasks.loop(minutes=15)
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild.
-    Runs once per day after 3am KST daily reset. Recovers if bot was offline."""
-    kst = ZoneInfo("Asia/Seoul")
+    Runs once per day after 3am EST daily reset. Recovers if bot was offline."""
+    kst = ZoneInfo("America/New_York")
     now_kst = datetime.now(kst)
     print(f"[auto_last_active] Running at {now_kst}")
     
@@ -147,9 +147,9 @@ async def auto_last_active():
         else:
             print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
         
-        # Only run after 3am KST daily reset
+        # Only run after 3am EST daily reset
         if now_kst.hour < 3:
-            print(f"[auto_last_active] Guild {guild_id}: Before 3am KST ({now_kst.hour}), skipping")
+            print(f"[auto_last_active] Guild {guild_id}: Before 3am EST ({now_kst.hour}), skipping")
             continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -192,7 +192,7 @@ async def auto_last_active():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Last active report updated at 3am KST daily reset",
+                    f"Last active report updated at 3am EST daily reset",
                     is_automated=True,
                     details={"Report Type": "Last Active", "Players": len(players)},
                     report_embed=embed
@@ -213,15 +213,15 @@ async def before_auto_last_active():
 @tasks.loop(minutes=15)
 async def auto_ranked():
     """
-    Updates the ranked standings report daily at 5:30am KST.
+    Updates the ranked standings report daily at 5:30am EST.
     Edits a single message in place instead of posting new messages.
     Uses a posted_at timestamp to ensure it runs once per day even if
-    the bot is offline during the 5:30am KST window.
+    the bot is offline during the 5:30am EST window.
     """
     now = datetime.now(timezone.utc)
     
-    # Check if it's 5:30am KST daily reset time
-    kst = ZoneInfo("Asia/Seoul")
+    # Check if it's 5:30am EST daily reset time
+    kst = ZoneInfo("America/New_York")
     now_kst = datetime.now(kst)
     reset_time_kst = now_kst.replace(hour=5, minute=30, second=0, microsecond=0)
     if now_kst < reset_time_kst:
@@ -235,7 +235,7 @@ async def auto_ranked():
         if channel_id is None:
             continue
         
-        # Check if already posted today (using KST date)
+        # Check if already posted today (using EST date)
         posted_at = guild_cfg.get("ranked_posted_at")
         if posted_at:
             posted_date = datetime.fromisoformat(posted_at).astimezone(kst).date()
@@ -243,11 +243,11 @@ async def auto_ranked():
             if posted_date >= today_kst:
                 continue  # Already posted today (or future date)
         
-        # Only run during or after the 5:30am KST window
+        # Only run during or after the 5:30am EST window
         reset_total = 5 * 60 + 30  # 5:30 AM in minutes
         now_total = now_kst.hour * 60 + now_kst.minute
         if now_total < reset_total:
-            continue  # Not yet 5:30 AM KST
+            continue  # Not yet 5:30 AM EST
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
@@ -283,7 +283,7 @@ async def auto_ranked():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Ranked standings report updated at 5:30am KST daily",
+                    f"Ranked standings report updated at 5:30am EST daily",
                     is_automated=True,
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
@@ -302,7 +302,7 @@ async def before_auto_ranked():
 
 
 @tasks.loop(minutes=15)
-async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: str = "Asia/Seoul"):
+async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: str = "America/New_York"):
     """Sleep until the specified time in the given timezone."""
     tz = ZoneInfo(timezone_str)
     while True:
@@ -322,15 +322,15 @@ async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: s
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours at exactly 3:30 KST.
+    human/bot kill split) every 24 hours at exactly 3:30 EST.
     Edits existing message instead of posting new ones.
     """
     while True:
-        # Wait until 3:30 KST
-        await _wait_until_time(3, 30, "Asia/Seoul")
+        # Wait until 3:30 EST
+        await _wait_until_time(3, 30, "America/New_York")
         
         # Run the highlights report for all guilds
-        kst = ZoneInfo("Asia/Seoul")
+        kst = ZoneInfo("America/New_York")
         now_kst = datetime.now(kst)
         
         for guild_id in await storage.all_guild_ids():
@@ -383,7 +383,7 @@ async def auto_highlights():
                         await send_audit_log(
                             guild_id,
                             "Scheduled Report Updated",
-                            f"Highlights report updated at 3:30 KST daily",
+                            f"Highlights report updated at 3:30 EST daily",
                             is_automated=True,
                             details={"Report Type": "Highlights", "Players": len(players)},
                             report_embed=embed
@@ -565,10 +565,10 @@ async def auto_chicken_dinner():
     Every 15 minutes, checks each opted-in guild's roster for recent squad wins
     in the last 5 matches per player. Groups players who won together in the same match.
     Updates a persistent message with the list of squad wins and a running tally
-    of total wins for the current 24-hour period starting at 3am KST.
-    The tally and posted matches reset daily at 3am KST.
+    of total wins for the current 24-hour period starting at 3am EST.
+    The tally and posted matches reset daily at 3am EST.
     """
-    kst = ZoneInfo("Asia/Seoul")
+    kst = ZoneInfo("America/New_York")
     now_kst = datetime.now(kst)
     
     for guild_id in await storage.all_guild_ids():
@@ -583,12 +583,12 @@ async def auto_chicken_dinner():
         if guild is None or channel is None:
             continue
 
-        # Check if we need to reset for new day (3am KST daily reset)
+        # Check if we need to reset for new day (3am EST daily reset)
         last_reset = guild_cfg.get("chicken_dinner_reset_at")
         needs_reset = False
         if last_reset:
             last_reset_date = datetime.fromisoformat(last_reset).astimezone(kst)
-            # Reset if we're on a different date AND it's after 3am KST
+            # Reset if we're on a different date AND it's after 3am EST
             if last_reset_date.date() != now_kst.date() and now_kst.hour >= 3:
                 needs_reset = True
         else:

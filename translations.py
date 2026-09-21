@@ -59,7 +59,7 @@ TRANSLATIONS = {
         "protected_players": "Protected players",
         "not_found": "Not found",
         "protected_footer": "🛡️ = Protected from inactivity removal",
-        "updates_daily": "Updates daily at 3am KST (live-updating, not reposted)",
+        "updates_daily": "Updates daily at 3am EST (live-updating, not reposted)",
         
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
@@ -183,7 +183,7 @@ TRANSLATIONS = {
         "protected_players": "Jugadores protegidos",
         "not_found": "No encontrado",
         "protected_footer": "🛡️ = Protegido de eliminación por inactividad",
-        "updates_daily": "Actualizaciones diarias a las 3am KST (actualización en vivo, no republicado)",
+        "updates_daily": "Actualizaciones diarias a las 3am EST (actualización en vivo, no republicado)",
         
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",

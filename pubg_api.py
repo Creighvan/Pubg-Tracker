@@ -596,7 +596,7 @@ class PubgClient:
         """
         # Use 3am KST (UTC+9) as daily reset time instead of rolling 24-hour window
         from zoneinfo import ZoneInfo
-        kst = ZoneInfo("Asia/Seoul")
+        kst = ZoneInfo("America/New_York")
         now_kst = datetime.now(kst)
         reset_time_kst = now_kst.replace(hour=3, minute=0, second=0, microsecond=0)
         if now_kst < reset_time_kst:
