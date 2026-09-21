@@ -79,13 +79,13 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             continue
         if not guild_cfg.get(enabled_key, True):
             disabled_reports.append(name.replace("🟢 ", "").replace("🏆 ", "").replace("✨ ", ""))
-        # Special handling for Last Active and Ranked reports - they update in place at fixed KST times
+        # Special handling for Last Active and Ranked reports - they update in place at fixed EST times
         if name in ("🟢 Last Active", "🏆 Ranked"):
             hour = guild_cfg.get(hour_key)
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
-                schedule = f"Daily at {hour:02d}:{minute:02d} KST (updates in place)"
-                next_time = f"{hour:02d}:{minute:02d} KST"
+                schedule = f"Daily at {hour:02d}:{minute:02d} EST (updates in place)"
+                next_time = f"{hour:02d}:{minute:02d} EST"
                 embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
                 continue
         hour = guild_cfg.get(hour_key)
@@ -318,7 +318,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    footer_text = "Updates daily at 3am KST (live-updating, not reposted)"
+    footer_text = "Updates daily at 3am EST (live-updating, not reposted)"
     if protected_count > 0:
         footer_text += " | 🛡️ = Protected from inactivity removal"
     embed.set_footer(text=footer_text)
@@ -368,7 +368,7 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 5:30am KST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
+    embed.set_footer(text="Updates daily at 5:30am EST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
     return embed
 
 
@@ -431,7 +431,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
 
     embed = discord.Embed(
         title=f"{title} — Daily Highlights (Fun Titles)",
-        description=f"Based on {len(active_players)} player(s) who played since daily reset (3am KST).",
+        description=f"Based on {len(active_players)} player(s) who played since daily reset (3am EST).",
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -474,7 +474,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 3am KST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
+    embed.set_footer(text="Updates daily at 3am EST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
     return embed
 
 
@@ -811,7 +811,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     # Footer based on whether it's automated or manual
     if is_automated:
-        embed.set_footer(text="Live-updating · Resets daily at 3am KST")
+        embed.set_footer(text="Live-updating · Resets daily at 3am EST")
     else:
         embed.set_footer(text="Manual check · Last 5 matches per player")
     
