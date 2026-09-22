@@ -77,6 +77,13 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
         return None
     players, not_found = await _get_pubg().get_last_active_times(guild_cfg["players"])
     
+    # Debug: Check Traingates specifically
+    traingates_data = [p for p in players if p["name"].lower() == "traingates"]
+    if traingates_data:
+        print(f"[fetch_last_active_report] Traingates found in API response: last_match_at={traingates_data[0].get('last_match_at')}")
+    else:
+        print(f"[fetch_last_active_report] Traingates NOT found in API response (not_found={not_found})")
+    
     # Historical data beyond 14 days: automatic day counting from 14-day mark
     # The PUBG API has a hard 14-day limit for match data retention
     protected_players = await storage.get_protected_players(guild_id)
@@ -97,9 +104,12 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
             if player.get("last_match_at"):
                 # Player has recent matches (active within 14 days)
                 # Clean up both auto-counting and manual overrides
+                print(f"[fetch_last_active_report] Player {player['name']} has recent match at {player['last_match_at']}, clearing auto/manual inactivity")
                 if player_lower in guild_cfg.get("inactive_since_dates", {}):
+                    print(f"[fetch_last_active_report]   Removing {player['name']} from inactive_since_dates")
                     del guild_cfg["inactive_since_dates"][player_lower]
                 if player_lower in guild_cfg.get("manual_inactive_dates", {}):
+                    print(f"[fetch_last_active_report]   Removing {player['name']} from manual_inactive_dates")
                     del guild_cfg["manual_inactive_dates"][player_lower]
         
         # Then handle players with no recent matches (beyond 14-day API limit)
