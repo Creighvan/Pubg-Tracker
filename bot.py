@@ -1230,7 +1230,10 @@ async def lastactive(interaction: discord.Interaction):
         return
     await interaction.response.defer()
     try:
-        result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
+        result = await asyncio.wait_for(fetch_last_active_report(interaction.guild_id, interaction.guild.name), timeout=120)
+    except asyncio.TimeoutError:
+        await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
+        return
     except PubgApiError as e:
         await interaction.followup.send(f"PUBG API error: {e}")
         return
