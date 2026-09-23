@@ -1547,11 +1547,20 @@ async def updateranked(interaction: discord.Interaction):
         if result:
             embed, players = result
             try:
-                message = await channel.fetch_message(message_id)
-                await message.edit(embed=embed)
+                message = await asyncio.wait_for(
+                    channel.fetch_message(message_id),
+                    timeout=30  # 30 second timeout for Discord message fetch
+                )
+                await asyncio.wait_for(
+                    message.edit(embed=embed),
+                    timeout=30  # 30 second timeout for Discord message edit
+                )
                 await interaction.followup.send(
                     "✅ Ranked report updated with fresh data."
                 )
+            except asyncio.TimeoutError:
+                await interaction.followup.send("⚠️ Discord operation timed out. Try again later.")
+                return
             except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
                 await interaction.followup.send(
                     f"⚠️ Message not found or inaccessible: {e}. Use /setrankedchannel to repost"
