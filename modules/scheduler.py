@@ -115,9 +115,9 @@ async def before_auto_digest():
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild.
     Runs once per day after 10pm EST daily reset. Recovers if bot was offline."""
-    kst = ZoneInfo("America/New_York")
-    now_kst = datetime.now(kst)
-    print(f"[auto_last_active] Running at {now_kst}")
+    est = ZoneInfo("America/New_York")
+    now_est = datetime.now(est)
+    print(f"[auto_last_active] Running at {now_est}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -132,9 +132,9 @@ async def auto_last_active():
         # Check if we've already posted today (using last_activity_posted_at)
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
-            last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
-            days_since_last_post = (now_kst.date() - last_posted_date.date()).days
-            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date.date()}, now={now_kst.date()}, days_since={days_since_last_post}")
+            last_posted_date = datetime.fromisoformat(last_posted).astimezone(est)
+            days_since_last_post = (now_est.date() - last_posted_date.date()).days
+            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date.date()}, now={now_est.date()}, days_since={days_since_last_post}")
             if days_since_last_post == 0:
                 print(f"[auto_last_active] Guild {guild_id}: Already posted today, skipping")
                 continue  # Already posted today
@@ -147,8 +147,8 @@ async def auto_last_active():
         else:
             print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
             # Only run after 10pm EST daily reset for first run
-            if now_kst.hour < 22:
-                print(f"[auto_last_active] Guild {guild_id}: Before 10pm EST ({now_kst.hour}), skipping")
+            if now_est.hour < 22:
+                print(f"[auto_last_active] Guild {guild_id}: Before 10pm EST ({now_est.hour}), skipping")
                 continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -220,11 +220,11 @@ async def auto_ranked():
     now = datetime.now(timezone.utc)
     
     # Check if it's 12:30am EST daily reset time
-    kst = ZoneInfo("America/New_York")
-    now_kst = datetime.now(kst)
-    reset_time_kst = now_kst.replace(hour=0, minute=30, second=0, microsecond=0)
-    if now_kst < reset_time_kst:
-        reset_time_kst -= timedelta(days=1)
+    est = ZoneInfo("America/New_York")
+    now_est = datetime.now(est)
+    reset_time_est = now_est.replace(hour=0, minute=30, second=0, microsecond=0)
+    if now_est < reset_time_est:
+        reset_time_est -= timedelta(days=1)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -237,14 +237,14 @@ async def auto_ranked():
         # Check if already posted today (using EST date)
         posted_at = guild_cfg.get("ranked_posted_at")
         if posted_at:
-            posted_date = datetime.fromisoformat(posted_at).astimezone(kst).date()
-            today_kst = reset_time_kst.date()
-            if posted_date >= today_kst:
+            posted_date = datetime.fromisoformat(posted_at).astimezone(est).date()
+            today_est = reset_time_est.date()
+            if posted_date >= today_est:
                 continue  # Already posted today (or future date)
         
         # Only run during or after the 12:30am EST window
         reset_total = 0 * 60 + 30  # 12:30 AM in minutes
-        now_total = now_kst.hour * 60 + now_kst.minute
+        now_total = now_est.hour * 60 + now_est.minute
         if now_total < reset_total:
             continue  # Not yet 12:30 AM EST
 
@@ -329,8 +329,8 @@ async def auto_highlights():
         await _wait_until_time(22, 0, "America/New_York")
         
         # Run the highlights report for all guilds
-        kst = ZoneInfo("America/New_York")
-        now_kst = datetime.now(kst)
+        est = ZoneInfo("America/New_York")
+        now_est = datetime.now(est)
         
         for guild_id in await storage.all_guild_ids():
             guild_cfg = await storage.get_guild(guild_id)
@@ -343,8 +343,8 @@ async def auto_highlights():
             # Check if we've already posted today (using highlights_posted_at)
             last_posted = guild_cfg.get("highlights_posted_at")
             if last_posted:
-                last_posted_date = datetime.fromisoformat(last_posted).astimezone(kst)
-                if last_posted_date.date() == now_kst.date():
+                last_posted_date = datetime.fromisoformat(last_posted).astimezone(est)
+                if last_posted_date.date() == now_est.date():
                     continue  # Already posted today
 
             guild = _get_bot().get_guild(guild_id)
@@ -567,8 +567,8 @@ async def auto_chicken_dinner():
     of total wins for the current 24-hour period starting at 12:00am EST.
     The tally and posted matches reset daily at 12:00am EST.
     """
-    kst = ZoneInfo("America/New_York")
-    now_kst = datetime.now(kst)
+    est = ZoneInfo("America/New_York")
+    now_est = datetime.now(est)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -586,9 +586,9 @@ async def auto_chicken_dinner():
         last_reset = guild_cfg.get("chicken_dinner_reset_at")
         needs_reset = False
         if last_reset:
-            last_reset_date = datetime.fromisoformat(last_reset).astimezone(kst)
-            # Reset if we're on a different date AND it's after 12:00am EST
-            if last_reset_date.date() != now_kst.date() and now_kst.hour >= 0:
+            last_reset_date = datetime.fromisoformat(last_reset).astimezone(est)
+            # Reset if we're on a different date
+            if last_reset_date.date() != now_est.date():
                 needs_reset = True
         else:
             # First time setup - set reset time
@@ -604,6 +604,11 @@ async def auto_chicken_dinner():
             await storage.save_guild(guild_id, guild_cfg)
             # Update guild_cfg after reset
             guild_cfg = await storage.get_guild(guild_id)
+            # Use the reset timestamp for filtering
+            reset_timestamp = datetime.fromisoformat(guild_cfg["chicken_dinner_reset_at"])
+        else:
+            # Use existing reset timestamp
+            reset_timestamp = datetime.fromisoformat(guild_cfg["chicken_dinner_reset_at"]) if guild_cfg.get("chicken_dinner_reset_at") else None
 
         try:
             async with get_scheduler_lock():
@@ -630,6 +635,14 @@ async def auto_chicken_dinner():
             # Check if this match was already posted
             if match_id in posted_matches:
                 continue
+            
+            # Filter out wins from before the daily reset to prevent double-counting
+            if reset_timestamp:
+                match_time = win.get("created_at")
+                if match_time:
+                    match_date = datetime.fromisoformat(match_time)
+                    if match_date < reset_timestamp:
+                        continue
             
             # Extract player data for this win
             players_data = []

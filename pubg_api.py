@@ -329,67 +329,11 @@ class PubgClient:
         found.sort(key=lambda p: p["last_match_at"] or "", reverse=True)
         return found, not_found
 
-    async def get_recent_wins(self, names: list[str]) -> tuple[dict[str, dict], list[str]]:
-        """
-        Checks each roster player's single most recent match and reports its
-        placement/kills/map. Used by /chickendinner and the scheduled win
-        alert task. Match-endpoint calls (via _get_match_details) are
-        rate-limit exempt, so this stays cheap even on a large roster —
-        unlike get_daily_activity_report, it never downloads telemetry.
-
-        Returns (results, not_found) where results is keyed by PUBG name:
-          {"winPlace": int, "kills": int, "map_name": str | None,
-           "match_id": str}
-        Players with no recent match at all are simply absent from results
-        (not an error). not_found is the input names PUBG couldn't resolve.
-        """
-        found: list[dict] = []
-        not_found: list[str] = []
-        for chunk in _chunk(names, 10):
-            resolved = await self.get_players_by_name(chunk)
-            resolved_lower = {p["name"].lower() for p in resolved}
-            for n in chunk:
-                if n.lower() not in resolved_lower:
-                    not_found.append(n)
-            found.extend(resolved)
-
-        # Squadmates commonly share the same most-recent match; cache by
-        # match_id so it's only fetched once instead of once per player.
-        match_cache: dict[str, dict] = {}
-        cache_lock = asyncio.Lock()
-
-        async def get_match(match_id: str) -> dict:
-            async with cache_lock:
-                if match_id not in match_cache:
-                    match_cache[match_id] = await self._get_match_details(match_id)
-                return match_cache[match_id]
-
-        results: dict[str, dict] = {}
-
-        async def process(p: dict):
-            if not p["match_ids"]:
-                return
-            match_id = p["match_ids"][0]
-            match = await get_match(match_id)
-            participant_data = match["participants"].get(p["id"])
-            if participant_data is None:
-                return
-            stats = participant_data.get("stats", {})
-            results[p["name"]] = {
-                "winPlace": stats.get("winPlace"),
-                "kills": stats.get("kills", 0),
-                "map_name": _friendly_map_name(match.get("map_name")),
-                "match_id": match_id,
-            }
-
-        await asyncio.gather(*(process(p) for p in found))
-        return results, not_found
-
     async def get_squad_wins(self, names: list[str], matches_to_check: int = 5) -> tuple[list[dict], list[str]]:
         """
-        Fetches recent match history for roster players and identifies wins
-        where clan members were in the same squad together. This properly
-        detects squad wins unlike get_recent_wins which only checks single matches.
+        Fetches recent match history for roster players and identifies squad-fpp wins
+        where clan members were in the same squad together. Only counts squad mode games
+        (squad-fpp, squad) to avoid solo/duo wins being counted as squad wins.
 
         Args:
             names: List of PUBG player names to check
@@ -422,11 +366,13 @@ class PubgClient:
         # Fetch match history for each player
         match_cache: dict[str, dict] = {}
         cache_lock = asyncio.Lock()
+        fetch_semaphore = asyncio.Semaphore(5)  # Limit concurrent match fetches
 
         async def get_match(match_id: str) -> dict:
             async with cache_lock:
                 if match_id not in match_cache:
-                    match_cache[match_id] = await self._get_match_details(match_id)
+                    async with fetch_semaphore:
+                        match_cache[match_id] = await self._get_match_details(match_id)
                 return match_cache[match_id]
 
         # Collect all matches to check
@@ -435,7 +381,7 @@ class PubgClient:
             for match_id in p["match_ids"][:matches_to_check]:
                 all_match_ids.add(match_id)
 
-        # Fetch all matches
+        # Fetch all matches with concurrency limit
         await asyncio.gather(*(get_match(mid) for mid in all_match_ids))
 
         # Find wins and group by match
@@ -446,6 +392,12 @@ class PubgClient:
             if match_id in processed_matches:
                 continue
             processed_matches.add(match_id)
+
+            # Filter for squad-fpp games only (adjust as needed for other modes)
+            # PUBG API game modes: 'squad-fpp', 'squad', 'duo-fpp', 'duo', 'solo-fpp', 'solo'
+            game_mode = match.get("game_mode", "")
+            if not game_mode.startswith("squad"):
+                continue  # Only count squad wins
 
             # Check if any roster player won this match
             roster_players_in_match = []

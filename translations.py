@@ -59,7 +59,7 @@ TRANSLATIONS = {
         "protected_players": "Protected players",
         "not_found": "Not found",
         "protected_footer": "🛡️ = Protected from inactivity removal",
-        "updates_daily": "Updates daily at 10pm EST (live-updating, not reposted)",
+        "updates_daily": "Updates daily at 10:00pm EST (live-updating, not reposted)",
         
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
