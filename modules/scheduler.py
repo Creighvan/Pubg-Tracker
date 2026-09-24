@@ -142,15 +142,14 @@ async def auto_last_active():
                 print(f"[auto_last_active] Guild {guild_id}: Last post is in the future (clock skew?), treating as today and skipping")
                 continue
             else:
-                # Bot was offline for multiple days - proceed to update
+                # Bot was offline for multiple days - proceed to update immediately
                 print(f"[auto_last_active] Guild {guild_id}: Last post was {days_since_last_post} days ago, updating (recovering from offline period)")
         else:
             print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
-        
-        # Only run after 10pm EST daily reset
-        if now_kst.hour < 22:
-            print(f"[auto_last_active] Guild {guild_id}: Before 10pm EST ({now_kst.hour}), skipping")
-            continue
+            # Only run after 10pm EST daily reset for first run
+            if now_kst.hour < 22:
+                print(f"[auto_last_active] Guild {guild_id}: Before 10pm EST ({now_kst.hour}), skipping")
+                continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
