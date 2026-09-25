@@ -72,6 +72,61 @@ TRANSLATIONS = {
         "days_ago": "{days} day(s) ago",
         "no_recent_matches": "No recent matches found",
         
+        # Clan Report
+        "clan_report": "Clan Report",
+        "tracked_players": "Tracked players",
+        "total_kills": "Total kills",
+        "total_wins": "Total wins",
+        "win_rate": "Win rate",
+        "total_damage": "Total damage",
+        "total_matches": "Total matches",
+        "top_fraggers": "Top Fraggers",
+        "lifetime_stats_footer": "Stats from the official PUBG API · lifetime, per game mode",
+        
+        # Clan Level Report
+        "clan_level_report": "Clan Level & Weekly Progress",
+        "current_level": "Current Level",
+        "members": "Members",
+        "weekly_progress": "Weekly Progress",
+        "first_snapshot": "This is the first clan snapshot. The next weekly report will show the level change.",
+        "level_change": "Level change since last weekly report: **{change:+d}**",
+        "member_change": " · Member change: **{change:+d}**",
+        "important_note": "Important",
+        "clan_level_note": "PUBG exposes the clan level and member count, but not the XP needed for the next level. Progress is therefore measured by the change in clan level between weekly reports.",
+        "weekly_clan_progress_footer": "Weekly Clan Progress · Official PUBG API",
+        
+        # Ranked Report
+        "ranked_report": "Ranked",
+        "ranked_description": "Current-season competitive ranked standings.",
+        "highest_ranked": "Highest Ranked",
+        "ranked_this_season": "Ranked this season",
+        "ranking": "Ranking",
+        "no_ranked_matches": "No ranked matches",
+        "no_ranked_description": "No tracked players have ranked matches in this queue this season.",
+        "ranked_footer": "Updates daily at 04:30 UTC (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season",
+        
+        # Daily Highlights Report
+        "daily_highlights": "Daily Highlights",
+        "fun_titles": "Fun Titles",
+        "highlights_description": "Based on {count} player(s) who played since daily reset (02:00 UTC).",
+        "no_recent_matches_available": "No recent matches available",
+        "no_recent_matches_description": "PUBG match telemetry is only available for the last 14 days. {count} player(s) have older matches that can't be analyzed.",
+        "no_matches_played": "No matches played",
+        "no_matches_description": "Nobody on the roster played in this window.",
+        "top_10": "Top 10",
+        "kills_best_match": "kills (best match)",
+        "dmg_best_match": "dmg (best match)",
+        "human_bot_split": "human / {count} bot",
+        "matches_count": "match(es)",
+        "highlights_footer": "Updates daily at 02:00 UTC (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "Chicken Dinner",
+        "recent_squad_wins": "Recent squad wins (last 5 matches per player)",
+        "no_wins_yet": "No squad wins yet today!",
+        "total_wins_today": "Total wins today",
+        "chicken_dinner_footer": "Updates every 15 minutes · Resets daily at 04:00 UTC · Stats from the official PUBG API",
+        
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
         "player_added": "Added player: {name}",
@@ -144,6 +199,61 @@ TRANSLATIONS = {
         "hours_ago": "{hours}小时前",
         "days_ago": "{days}天前",
         "no_recent_matches": "未找到最近的比赛",
+        
+        # Clan Report
+        "clan_report": "公会报告",
+        "tracked_players": "跟踪的玩家",
+        "total_kills": "总击杀",
+        "total_wins": "总胜利",
+        "win_rate": "胜率",
+        "total_damage": "总伤害",
+        "total_matches": "总比赛",
+        "top_fraggers": "顶级击杀者",
+        "lifetime_stats_footer": "来自官方PUBG API的统计数据 · 终身，按游戏模式",
+        
+        # Clan Level Report
+        "clan_level_report": "公会等级和每周进度",
+        "current_level": "当前等级",
+        "members": "成员",
+        "weekly_progress": "每周进度",
+        "first_snapshot": "这是第一次公会快照。下周报告将显示等级变化。",
+        "level_change": "自上周报告以来的等级变化：**{change:+d}**",
+        "member_change": " · 成员变化：**{change:+d}**",
+        "important_note": "重要",
+        "clan_level_note": "PUBG显示公会等级和成员数量，但不显示升级所需的经验值。因此，进度通过每周报告之间的公会等级变化来衡量。",
+        "weekly_clan_progress_footer": "每周公会进度 · 官方PUBG API",
+        
+        # Ranked Report
+        "ranked_report": "排位",
+        "ranked_description": "当前赛季竞技排位排名。",
+        "highest_ranked": "最高排名",
+        "ranked_this_season": "本赛季排名",
+        "ranking": "排名",
+        "no_ranked_matches": "无排位比赛",
+        "no_ranked_description": "没有跟踪的玩家在此队列的本赛季排位比赛。",
+        "ranked_footer": "每天UTC凌晨4:30更新（实时更新，不重新发布） · 来自官方PUBG API的统计数据 · 排位，当前赛季",
+        
+        # Daily Highlights Report
+        "daily_highlights": "每日亮点",
+        "fun_titles": "趣味称号",
+        "highlights_description": "基于{count}名自每日重置（UTC凌晨2点）以来玩的玩家。",
+        "no_recent_matches_available": "无最近比赛可用",
+        "no_recent_matches_description": "PUBG比赛遥测数据仅可用14天。{count}名玩家有无法分析的旧比赛。",
+        "no_matches_played": "无比赛",
+        "no_matches_description": "名册上没人在这个窗口内玩过。",
+        "top_10": "前10名",
+        "kills_best_match": "击杀（最佳比赛）",
+        "dmg_best_match": "伤害（最佳比赛）",
+        "human_bot_split": "人类 / {count} 机器人",
+        "matches_count": "比赛",
+        "highlights_footer": "每天UTC凌晨2点更新（实时更新，不重新发布） · 来自官方PUBG API的统计数据 · 每日亮点，过去24小时",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "吃鸡",
+        "recent_squad_wins": "最近小队胜利（每位玩家最近5场比赛）",
+        "no_wins_yet": "今天还没有小队胜利！",
+        "total_wins_today": "今天总胜利",
+        "chicken_dinner_footer": "每15分钟更新 · 每天UTC凌晨4点重置 · 来自官方PUBG API的统计数据",
         
         # Command responses
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
@@ -218,6 +328,61 @@ TRANSLATIONS = {
         "days_ago": "Hace {days} día(s)",
         "no_recent_matches": "No se encontraron partidas recientes",
         
+        # Clan Report
+        "clan_report": "Informe del clan",
+        "tracked_players": "Jugadores rastreados",
+        "total_kills": "Total de bajas",
+        "total_wins": "Total de victorias",
+        "win_rate": "Tasa de victoria",
+        "total_damage": "Daño total",
+        "total_matches": "Total de partidas",
+        "top_fraggers": "Mejores eliminadores",
+        "lifetime_stats_footer": "Estadísticas de la API oficial de PUBG · toda la vida, por modo de juego",
+        
+        # Clan Level Report
+        "clan_level_report": "Nivel del clan y progreso semanal",
+        "current_level": "Nivel actual",
+        "members": "Miembros",
+        "weekly_progress": "Progreso semanal",
+        "first_snapshot": "Esta es la primera instantánea del clan. El próximo informe semanal mostrará el cambio de nivel.",
+        "level_change": "Cambio de nivel desde el último informe semanal: **{change:+d}**",
+        "member_change": " · Cambio de miembros: **{change:+d}**",
+        "important_note": "Importante",
+        "clan_level_note": "PUBG expone el nivel del clan y el número de miembros, pero no la XP necesaria para el siguiente nivel. Por lo tanto, el progreso se mide por el cambio en el nivel del clan entre informes semanales.",
+        "weekly_clan_progress_footer": "Progreso semanal del clan · API oficial de PUBG",
+        
+        # Ranked Report
+        "ranked_report": "Clasificada",
+        "ranked_description": "Clasificación competitiva de la temporada actual.",
+        "highest_ranked": "Clasificación más alta",
+        "ranked_this_season": "Clasificados esta temporada",
+        "ranking": "Clasificación",
+        "no_ranked_matches": "Sin partidas clasificadas",
+        "no_ranked_description": "Ningún jugador rastreado tiene partidas clasificadas en esta cola esta temporada.",
+        "ranked_footer": "Actualizaciones diarias a las 04:30 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · clasificada, temporada actual",
+        
+        # Daily Highlights Report
+        "daily_highlights": "Resaltados diarios",
+        "fun_titles": "Títulos divertidos",
+        "highlights_description": "Basado en {count} jugador(es) que jugaron desde el restablecimiento diario (02:00 UTC).",
+        "no_recent_matches_available": "No hay partidas recientes disponibles",
+        "no_recent_matches_description": "La telemetría de partidas de PUBG solo está disponible durante los últimos 14 días. {count} jugador(es) tienen partidas más antiguas que no se pueden analizar.",
+        "no_matches_played": "Sin partidas jugadas",
+        "no_matches_description": "Nadie en la lista jugó en esta ventana.",
+        "top_10": "Top 10",
+        "kills_best_match": "bajas (mejor partida)",
+        "dmg_best_match": "daño (mejor partida)",
+        "human_bot_split": "humano / {count} bot",
+        "matches_count": "partida(s)",
+        "highlights_footer": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · resaltados diarios, últimas 24 horas",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "Pollo al horno",
+        "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
+        "no_wins_yet": "¡Aún no hay victorias de escuadrón hoy!",
+        "total_wins_today": "Victorias totales hoy",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 04:00 UTC · Estadísticas de la API oficial de PUBG",
+        
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
         "player_added": "Jugador agregado: {name}",
@@ -290,6 +455,61 @@ TRANSLATIONS = {
         "hours_ago": "{hours} घंटे पहले",
         "days_ago": "{days} दिन पहले",
         "no_recent_matches": "हाल के मैच नहीं मिले",
+        
+        # Clan Report
+        "clan_report": "क्लान रिपोर्ट",
+        "tracked_players": "ट्रैक किए गए खिलाड़ी",
+        "total_kills": "कुल किल",
+        "total_wins": "कुल जीत",
+        "win_rate": "जीत दर",
+        "total_damage": "कुल नुकसान",
+        "total_matches": "कुल मैच",
+        "top_fraggers": "शीर्ष फ्रैगर्स",
+        "lifetime_stats_footer": "आधिकारिक PUBG API से आँकड़े · जीवनकाल, प्रति गेम मोड",
+        
+        # Clan Level Report
+        "clan_level_report": "क्लान स्तर और साप्ताहिक प्रगति",
+        "current_level": "वर्तमान स्तर",
+        "members": "सदस्य",
+        "weekly_progress": "साप्ताहिक प्रगति",
+        "first_snapshot": "यह पहला क्लान स्नैपशॉट है। अगला साप्ताहिक रिपोर्ट स्तर परिवर्तन दिखाएगा।",
+        "level_change": "पिछले साप्ताहिक रिपोर्ट से स्तर परिवर्तन: **{change:+d}**",
+        "member_change": " · सदस्य परिवर्तन: **{change:+d}**",
+        "important_note": "महत्वपूर्ण",
+        "clan_level_note": "PUBG क्लान स्तर और सदस्य संख्या को उजागर करता है, लेकिन अगले स्तर के लिए आवश्यक XP नहीं। इसलिए, प्रगति साप्ताहिक रिपोर्ट के बीच क्लान स्तर परिवर्तन से मापी जाती है।",
+        "weekly_clan_progress_footer": "साप्ताहिक क्लान प्रगति · आधिकारिक PUBG API",
+        
+        # Ranked Report
+        "ranked_report": "रैंक",
+        "ranked_description": "वर्तमान सीज़न प्रतिस्पर्धात्मक रैंक्ड स्टैंडिंग्स।",
+        "highest_ranked": "उच्चतम रैंक",
+        "ranked_this_season": "इस सीज़न में रैंक किए गए",
+        "ranking": "रैंकिंग",
+        "no_ranked_matches": "कोई रैंक्ड मैच नहीं",
+        "no_ranked_description": "इस कतार में इस सीज़न में कोई भी ट्रैक किए गए खिलाड़ी के पास रैंक्ड मैच नहीं हैं।",
+        "ranked_footer": "दैनिक UTC रात 4:30 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं) · आधिकारिक PUBG API से आँकड़े · रैंक्ड, वर्तमान सीज़न",
+        
+        # Daily Highlights Report
+        "daily_highlights": "दैनिक हाइलाइट्स",
+        "fun_titles": "मज़ेदार खिताब",
+        "highlights_description": "दैनिक रीसेट (UTC रात 2 बजे) के बाद खेलने वाले {count} खिलाड़ी(यों) के आधार पर।",
+        "no_recent_matches_available": "कोई हाल के मैच उपलब्ध नहीं",
+        "no_recent_matches_description": "PUBG मैच टेलीमेट्री केवल पिछले 14 दिनों के लिए उपलब्ध है। {count} खिलाड़ी(यों) के पास पुराने मैच हैं जिनका विश्लेषण नहीं किया जा सकता।",
+        "no_matches_played": "कोई मैच नहीं खेला",
+        "no_matches_description": "रोस्टर पर किसी ने भी इस विंडो में नहीं खेला।",
+        "top_10": "शीर्ष 10",
+        "kills_best_match": "किल (सर्वश्रेष्ठ मैच)",
+        "dmg_best_match": "नुकसान (सर्वश्रेष्ठ मैच)",
+        "human_bot_split": "मानव / {count} बॉट",
+        "matches_count": "मैच",
+        "highlights_footer": "दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं) · आधिकारिक PUBG API से आँकड़े · दैनिक हाइलाइट्स, पिछले 24 घंटे",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "चिकन डिनर",
+        "recent_squad_wins": "हाल के स्क्वाड जीत (प्रति खिलाड़ी पिछले 5 मैच)",
+        "no_wins_yet": "आज तक कोई स्क्वाड जीत नहीं!",
+        "total_wins_today": "आज कुल जीत",
+        "chicken_dinner_footer": "हर 15 मिनट में अपडेट · दैनिक UTC रात 4 बजे रीसेट · आधिकारिक PUBG API से आँकड़े",
         
         # Command responses
         "no_players_tracked": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
@@ -364,6 +584,61 @@ TRANSLATIONS = {
         "days_ago": "منذ {days} يوم",
         "no_recent_matches": "لم يتم العثور على مباريات حديثة",
         
+        # Clan Report
+        "clan_report": "تقرير العشيرة",
+        "tracked_players": "اللاعبون المتتبعون",
+        "total_kills": "إجمالي القتل",
+        "total_wins": "إجمالي الانتصارات",
+        "win_rate": "معدل الفوز",
+        "total_damage": "إجمالي الضرر",
+        "total_matches": "إجمالي المباريات",
+        "top_fraggers": "أفضل القتلة",
+        "lifetime_stats_footer": "إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية · مدى الحياة، حسب وضع اللعب",
+        
+        # Clan Level Report
+        "clan_level_report": "مستوى العشيرة والتقدم الأسبوعي",
+        "current_level": "المستوى الحالي",
+        "members": "الأعضاء",
+        "weekly_progress": "التقدم الأسبوعي",
+        "first_snapshot": "هذه أول لقطة للعشيرة. التقرير الأسبوعي القادم سيظهر تغيير المستوى.",
+        "level_change": "تغيير المستوى منذ آخر تقرير أسبوعي: **{change:+d}**",
+        "member_change": " · تغيير الأعضاء: **{change:+d}**",
+        "important_note": "مهم",
+        "clan_level_note": "تكشف واجهة برمجة تطبيقات PUBG عن مستوى العشيرة وعدد الأعضاء، ولكن ليس XP المطلوب للمستوى التالي. لذلك، يتم قياس التقدم من خلال تغيير مستوى العشيرة بين التقارير الأسبوعية.",
+        "weekly_clan_progress_footer": "التقدم الأسبوعي للعشيرة · واجهة برمجة تطبيقات PUBG الرسمية",
+        
+        # Ranked Report
+        "ranked_report": "مصنف",
+        "ranked_description": "تصنيفات تنافسية للموسم الحالي.",
+        "highest_ranked": "أعلى تصنيف",
+        "ranked_this_season": "مصنفون هذا الموسم",
+        "ranking": "التصنيف",
+        "no_ranked_matches": "لا توجد مباريات مصنفة",
+        "no_ranked_description": "لا يوجد لاعبون متتبعون لديهم مباريات مصنفة في هذه الطابور هذا الموسم.",
+        "ranked_footer": "تحديثات يومية الساعة 04:30 UTC (تحديث مباشر، لا إعادة نشر) · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية · مصنف، الموسم الحالي",
+        
+        # Daily Highlights Report
+        "daily_highlights": "أبرز اليومية",
+        "fun_titles": "عناوين ممتعة",
+        "highlights_description": "بناءً على {count} لاعب(ون) لعبوا منذ إعادة التعيين اليومي (02:00 UTC).",
+        "no_recent_matches_available": "لا توجد مباريات حديثة متاحة",
+        "no_recent_matches_description": "تكون بيانات تتبع مباريات PUBG متاحة فقط لآخر 14 يومًا. {count} لاعب(ون) لديهم مباريات أقدم لا يمكن تحليلها.",
+        "no_matches_played": "لم يتم لعب أي مباريات",
+        "no_matches_description": "لم يلعب أحد في القائمة في هذه النافذة.",
+        "top_10": "أفضل 10",
+        "kills_best_match": "قتل (أفضل مباراة)",
+        "dmg_best_match": "ضرر (أفضل مباراة)",
+        "human_bot_split": "إنسان / {count} بوت",
+        "matches_count": "مباراة(ات)",
+        "highlights_footer": "تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر) · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية · أبرز اليومية، آخر 24 ساعة",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "عشاء الدجاج",
+        "recent_squad_wins": "انتصارات الفريق الأخيرة (آخر 5 مباريات لكل لاعب)",
+        "no_wins_yet": "لا توجد انتصارات للفريق حتى الآن!",
+        "total_wins_today": "إجمالي الانتصارات اليوم",
+        "chicken_dinner_footer": "تحديثات كل 15 دقيقة · إعادة تعيين يومية الساعة 04:00 UTC · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
+        
         # Command responses
         "no_players_tracked": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
         "player_added": "تمت إضافة اللاعب: {name}",
@@ -436,6 +711,61 @@ TRANSLATIONS = {
         "hours_ago": "Il y a {hours} heure(s)",
         "days_ago": "Il y a {days} jour(s)",
         "no_recent_matches": "Aucune partie récente trouvée",
+        
+        # Clan Report
+        "clan_report": "Rapport de clan",
+        "tracked_players": "Joueurs suivis",
+        "total_kills": "Total des éliminations",
+        "total_wins": "Total des victoires",
+        "win_rate": "Taux de victoire",
+        "total_damage": "Dégâts totaux",
+        "total_matches": "Total des parties",
+        "top_fraggers": "Meilleurs éliminateurs",
+        "lifetime_stats_footer": "Statistiques de l'API PUBG officielle · à vie, par mode de jeu",
+        
+        # Clan Level Report
+        "clan_level_report": "Niveau de clan et progression hebdomadaire",
+        "current_level": "Niveau actuel",
+        "members": "Membres",
+        "weekly_progress": "Progression hebdomadaire",
+        "first_snapshot": "C'est la première capture de clan. Le prochain rapport hebdomadaire montrera le changement de niveau.",
+        "level_change": "Changement de niveau depuis le dernier rapport hebdomadaire : **{change:+d}**",
+        "member_change": " · Changement de membres : **{change:+d}**",
+        "important_note": "Important",
+        "clan_level_note": "PUBG expose le niveau de clan et le nombre de membres, mais pas l'XP nécessaire pour le niveau suivant. Par conséquent, la progression est mesurée par le changement de niveau de clan entre les rapports hebdomadaires.",
+        "weekly_clan_progress_footer": "Progression hebdomadaire du clan · API PUBG officielle",
+        
+        # Ranked Report
+        "ranked_report": "Classé",
+        "ranked_description": "Classements compétitifs de la saison en cours.",
+        "highest_ranked": "Classement le plus élevé",
+        "ranked_this_season": "Classés cette saison",
+        "ranking": "Classement",
+        "no_ranked_matches": "Aucune partie classée",
+        "no_ranked_description": "Aucun joueur suivi n'a de parties classées dans cette file cette saison.",
+        "ranked_footer": "Mises à jour quotidiennes à 04:30 UTC (mise à jour en direct, non republié) · Statistiques de l'API PUBG officielle · classé, saison en cours",
+        
+        # Daily Highlights Report
+        "daily_highlights": "Faits marquants quotidiens",
+        "fun_titles": "Titres amusants",
+        "highlights_description": "Basé sur {count} joueur(s) ayant joué depuis la réinitialisation quotidienne (02:00 UTC).",
+        "no_recent_matches_available": "Aucune partie récente disponible",
+        "no_recent_matches_description": "La télémétrie des parties PUBG n'est disponible que pendant les 14 derniers jours. {count} joueur(s) ont des parties plus anciennes qui ne peuvent pas être analysées.",
+        "no_matches_played": "Aucune partie jouée",
+        "no_matches_description": "Personne sur la liste n'a joué dans cette fenêtre.",
+        "top_10": "Top 10",
+        "kills_best_match": "éliminations (meilleure partie)",
+        "dmg_best_match": "dégâts (meilleure partie)",
+        "human_bot_split": "humain / {count} bot",
+        "matches_count": "partie(s)",
+        "highlights_footer": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié) · Statistiques de l'API PUBG officielle · faits marquants quotidiens, dernières 24 heures",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "Poulet rôti",
+        "recent_squad_wins": "Victoires d'escouade récentes (5 dernières parties par joueur)",
+        "no_wins_yet": "Aucune victoire d'escouade aujourd'hui !",
+        "total_wins_today": "Victoires totales aujourd'hui",
+        "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · Réinitialisation quotidienne à 04:00 UTC · Statistiques de l'API PUBG officielle",
         
         # Command responses
         "no_players_tracked": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
@@ -510,6 +840,61 @@ TRANSLATIONS = {
         "days_ago": "{days} দিন আগে",
         "no_recent_matches": "সাম্প্রতিক ম্যাচ পাওয়া যায়নি",
         
+        # Clan Report
+        "clan_report": "ক্লান রিপোর্ট",
+        "tracked_players": "ট্র্যাক করা খেলোয়াড়",
+        "total_kills": "মোট কিল",
+        "total_wins": "মোট জয়",
+        "win_rate": "জয়ের হার",
+        "total_damage": "মোট ক্ষতি",
+        "total_matches": "মোট ম্যাচ",
+        "top_fraggers": "শীর্ষ ফ্র্যাগার",
+        "lifetime_stats_footer": "অফিসিয়াল PUBG API থেকে পরিসংখ্যান · আজীবন, প্রতি গেম মোড",
+        
+        # Clan Level Report
+        "clan_level_report": "ক্লান লেভেল এবং সাপ্তাহিক অগ্রগতি",
+        "current_level": "বর্তমান লেভেল",
+        "members": "সদস্য",
+        "weekly_progress": "সাপ্তাহিক অগ্রগতি",
+        "first_snapshot": "এটি প্রথম ক্লান স্ন্যাপশট। পরবর্তী সাপ্তাহিক রিপোর্ট লেভেল পরিবর্তন দেখাবে।",
+        "level_change": "শেষ সাপ্তাহিক রিপোর্ট থেকে লেভেল পরিবর্তন: **{change:+d}**",
+        "member_change": " · সদস্য পরিবর্তন: **{change:+d}**",
+        "important_note": "গুরুত্বপূর্ণ",
+        "clan_level_note": "PUBG ক্লান লেভেল এবং সদস্য সংখ্যা প্রকাশ করে, কিন্তু পরবর্তী লেভেলের জন্য প্রয়োজনীয় XP নয়। তাই, অগ্রগতি সাপ্তাহিক রিপোর্টের মধ্যে ক্লান লেভেল পরিবর্তন দ্বারা পরিমাপ করা হয়।",
+        "weekly_clan_progress_footer": "সাপ্তাহিক ক্লান অগ্রগতি · অফিসিয়াল PUBG API",
+        
+        # Ranked Report
+        "ranked_report": "র‍্যাংকড",
+        "ranked_description": "বর্তমান সিজন প্রতিযোগিতামূলক র‍্যাংকড স্ট্যান্ডিংস।",
+        "highest_ranked": "সর্বোচ্চ র‍্যাংক",
+        "ranked_this_season": "এই সিজনে র‍্যাংক করা",
+        "ranking": "র‍্যাংকিং",
+        "no_ranked_matches": "কোন র‍্যাংকড ম্যাচ নেই",
+        "no_ranked_description": "এই সিজনে এই কিউতে কোন ট্র্যাক করা খেলোয়াড়ের র‍্যাংকড ম্যাচ নেই।",
+        "ranked_footer": "দৈনিক UTC রাত 4:30 এ আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়) · অফিসিয়াল PUBG API থেকে পরিসংখ্যান · র‍্যাংকড, বর্তমান সিজন",
+        
+        # Daily Highlights Report
+        "daily_highlights": "দৈনিক হাইলাইটস",
+        "fun_titles": "মজার শিরোনাম",
+        "highlights_description": "দৈনিক রিসেট (UTC রাত 2 টা) থেকে খেলা {count} খেলোয়াড়ের উপর ভিত্তি করে।",
+        "no_recent_matches_available": "কোন সাম্প্রতিক ম্যাচ উপলব্ধ নেই",
+        "no_recent_matches_description": "PUBG ম্যাচ টেলিমেট্রি শুধুমাত্র গত 14 দিনের জন্য উপলব্ধ। {count} খেলোয়াড়ের পুরানো ম্যাচ আছে যা বিশ্লেষণ করা যায় না।",
+        "no_matches_played": "কোন ম্যাচ খেলা হয়নি",
+        "no_matches_description": "রোস্টারে কেউ এই উইন্ডোতে খেলেনি।",
+        "top_10": "শীর্ষ 10",
+        "kills_best_match": "কিল (সেরা ম্যাচ)",
+        "dmg_best_match": "ক্ষতি (সেরা ম্যাচ)",
+        "human_bot_split": "মানব / {count} বট",
+        "matches_count": "ম্যাচ",
+        "highlights_footer": "দৈনিক UTC রাত 2 টা আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়) · অফিসিয়াল PUBG API থেকে পরিসংখ্যান · দৈনিক হাইলাইটস, গত 24 ঘন্টা",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "চিকেন ডিনার",
+        "recent_squad_wins": "সাম্প্রতিক স্কোয়াড জয় (প্রতি খেলোয়াড়ের শেষ 5 ম্যাচ)",
+        "no_wins_yet": "আজ এখনও কোন স্কোয়াড জয় নেই!",
+        "total_wins_today": "আজ মোট জয়",
+        "chicken_dinner_footer": "প্রতি 15 মিনিটে আপডেট · দৈনিক UTC রাত 4 টা রিসেট · অফিসিয়াল PUBG API থেকে পরিসংখ্যান",
+        
         # Command responses
         "no_players_tracked": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
         "player_added": "খেলোয়াড় যোগ করা হয়েছে: {name}",
@@ -582,6 +967,61 @@ TRANSLATIONS = {
         "hours_ago": "{hours} hora(s) atrás",
         "days_ago": "{days} dia(s) atrás",
         "no_recent_matches": "Nenhuma partida recente encontrada",
+        
+        # Clan Report
+        "clan_report": "Relatório do clã",
+        "tracked_players": "Jogadores rastreados",
+        "total_kills": "Total de abates",
+        "total_wins": "Total de vitórias",
+        "win_rate": "Taxa de vitória",
+        "total_damage": "Dano total",
+        "total_matches": "Total de partidas",
+        "top_fraggers": "Melhores abatedores",
+        "lifetime_stats_footer": "Estatísticas da API oficial do PUBG · vitalício, por modo de jogo",
+        
+        # Clan Level Report
+        "clan_level_report": "Nível do clã e progresso semanal",
+        "current_level": "Nível atual",
+        "members": "Membros",
+        "weekly_progress": "Progresso semanal",
+        "first_snapshot": "Este é o primeiro instantâneo do clã. O próximo relatório semanal mostrará a mudança de nível.",
+        "level_change": "Mudança de nível desde o último relatório semanal: **{change:+d}**",
+        "member_change": " · Mudança de membros: **{change:+d}**",
+        "important_note": "Importante",
+        "clan_level_note": "A API do PUBG expõe o nível do clã e o número de membros, mas não o XP necessário para o próximo nível. Portanto, o progresso é medido pela mudança no nível do clã entre relatórios semanais.",
+        "weekly_clan_progress_footer": "Progresso semanal do clã · API oficial do PUBG",
+        
+        # Ranked Report
+        "ranked_report": "Classificada",
+        "ranked_description": "Classificações competitivas da temporada atual.",
+        "highest_ranked": "Classificação mais alta",
+        "ranked_this_season": "Classificados esta temporada",
+        "ranking": "Classificação",
+        "no_ranked_matches": "Sem partidas classificadas",
+        "no_ranked_description": "Nenhum jogador rastreado tem partidas classificadas nesta fila esta temporada.",
+        "ranked_footer": "Atualizações diárias às 04:30 UTC (atualização ao vivo, não republicado) · Estatísticas da API oficial do PUBG · classificada, temporada atual",
+        
+        # Daily Highlights Report
+        "daily_highlights": "Destaques diários",
+        "fun_titles": "Títulos divertidos",
+        "highlights_description": "Com base em {count} jogador(es) que jogaram desde a redefinição diária (02:00 UTC).",
+        "no_recent_matches_available": "Nenhuma partida recente disponível",
+        "no_recent_matches_description": "A telemetria de partidas do PUBG está disponível apenas nos últimos 14 dias. {count} jogador(es) têm partidas mais antigas que não podem ser analisadas.",
+        "no_matches_played": "Nenhuma partida jogada",
+        "no_matches_description": "Ninguém na lista jogou nesta janela.",
+        "top_10": "Top 10",
+        "kills_best_match": "abates (melhor partida)",
+        "dmg_best_match": "dano (melhor partida)",
+        "human_bot_split": "humano / {count} bot",
+        "matches_count": "partida(s)",
+        "highlights_footer": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado) · Estatísticas da API oficial do PUBG · destaques diários, últimas 24 horas",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "Frango assado",
+        "recent_squad_wins": "Vitórias recentes de esquadrão (últimas 5 partidas por jogador)",
+        "no_wins_yet": "Ainda não há vitórias de esquadrão hoje!",
+        "total_wins_today": "Vitórias totais hoje",
+        "chicken_dinner_footer": "Atualizações a cada 15 minutos · Redefinição diária às 04:00 UTC · Estatísticas da API oficial do PUBG",
         
         # Command responses
         "no_players_tracked": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
@@ -656,6 +1096,61 @@ TRANSLATIONS = {
         "days_ago": "{days} hari yang lalu",
         "no_recent_matches": "Tidak ada pertandingan terbaru ditemukan",
         
+        # Clan Report
+        "clan_report": "Laporan klan",
+        "tracked_players": "Pemain dilacak",
+        "total_kills": "Total kill",
+        "total_wins": "Total kemenangan",
+        "win_rate": "Tingkat kemenangan",
+        "total_damage": "Total kerusakan",
+        "total_matches": "Total pertandingan",
+        "top_fraggers": "Pembunuh terbaik",
+        "lifetime_stats_footer": "Statistik dari API PUBG resmi · seumur hidup, per mode permainan",
+        
+        # Clan Level Report
+        "clan_level_report": "Level klan dan kemajuan mingguan",
+        "current_level": "Level saat ini",
+        "members": "Anggota",
+        "weekly_progress": "Kemajuan mingguan",
+        "first_snapshot": "Ini adalah snapshot klan pertama. Laporan mingguan berikutnya akan menunjukkan perubahan level.",
+        "level_change": "Perubahan level sejak laporan mingguan terakhir: **{change:+d}**",
+        "member_change": " · Perubahan anggota: **{change:+d}**",
+        "important_note": "Penting",
+        "clan_level_note": "API PUBG mengekspos level klan dan jumlah anggota, tetapi tidak XP yang dibutuhkan untuk level berikutnya. Oleh karena itu, kemajuan diukur dengan perubahan level klan antara laporan mingguan.",
+        "weekly_clan_progress_footer": "Kemajuan klan mingguan · API PUBG resmi",
+        
+        # Ranked Report
+        "ranked_report": "Peringkat",
+        "ranked_description": "Peringkat kompetitif musim saat ini.",
+        "highest_ranked": "Peringkat tertinggi",
+        "ranked_this_season": "Diperingkat musim ini",
+        "ranking": "Peringkat",
+        "no_ranked_matches": "Tidak ada pertandingan peringkat",
+        "no_ranked_description": "Tidak ada pemain yang dilacak memiliki pertandingan peringkat di antrian ini musim ini.",
+        "ranked_footer": "Pembaruan harian pukul 04:30 UTC (pembaruan langsung, tidak diposting ulang) · Statistik dari API PUBG resmi · peringkat, musim saat ini",
+        
+        # Daily Highlights Report
+        "daily_highlights": "Poin harian",
+        "fun_titles": "Judul lucu",
+        "highlights_description": "Berdasarkan {count} pemain yang bermain sejak reset harian (02:00 UTC).",
+        "no_recent_matches_available": "Tidak ada pertandingan terbaru tersedia",
+        "no_recent_matches_description": "Telemetri pertandingan PUBG hanya tersedia selama 14 hari terakhir. {count} pemain memiliki pertandingan yang lebih lama yang tidak dapat dianalisis.",
+        "no_matches_played": "Tidak ada pertandingan yang dimainkan",
+        "no_matches_description": "Tidak ada orang di daftar yang bermain di jendela ini.",
+        "top_10": "Top 10",
+        "kills_best_match": "kill (pertandingan terbaik)",
+        "dmg_best_match": "kerusakan (pertandingan terbaik)",
+        "human_bot_split": "manusia / {count} bot",
+        "matches_count": "pertandingan",
+        "highlights_footer": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang) · Statistik dari API PUBG resmi · poin harian, 24 jam terakhir",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "Ayam panggang",
+        "recent_squad_wins": "Kemenangan tim terbaru (5 pertandingan terakhir per pemain)",
+        "no_wins_yet": "Belum ada kemenangan tim hari ini!",
+        "total_wins_today": "Total kemenangan hari ini",
+        "chicken_dinner_footer": "Pembaruan setiap 15 menit · Reset harian pukul 04:00 UTC · Statistik dari API PUBG resmi",
+        
         # Command responses
         "no_players_tracked": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
         "player_added": "Pemain ditambahkan: {name}",
@@ -728,6 +1223,61 @@ TRANSLATIONS = {
         "hours_ago": "{hours} گھنٹے پہلے",
         "days_ago": "{days} دن پہلے",
         "no_recent_matches": "حالیہ میچ نہیں ملا",
+        
+        # Clan Report
+        "clan_report": "کلان رپورٹ",
+        "tracked_players": "ٹریک کیے گئے کھلاڑی",
+        "total_kills": "کل کلز",
+        "total_wins": "کل جیت",
+        "win_rate": "جیت کی شرح",
+        "total_damage": "کل نقصان",
+        "total_matches": "کل میچز",
+        "top_fraggers": "بہترین فرگرز",
+        "lifetime_stats_footer": "آفیشیل PUBG API سے اعدادوشمار · آجیونک، فی گیم موڈ",
+        
+        # Clan Level Report
+        "clan_level_report": "کلان لیول اور ہفتہ وار پیشرفت",
+        "current_level": "موجودہ لیول",
+        "members": "ممبرز",
+        "weekly_progress": "ہفتہ وار پیشرفت",
+        "first_snapshot": "یہ پہلا کلان سنیپ شاٹ ہے۔ اگلا ہفتہ وار رپورٹ لیول تبدیلی دکھائے گا۔",
+        "level_change": "آخری ہفتہ وار رپورٹ سے لیول تبدیلی: **{change:+d}**",
+        "member_change": " · ممبر تبدیلی: **{change:+d}**",
+        "important_note": "اہم",
+        "clan_level_note": "PUBG کلان لیول اور ممبرز کی تعداد ظاہر کرتا ہے، لیکن اگلے لیول کے لیے درکار XP نہیں۔ لہذا، پیشرفت ہفتہ وار رپورٹ کے درمیان کلان لیول تبدیلی سے ماپی جاتی ہے۔",
+        "weekly_clan_progress_footer": "ہفتہ وار کلان پیشرفت · آفیشیل PUBG API",
+        
+        # Ranked Report
+        "ranked_report": "رینکڈ",
+        "ranked_description": "موجودہ سیزن کی مقابلہاری رینکڈ اسٹینڈنگز۔",
+        "highest_ranked": "سب سے زیادہ رینکڈ",
+        "ranked_this_season": "اس سیزن میں رینکڈ",
+        "ranking": "رینکنگ",
+        "no_ranked_matches": "کوئی رینکڈ میچ نہیں",
+        "no_ranked_description": "اس سیزن میں اس قطار میں کوئی ٹریک کیا گیا کھلاڑی کے پاس رینکڈ میچ نہیں ہیں۔",
+        "ranked_footer": "روزانہ UTC رات 4:30 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں) · آفیشیل PUBG API سے اعدادوشمار · رینکڈ، موجودہ سیزن",
+        
+        # Daily Highlights Report
+        "daily_highlights": "روزانہ ہائی لائٹس",
+        "fun_titles": "مذاق کے عناوین",
+        "highlights_description": "روزانہ ری سیٹ (UTC رات 2 بجے) کے بعد کھیلنے والے {count} کھلاڑیوں کے مبنی۔",
+        "no_recent_matches_available": "کوئی حالیہ میچ دستیاب نہیں",
+        "no_recent_matches_description": "PUBG میچ ٹیلی میٹری صرف پچھلے 14 دنوں کے لیے دستیاب ہے۔ {count} کھلاڑیوں کے پرانے میچ ہیں جن کا تجزیہ نہیں کیا جا سکتا۔",
+        "no_matches_played": "کوئی میچ نہیں کھیلا",
+        "no_matches_description": "اسٹر پر اس ونڈو میں کسی نے نہیں کھیلا۔",
+        "top_10": "پہلے 10",
+        "kills_best_match": "کلز (بہترین میچ)",
+        "dmg_best_match": "نقصان (بہترین میچ)",
+        "human_bot_split": "انسان / {count} بوٹ",
+        "matches_count": "میچ",
+        "highlights_footer": "روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں) · آفیشیل PUBG API سے اعدادوشمار · روزانہ ہائی لائٹس، گوزرے 24 گھنٹے",
+        
+        # Chicken Dinner Report
+        "chicken_dinner": "چکن ڈنر",
+        "recent_squad_wins": "حالیہ اسکواڈ جیت (فی کھلاڑی پچھلے 5 میچ)",
+        "no_wins_yet": "آج تک کوئی اسکواڈ جیت نہیں!",
+        "total_wins_today": "آج کل جیت",
+        "chicken_dinner_footer": "ہر 15 منٹ میں اپ ڈیٹ · روزانہ UTC رات 4 بجے ری سیٹ · آفیشیل PUBG API سے اعدادوشمار",
         
         # Command responses
         "no_players_tracked": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
