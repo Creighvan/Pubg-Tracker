@@ -54,13 +54,13 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     disabled_reports = []
     digest_channel = guild_cfg.get("post_channel_id")
     if digest_channel and guild_cfg.get("digest_enabled", True):
-        hour = guild_cfg.get("digest_hour_est")
+        hour = guild_cfg.get("digest_hour_utc")
         if hour is None:
             interval = guild_cfg.get("post_interval_hours", 6)
             schedule = f"Every {interval} hour(s)"
             next_time = _next_interval_report(interval, guild_cfg.get("last_post_at"))
         else:
-            minute = guild_cfg.get("digest_minute_est", 0)
+            minute = guild_cfg.get("digest_minute_utc", 0)
             schedule = f"Daily at {hour:02d}:{minute:02d} UTC"
             next_time = _next_daily_report(hour, minute, guild_cfg.get("last_post_at"))
         embed.add_field(name="📊 Clan Digest", value=f"{_channel_mention(digest_channel)}\n{schedule}\n**Next:** {next_time}", inline=False)
@@ -69,9 +69,9 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         disabled_reports.append("Clan Digest")
 
     daily_reports = [
-        ("🟢 Last Active", "activity_enabled", "last_activity_channel_id", "activity_hour_est", "activity_minute_est", "last_activity_posted_at", 24, None),
-        ("🏆 Ranked", "ranked_enabled", "ranked_channel_id", "ranked_hour_est", "ranked_minute_est", "ranked_posted_at", 24, guild_cfg.get("ranked_queue", "squad")),
-        ("✨ Daily Highlights", "highlights_enabled", "highlights_channel_id", "highlights_hour_est", "highlights_minute_est", "highlights_posted_at", 24, None),
+        ("🟢 Last Active", "activity_enabled", "last_activity_channel_id", "activity_hour_utc", "activity_minute_utc", "last_activity_posted_at", 24, None),
+        ("🏆 Ranked", "ranked_enabled", "ranked_channel_id", "ranked_hour_utc", "ranked_minute_utc", "ranked_posted_at", 24, guild_cfg.get("ranked_queue", "squad")),
+        ("✨ Daily Highlights", "highlights_enabled", "highlights_channel_id", "highlights_hour_utc", "highlights_minute_utc", "highlights_posted_at", 24, None),
     ]
     for name, enabled_key, channel_key, hour_key, minute_key, posted_key, interval, queue in daily_reports:
         channel_id = guild_cfg.get(channel_key) or digest_channel
@@ -79,13 +79,13 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             continue
         if not guild_cfg.get(enabled_key, True):
             disabled_reports.append(name.replace("🟢 ", "").replace("🏆 ", "").replace("✨ ", ""))
-        # Special handling for Last Active and Ranked reports - they update in place at fixed EST times
+        # Special handling for Last Active and Ranked reports - they update in place at fixed UTC times
         if name in ("🟢 Last Active", "🏆 Ranked"):
             hour = guild_cfg.get(hour_key)
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
                 schedule = f"Daily at {hour:02d}:{minute:02d} UTC (updates in place)"
-                next_time = f"{hour:02d}:{minute:02d} EST"
+                next_time = f"{hour:02d}:{minute:02d} UTC"
                 embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
                 continue
         hour = guild_cfg.get(hour_key)
@@ -101,33 +101,33 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         embed.add_field(name=name, value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
 
     clan_channel = guild_cfg.get("clan_channel_id")
-    clan_weekday = guild_cfg.get("clan_weekday_est")
+    clan_weekday = guild_cfg.get("clan_weekday_utc")
     if clan_channel and clan_weekday is not None and guild_cfg.get("clan_level_enabled", True):
-        hour = guild_cfg.get("clan_hour_est", 0)
-        minute = guild_cfg.get("clan_minute_est", 0)
+        hour = guild_cfg.get("clan_hour_utc", 0)
+        minute = guild_cfg.get("clan_minute_utc", 0)
         weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[clan_weekday]
         next_time = _next_weekly_report(clan_weekday, hour, minute, guild_cfg.get("clan_posted_at"))
-        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern (updates in place)\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} UTC (updates in place)\n**Next:** {next_time}", inline=False)
     elif clan_channel and clan_weekday is not None:
         disabled_reports.append("Clan Level")
 
     survival_channel = guild_cfg.get("survival_channel_id")
-    survival_weekday = guild_cfg.get("survival_weekday_est")
+    survival_weekday = guild_cfg.get("survival_weekday_utc")
     if survival_channel and survival_weekday is not None and guild_cfg.get("survival_enabled", True):
-        hour = guild_cfg.get("survival_hour_est", 12)
-        minute = guild_cfg.get("survival_minute_est", 0)
+        hour = guild_cfg.get("survival_hour_utc", 12)
+        minute = guild_cfg.get("survival_minute_utc", 0)
         weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[survival_weekday]
         next_time = _next_weekly_report(survival_weekday, hour, minute, guild_cfg.get("survival_posted_at"))
-        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} Eastern (deletes & reposts with images)\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} UTC (deletes & reposts with images)\n**Next:** {next_time}", inline=False)
     elif survival_channel and survival_weekday is not None:
         disabled_reports.append("Survival Mastery")
 
     donation_channel = guild_cfg.get("donation_channel_id")
     if donation_channel and guild_cfg.get("donation_enabled", True):
-        hour = guild_cfg.get("donation_hour_est", 12)
-        minute = guild_cfg.get("donation_minute_est", 0)
+        hour = guild_cfg.get("donation_hour_utc", 12)
+        minute = guild_cfg.get("donation_minute_utc", 0)
         next_time = _next_weekly_report(6, hour, minute, guild_cfg.get("donation_posted_at"))
-        embed.add_field(name="☕ Donation Message", value=f"{_channel_mention(donation_channel)}\nEvery Sunday at {hour:02d}:{minute:02d} Eastern\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="☕ Donation Message", value=f"{_channel_mention(donation_channel)}\nEvery Sunday at {hour:02d}:{minute:02d} UTC\n**Next:** {next_time}", inline=False)
     elif donation_channel:
         disabled_reports.append("Donation Message")
 

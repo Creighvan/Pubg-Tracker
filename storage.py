@@ -20,28 +20,28 @@ _DEFAULT_GUILD = {
     "players": [],  # list of PUBG player names tracked for this server's clan
     "game_mode": "squad-fpp",
     "post_channel_id": None,
-    "post_interval_hours": 6,  # how often the auto digest posts (used only if digest_hour_est is None)
+    "post_interval_hours": 6,  # how often the auto digest posts (used only if digest_hour_utc is None)
     "digest_enabled": True,
-    "digest_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time instead of by interval
-    "digest_minute_est": 0,  # 0, 15, 30, or 45
+    "digest_hour_utc": None,  # 0-23, UTC time; if set, posts once/day at this time instead of by interval
+    "digest_minute_utc": 0,  # 0, 15, 30, or 45
     "last_post_at": None,  # ISO timestamp of the last auto digest post
     "last_activity_channel_id": None,  # where the 24h "last active" report posts
     "activity_enabled": True,
-    "activity_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
-    "activity_minute_est": 0,  # 0, 15, 30, or 45
+    "activity_hour_utc": None,  # 0-23, UTC time; if set, posts once/day at this time
+    "activity_minute_utc": 0,  # 0, 15, 30, or 45
     "last_activity_posted_at": None,  # ISO timestamp of the last activity report
     "last_activity_message_id": None,  # message ID for live-updating last active report
     "ranked_channel_id": None,  # where the 24h ranked TPP report posts
     "ranked_enabled": True,
-    "ranked_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
-    "ranked_minute_est": 0,  # 0, 15, 30, or 45
+    "ranked_hour_utc": None,  # 0-23, UTC time; if set, posts once/day at this time
+    "ranked_minute_utc": 0,  # 0, 15, 30, or 45
     "ranked_posted_at": None,  # ISO timestamp of the last ranked report
     "ranked_queue": "squad",  # squad, duo, or solo — TPP (no '-fpp' suffix)
     "ranked_known_players": {},  # game mode -> players previously found with ranked activity
     "highlights_channel_id": None,  # where the 24h "daily highlights" report posts
     "highlights_enabled": True,
-    "highlights_hour_est": None,  # 0-23, Eastern time; if set, posts once/day at this time
-    "highlights_minute_est": 0,  # 0, 15, 30, or 45
+    "highlights_hour_utc": None,  # 0-23, UTC time; if set, posts once/day at this time
+    "highlights_minute_utc": 0,  # 0, 15, 30, or 45
     "highlights_posted_at": None,  # ISO timestamp of the last highlights report
     "highlights_message_id": None,  # message ID for live-updating highlights report
     "clan_name": None,
@@ -50,22 +50,22 @@ _DEFAULT_GUILD = {
     "language": "en",  # preferred language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)
     "clan_channel_id": None,  # destination for the weekly clan-level report
     "clan_level_enabled": True,
-    "clan_weekday_est": None,  # Monday=0 through Sunday=6; None disables scheduling
-    "clan_hour_est": 0,
-    "clan_minute_est": 0,
+    "clan_weekday_utc": None,  # Monday=0 through Sunday=6; None disables scheduling
+    "clan_hour_utc": 0,
+    "clan_minute_utc": 0,
     "clan_posted_at": None,
     "clan_last_level": None,  # most recent successfully scheduled snapshot
     "clan_last_member_count": None,
     "survival_channel_id": None,  # destination for the weekly Survival Mastery report
     "survival_enabled": True,
-    "survival_weekday_est": None,  # Monday=0 through Sunday=6; None disables scheduling
-    "survival_hour_est": 12,
-    "survival_minute_est": 0,
+    "survival_weekday_utc": None,  # Monday=0 through Sunday=6; None disables scheduling
+    "survival_hour_utc": 12,
+    "survival_minute_utc": 0,
     "survival_posted_at": None,
     "donation_channel_id": None,  # opt-in channel for the weekly donation message
     "donation_enabled": True,
-    "donation_hour_est": 12,  # Sunday noon Eastern by default
-    "donation_minute_est": 0,
+    "donation_hour_utc": 12,  # Sunday noon UTC by default
+    "donation_minute_utc": 0,
     "donation_posted_at": None,
     "discord_links": {},  # pubg_name.lower() -> discord user id (int), for @mentions/congrats
     "leaderboard_shard": "pc-na",  # platform-REGION shard, only used by the leaderboards endpoint
@@ -76,7 +76,7 @@ _DEFAULT_GUILD = {
     "chicken_dinner_posted_matches": {},  # match_id -> match_id tracking for squad wins (avoids reposting same match)
     "chicken_dinner_message_id": None,  # id of the persistent chicken dinner message this bot edits in place (None = post a fresh one next update)
     "chicken_dinner_total_wins": 0,  # running tally of total chicken dinners for current 24-hour period
-    "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (12:00am EST)
+    "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (02:00 UTC)
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)

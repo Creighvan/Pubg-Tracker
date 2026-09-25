@@ -260,7 +260,7 @@ The bot can post a weekly Survival Mastery report grouped by PUBG tier, with **T
 Commands:
 - `/survivalstats` — post the report immediately.
 - `/setsurvivalchannel` — choose the weekly report channel.
-- `/setsurvivaltime <day> <hour> [minute]` — choose the weekly Eastern-time schedule.
+- `/setsurvivaltime <day> <hour> [minute]` — choose the weekly UTC schedule.
 - `/reporttoggle` → `Survival Mastery` → On/Off — enable or disable the scheduled report without losing its settings.
 
 The official PUBG API now exposes the Survival Mastery `tier` field, so the bot reads the tier directly rather than guessing it from the level.
@@ -292,28 +292,28 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setclan <member_name>` | Choose the clan through the exact PUBG name of one of its current members |
 | `/clanlevel` | Show current clan level, member count, and weekly change |
 | `/setclanchannel` | Set the channel for the weekly clan-level report |
-| `/setclantime <day> <hour> [minute]` | Schedule the clan-level report once a week, Eastern time |
+| `/setclantime <day> <hour> [minute]` | Schedule the clan-level report once a week, UTC time |
 | `/help` | Get assistance and the official Discord support-server link |
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
 | `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |
 | `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
-| `/setdonationtime <0-23>` | Choose the Sunday Eastern-time donation post time (defaults to noon) |
+| `/setdonationtime <0-23>` | Choose the Sunday UTC donation post time (defaults to noon) |
 | `/setchannel` | Set current channel as the auto-post destination |
 | `/setinterval <1-24>` | How often (hours) the digest auto-posts — ignored if `/setdigesttime` is set |
-| `/setdigesttime <0-23>` | Post the digest once/day at a fixed Eastern-time hour instead |
+| `/setdigesttime <0-23>` | Post the digest once/day at a fixed UTC hour instead |
 | `/lastactive` | Show when each roster player last played, right now |
-| `/setactivitychannel` | Set channel for the live-updating last active report (posts immediately, then updates at 3am KST daily reset) |
+| `/setactivitychannel` | Set channel for the live-updating last active report (posts immediately, then updates at 02:00 UTC daily reset) |
 | `/rankedsquad`, `/rankedduo`, `/rankedsolo` | Show current-season ranked TPP standings for that queue |
 | `/rankedsquadfpp`, `/rankedduofpp`, `/rankedsolofpp` | Show current-season ranked FPP standings for that queue |
 | `/refreshranked` | Rescan the full ranked roster and update the ranked report |
 | `/updateranked` | Update the ranked report with fresh data without clearing the cache |
-| `/setrankedchannel` | Set channel for the daily ranked report (posts immediately, then updates at 5:30am KST) |
+| `/setrankedchannel` | Set channel for the daily ranked report (posts immediately, then updates at 04:30 UTC) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/dailyhighlights` | Show daily-reset fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
-| `/sethighlightstime <0-23>` | Fixed Eastern-time hour for the highlights report |
+| `/sethighlightstime <0-23>` | Fixed UTC hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
 | `/linkme <pubg_name>` | Link your Discord account to a PUBG name (shows as a mention on `/leaderboardstats` results) |
 | `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (open to anyone) |
@@ -372,22 +372,20 @@ plain PUBG name.
 - `/links` — list every current PUBG-name-to-Discord link for the server.
 - `/pingtoggle <on/off>` — enable or disable mention notifications for achievement awards in reports (default: on). Avatar links still work regardless of this setting.
 
-### Fixed-time scheduling (Eastern)
+### Fixed-time scheduling (UTC)
 
 By default every auto-post uses an "every N hours since last post" model,
 which drifts around depending on when you last restarted the bot. If you'd
 rather everything post at a predictable, specific time — e.g. every report
-at 9:15am Eastern — use the four `/set*time` commands above. They take an
+at 09:15 UTC — use the four `/set*time` commands above. They take an
 hour (required) and an optional quarter-hour minute (:00/:15/:30/:45,
-defaults to :00), and use the real `America/New_York` timezone, so they
-automatically shift between EST and EDT with daylight saving, rather than
-being off by an hour half the year. Setting a fixed time for a report
+defaults to :00), and use UTC timezone consistently. Setting a fixed time for a report
 overrides its interval-based settings.
 
 ### Weekly clan-level report
 
 Set the PUBG clan once with `/setclan <current clan member>`, choose the destination with
-`/setclanchannel`, then use `/setclantime` to select a weekday and Eastern-time
+`/setclanchannel`, then use `/setclantime` to select a weekday and UTC
 hour. The report posts once per week and records the clan level and member-count
 change since its previous successful scheduled post. PUBG does not provide the
 XP remaining to the next clan level, so the weekly progress value is the actual

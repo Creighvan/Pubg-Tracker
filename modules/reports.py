@@ -27,7 +27,7 @@ import storage
 from pubg_api import PubgApiError
 import translations
 
-from modules.config import VALID_GAME_MODES, RANKED_MODE_LABELS, EASTERN
+from modules.config import VALID_GAME_MODES, RANKED_MODE_LABELS
 
 # Import storage's modify_guild for atomic operations
 modify_guild = storage.modify_guild
@@ -47,7 +47,7 @@ from modules.embeds import (
     build_survival_mastery_embeds,
     build_leaderboard_embed,
 )
-from modules.utils import _as_eastern
+from modules.utils import _as_utc
 
 
 async def fetch_clan_report(guild_id: int, guild_name: str) -> tuple[discord.Embed, list[dict]] | None:
