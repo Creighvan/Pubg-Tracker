@@ -467,14 +467,14 @@ expire, and doesn't require you to leave your own PC on.
 
 ## Daily Highlights Awards
 
-The `/dailyhighlights` command includes fun achievement awards based on matches played since the daily reset (3am KST):
+The `/dailyhighlights` command includes fun achievement awards based on matches played since the daily reset (02:00 UTC):
 
 - 🌳 **Tactical Shrub** — Awarded to the player with the best placement
   in a single match with 0 kills (e.g., placed #5 with 0 kills)
 - Other awards for top 10 placements, human vs bot kills, and achievement stats
 
 **Important changes:**
-- The report now checks **all matches since 3am KST daily reset** (not just the last 24 hours)
+- The report now checks **all matches since 02:00 UTC daily reset** (not just the last 24 hours)
 - It reviews **ALL matches for each player** in the daily window to find the **best single-match stats** (highest kills, damage, etc.)
 - Best single-match stats are displayed instead of aggregated totals
 - Supports **10 languages** with automatic detection: English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu
