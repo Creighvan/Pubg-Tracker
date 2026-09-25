@@ -520,10 +520,13 @@ def _friendly_weapon_name(weapon_id: str | None) -> str:
 
 
 def build_mastery_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     title = guild_cfg.get("clan_name") or guild_name
     embed = discord.Embed(
-        title=f"{title} — Weapon & Survival Mastery",
-        description="Each player's highest-level weapon and overall survival mastery.",
+        title=f"{title} — {get_translation(lang, 'mastery_report')}",
+        description=get_translation(lang, "mastery_description"),
         color=discord.Color.dark_teal(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -533,13 +536,13 @@ def build_mastery_embed(guild_name: str, guild_cfg: dict, players: list[dict], n
     if weapon_leader:
         w = weapon_leader["mastery"]
         embed.add_field(
-            name="🔫 Top Weapon Mastery",
+            name=f"🔫 {get_translation(lang, 'top_weapon_mastery')}",
             value=f"**{weapon_leader['name']}** — {_friendly_weapon_name(w['best_weapon'])} Lv.{w['best_weapon_level']}",
             inline=True,
         )
     if survival_leader:
         embed.add_field(
-            name="🎖️ Top Survival Level",
+            name=f"🎖️ {get_translation(lang, 'top_survival_level')}",
             value=f"**{survival_leader['name']}** — Lv.{survival_leader['mastery']['survival_level']}",
             inline=True,
         )
@@ -550,18 +553,18 @@ def build_mastery_embed(guild_name: str, guild_cfg: dict, players: list[dict], n
         weapon_name = _friendly_weapon_name(m["best_weapon"])
         lines.append(
             f"{i}. **{p['name']}** — {weapon_name} Lv.{m['best_weapon_level']} "
-            f"({m['best_weapon_kills']} kills) · Survival Lv.{m['survival_level']}"
+            f"({m['best_weapon_kills']} {get_translation(lang, 'kills')}) · {get_translation(lang, 'survival')} Lv.{m['survival_level']}"
         )
     chunk_size = 15
     for i in range(0, len(lines), chunk_size):
         embed.add_field(
-            name="Mastery" if i == 0 else "\u200b",
+            name=get_translation(lang, "mastery") if i == 0 else "\u200b",
             value="\n".join(lines[i:i + chunk_size]) or "None",
             inline=False,
         )
     if not_found:
         embed.add_field(
-            name="⚠️ Not found",
+            name=f"⚠️ {get_translation(lang, 'not_found')}",
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
