@@ -217,33 +217,33 @@ def build_clan_level_embed(guild_cfg: dict, clan: dict) -> discord.Embed:
     return embed
 
 
-def _format_time_ago(iso_str: str | None, days_inactive: int = None) -> str:
+def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str = "en") -> str:
+    from translations import get_translation
     if days_inactive is not None:
         # Use the explicit days_inactive count for auto-counted players
-        return f"{days_inactive} day(s) ago"
+        return get_translation(lang, "days_ago").format(days=days_inactive)
     if not iso_str:
-        return "No recent matches found"
+        return get_translation(lang, "no_recent_matches")
     then = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
     delta = datetime.now(timezone.utc) - then
     hours = delta.total_seconds() / 3600
     if hours < 1:
-        return "< 1 hour ago"
+        return get_translation(lang, "less_than_1_hour")
     if hours < 24:
-        return f"{int(hours)} hour(s) ago"
-    return f"{int(hours // 24)} day(s) ago"
+        return get_translation(lang, "hours_ago").format(hours=int(hours))
+    return get_translation(lang, "days_ago").format(days=int(hours // 24))
 
 
 def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     title = guild_cfg.get("clan_name") or guild_name
     protected_lower = [p.lower().strip() for p in (protected_players or [])]
 
     embed = discord.Embed(
-        title=f"{title} — Last Active Report",
-        description=(
-            "PUBG's API doesn't expose login history, so this shows the time "
-            "of each player's most recent **match**, which is the closest "
-            "available signal for \"last played.\""
-        ),
+        title=f"{title} — {get_translation(lang, 'last_active_report')}",
+        description=get_translation(lang, "last_active_description"),
         color=discord.Color.green(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -263,10 +263,10 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     # Count only protected players who are actually in the tracked list
     protected_count = sum(1 for p in players if p["name"].lower().strip() in protected_lower)
 
-    embed.add_field(name="🟢 Active last 24h", value=str(active_24h), inline=True)
-    embed.add_field(name="👥 Tracked players", value=str(len(players)), inline=True)
+    embed.add_field(name=f"🟢 {get_translation(lang, 'active_24h')}", value=str(active_24h), inline=True)
+    embed.add_field(name=f"👥 {get_translation(lang, 'tracked_players')}", value=str(len(players)), inline=True)
     if protected_count > 0:
-        embed.add_field(name="🛡️ Protected players", value=str(protected_count), inline=True)
+        embed.add_field(name=f"🛡️ {get_translation(lang, 'protected_players')}", value=str(protected_count), inline=True)
 
     def get_match_date(p):
         """Extract the match date for sorting, defaulting to None (oldest)."""
@@ -286,11 +286,11 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
         if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
             # manual_data is a dict with 'date' and 'set_at' keys
             match_date = manual_data["date"] if isinstance(manual_data, dict) else manual_data
-            source_note = " *(manual)*"
+            source_note = get_translation(lang, "source_manual")
             days_inactive = p.get("days_inactive")
         elif p.get("data_source") == "auto_count":
             match_date = p.get("last_match_date")
-            source_note = " *(auto-count)*"
+            source_note = get_translation(lang, "source_auto_count")
             days_inactive = p.get("days_inactive")
         else:
             match_date = p.get("last_match_at")
@@ -301,25 +301,23 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
         player_lower = p["name"].lower().strip()
         is_protected = player_lower in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
-        lines.append(f"{idx}. **{p['name']}**{protected_mark} — {_format_time_ago(match_date, days_inactive)}{source_note}")
+        lines.append(f"{idx}. **{p['name']}**{protected_mark} — {_format_time_ago(match_date, days_inactive, lang)}{source_note}")
 
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
     chunk_size = 20
     for i in range(0, len(lines), chunk_size):
         field_lines = lines[i : i + chunk_size]
         embed.add_field(
-            name="Players" if i == 0 else "\u200b",
+            name=get_translation(lang, "players") if i == 0 else "\u200b",
             value="\n".join(field_lines) or "None",
             inline=False,
         )
     if not_found:
         embed.add_field(
-            name="⚠️ Not found",
+            name=f"⚠️ {get_translation(lang, 'not_found')}",
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    from translations import get_translation
-    lang = guild_cfg.get("language", "en")
     footer_text = get_translation(lang, "updates_daily")
     if protected_count > 0:
         footer_text += " | " + get_translation(lang, "protected_footer")
