@@ -1109,10 +1109,10 @@ async def setstatuschannel(interaction: discord.Interaction):
     call sites) — never a new message per event. The event log itself is
     in-memory and resets on restart; it's a live feed, not an audit trail.
     """
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["status_channel_id"] = interaction.channel_id
-    guild_cfg["status_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["status_channel_id"] = interaction.channel_id
+        guild_cfg["status_message_id"] = None  # force a fresh message in the new channel
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ Bot status will be posted and kept up to date in {interaction.channel.mention}. "
         "It only updates when something actually happens — connect/disconnect, a server join/leave, "
@@ -1144,10 +1144,10 @@ async def reporttoggle(
     report: app_commands.Choice[str],
     enabled: app_commands.Choice[str],
 ):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
     is_enabled = enabled.value == "on"
-    guild_cfg[report.value] = is_enabled
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg[report.value] = is_enabled
+    await storage.modify_guild(interaction.guild_id, modifier)
     state = "enabled" if is_enabled else "disabled"
     await interaction.response.send_message(
         f"✅ **{report.name}** scheduled reports are now **{state}**. "
@@ -1163,12 +1163,13 @@ async def donate(interaction: discord.Interaction):
 @bot.tree.command(description="Enable the weekly Sunday donation post in this channel")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setdonationchannel(interaction: discord.Interaction):
+    def modifier(guild_cfg):
+        guild_cfg["donation_channel_id"] = interaction.channel_id
+        guild_cfg["donation_enabled"] = True
+    await storage.modify_guild(interaction.guild_id, modifier)
     guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["donation_channel_id"] = interaction.channel_id
-    guild_cfg["donation_enabled"] = True
-    await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ The optional donation message will post in {interaction.channel.mention} every "
+        f"✅ The donation message will post in {interaction.channel.mention} every "
         f"**Sunday at {guild_cfg['donation_hour_utc']:02d}:{guild_cfg['donation_minute_utc']:02d} UTC**. "
         "Use `/setdonationtime` to change the time."
     )
@@ -1177,13 +1178,14 @@ async def setdonationchannel(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel as where the clan digest gets auto-posted")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchannel(interaction: discord.Interaction):
+    def modifier(guild_cfg):
+        guild_cfg["post_channel_id"] = interaction.channel_id
+        guild_cfg["digest_enabled"] = True
+        # Seed last_post_at to now so the first auto-post fires a full interval
+        # from now, rather than immediately on the next 15-min check.
+        guild_cfg["last_post_at"] = datetime.now(timezone.utc).isoformat()
+    await storage.modify_guild(interaction.guild_id, modifier)
     guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["post_channel_id"] = interaction.channel_id
-    guild_cfg["digest_enabled"] = True
-    # Seed last_post_at to now so the first auto-post fires a full interval
-    # from now, rather than immediately on the next 15-min check.
-    guild_cfg["last_post_at"] = datetime.now(timezone.utc).isoformat()
-    await storage.save_guild(interaction.guild_id, guild_cfg)
     interval = guild_cfg.get("post_interval_hours", 6)
     await interaction.response.send_message(
         f"✅ Digest will auto-post in {interaction.channel.mention} every **{interval} hour(s)**. "
@@ -1195,9 +1197,9 @@ async def setchannel(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hours="e.g. 6 for every 6 hours")
 async def setinterval(interaction: discord.Interaction, hours: app_commands.Range[int, 1, 24]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["post_interval_hours"] = hours
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["post_interval_hours"] = hours
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"✅ Digest will now auto-post every **{hours} hour(s)**.")
 
 
@@ -1224,12 +1226,13 @@ WEEKDAY_CHOICES = [
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["digest_hour_utc"] = hour
-    guild_cfg["digest_minute_utc"] = minute.value if minute else 0
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    minute_val = minute.value if minute else 0
+    def modifier(guild_cfg):
+        guild_cfg["digest_hour_utc"] = hour
+        guild_cfg["digest_minute_utc"] = minute_val
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Digest will now post once a day at **{hour:02d}:{guild_cfg['digest_minute_utc']:02d} UTC**. "
+        f"✅ Digest will now post once a day at **{hour:02d}:{minute_val:02d} UTC**. "
         f"This overrides `/setinterval`."
     )
 
@@ -1244,13 +1247,14 @@ async def setclantime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["clan_weekday_utc"] = day.value
-    guild_cfg["clan_hour_utc"] = hour
-    guild_cfg["clan_minute_utc"] = minute.value if minute else 0
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    minute_val = minute.value if minute else 0
+    def modifier(guild_cfg):
+        guild_cfg["clan_weekday_utc"] = day.value
+        guild_cfg["clan_hour_utc"] = hour
+        guild_cfg["clan_minute_utc"] = minute_val
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Clan-level report will post every **{day.name} at {hour:02d}:{guild_cfg['clan_minute_utc']:02d} UTC**."
+        f"✅ Clan-level report will post every **{day.name} at {hour:02d}:{minute_val:02d} UTC**."
     )
 
 
@@ -1263,13 +1267,14 @@ async def setdonationtime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["donation_hour_utc"] = hour
-    guild_cfg["donation_minute_utc"] = minute.value if minute else 0
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    minute_val = minute.value if minute else 0
+    def modifier(guild_cfg):
+        guild_cfg["donation_hour_utc"] = hour
+        guild_cfg["donation_minute_utc"] = minute_val
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ The optional donation message will post every **Sunday at "
-        f"{hour:02d}:{guild_cfg['donation_minute_utc']:02d} UTC**."
+        f"{hour:02d}:{minute_val:02d} UTC**."
     )
 
 
@@ -1333,8 +1338,9 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
             except (discord.NotFound, discord.Forbidden, discord.HTTPException):
                 # Message deleted/inaccessible - post new one
                 new_message = await channel.send(embed=embed)
-                guild_cfg["last_activity_message_id"] = new_message.id
-                await storage.save_guild(guild_id, guild_cfg)
+                def modifier(guild_cfg):
+                    guild_cfg["last_activity_message_id"] = new_message.id
+                await storage.modify_guild(guild_id, modifier)
     except Exception as e:
         print(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}")
 
@@ -1342,11 +1348,11 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 02:00 UTC daily reset)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setactivitychannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["last_activity_channel_id"] = interaction.channel_id
-    guild_cfg["activity_enabled"] = True
-    guild_cfg["last_activity_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["last_activity_channel_id"] = interaction.channel_id
+        guild_cfg["activity_enabled"] = True
+        guild_cfg["last_activity_message_id"] = None  # force a fresh message in the new channel
+    await storage.modify_guild(interaction.guild_id, modifier)
     
     await interaction.response.defer()
     
@@ -1356,8 +1362,10 @@ async def setactivitychannel(interaction: discord.Interaction):
         if result:
             embed, players = result
             new_message = await interaction.channel.send(embed=embed)
-            guild_cfg["last_activity_message_id"] = new_message.id
-            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            def modifier(guild_cfg):
+                guild_cfg["last_activity_message_id"] = new_message.id
+            await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
                 f"✅ Last-active report posted in {interaction.channel.mention}. "
@@ -1625,11 +1633,11 @@ async def updateranked(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["ranked_channel_id"] = interaction.channel_id
-    guild_cfg["ranked_enabled"] = True
-    guild_cfg["ranked_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["ranked_channel_id"] = interaction.channel_id
+        guild_cfg["ranked_enabled"] = True
+        guild_cfg["ranked_message_id"] = None  # force a fresh message in the new channel
+    await storage.modify_guild(interaction.guild_id, modifier)
     
     await interaction.response.defer()
     
@@ -1639,8 +1647,10 @@ async def setrankedchannel(interaction: discord.Interaction):
         if result:
             embed, players = result
             new_message = await interaction.channel.send(embed=embed)
-            guild_cfg["ranked_message_id"] = new_message.id
-            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            def modifier(guild_cfg):
+                guild_cfg["ranked_message_id"] = new_message.id
+            await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
                 f"✅ Ranked report posted in {interaction.channel.mention}. "
@@ -1677,9 +1687,9 @@ async def setrankedchannel(interaction: discord.Interaction):
     ]
 )
 async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["ranked_queue"] = queue.value
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["ranked_queue"] = queue.value
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"✅ Daily ranked reports will now track **{queue.name}**.")
     await send_audit_log(
         interaction.guild_id,
@@ -1705,11 +1715,12 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["highlights_channel_id"] = interaction.channel_id
-    guild_cfg["highlights_enabled"] = True
-    guild_cfg["highlights_posted_at"] = datetime.now(timezone.utc).isoformat()
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    posted_at = datetime.now(timezone.utc).isoformat()
+    def modifier(guild_cfg):
+        guild_cfg["highlights_channel_id"] = interaction.channel_id
+        guild_cfg["highlights_enabled"] = True
+        guild_cfg["highlights_posted_at"] = posted_at
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ Daily highlights will post in {interaction.channel.mention} every 24 hours. "
         f"Use `/dailyhighlights` any time for an immediate one (it can take a minute — it reads match telemetry)."
@@ -1728,11 +1739,12 @@ async def sethighlightschannel(interaction: discord.Interaction):
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def sethighlightstime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["highlights_hour_utc"] = hour
-    guild_cfg["highlights_minute_utc"] = minute.value if minute else 0
-    await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{guild_cfg['highlights_minute_utc']:02d} UTC**.")
+    minute_val = minute.value if minute else 0
+    def modifier(guild_cfg):
+        guild_cfg["highlights_hour_utc"] = hour
+        guild_cfg["highlights_minute_utc"] = minute_val
+    await storage.modify_guild(interaction.guild_id, modifier)
+    await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{minute_val:02d} UTC**.")
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
@@ -1774,11 +1786,11 @@ async def survivalstats(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setsurvivalchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["survival_channel_id"] = interaction.channel_id
-    guild_cfg["survival_enabled"] = True
-    guild_cfg["survival_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["survival_channel_id"] = interaction.channel_id
+        guild_cfg["survival_enabled"] = True
+        guild_cfg["survival_message_id"] = None  # force a fresh message in the new channel
+    await storage.modify_guild(interaction.guild_id, modifier)
     
     await interaction.response.defer()
     
@@ -1788,9 +1800,12 @@ async def setsurvivalchannel(interaction: discord.Interaction):
         if result:
             embeds, files = result
             new_message = await interaction.channel.send(embeds=embeds, files=files)
-            guild_cfg["survival_message_id"] = new_message.id
-            await storage.save_guild(interaction.guild_id, guild_cfg)
             
+            def modifier(guild_cfg):
+                guild_cfg["survival_message_id"] = new_message.id
+            await storage.modify_guild(interaction.guild_id, modifier)
+            
+            guild_cfg = await storage.get_guild(interaction.guild_id)
             weekday = guild_cfg.get("survival_weekday_utc")
             if weekday is None:
                 await interaction.followup.send(
@@ -1829,14 +1844,15 @@ async def setsurvivaltime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["survival_weekday_utc"] = day.value
-    guild_cfg["survival_hour_utc"] = hour
-    guild_cfg["survival_minute_utc"] = minute.value if minute else 0
-    guild_cfg["survival_enabled"] = True
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    minute_val = minute.value if minute else 0
+    def modifier(guild_cfg):
+        guild_cfg["survival_weekday_utc"] = day.value
+        guild_cfg["survival_hour_utc"] = hour
+        guild_cfg["survival_minute_utc"] = minute_val
+        guild_cfg["survival_enabled"] = True
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{guild_cfg['survival_minute_utc']:02d} UTC**."
+        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{minute_val:02d} UTC**."
     )
 
 
@@ -1912,9 +1928,9 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     ]
 )
 async def setleaderboardregion(interaction: discord.Interaction, region: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["leaderboard_shard"] = region.value
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["leaderboard_shard"] = region.value
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"✅ Leaderboard lookups will now use **{region.name}**.")
 
 
@@ -1928,9 +1944,9 @@ async def setleaderboardregion(interaction: discord.Interaction, region: app_com
     ]
 )
 async def setleaderboardqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["leaderboard_queue"] = queue.value
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["leaderboard_queue"] = queue.value
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"✅ Leaderboard checks will now use **{queue.name}**.")
 
 
@@ -2092,8 +2108,9 @@ async def chickendinner(interaction: discord.Interaction):
     # If total_wins is 0 but we have recent wins, initialize the tally (count matches, not players)
     if total_wins == 0 and wins:
         total_wins = len(wins)
-        guild_cfg["chicken_dinner_total_wins"] = total_wins
-        await storage.save_guild(interaction.guild_id, guild_cfg)
+        def modifier(guild_cfg):
+            guild_cfg["chicken_dinner_total_wins"] = total_wins
+        await storage.modify_guild(interaction.guild_id, modifier)
     
     embed = build_chicken_dinner_embed(winners, is_automated=False, total_wins=total_wins)
     await interaction.followup.send(embed=embed)
@@ -2102,10 +2119,10 @@ async def chickendinner(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for automatic Chicken Dinner win alerts (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
-    guild_cfg["chicken_dinner_enabled"] = True
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
+        guild_cfg["chicken_dinner_enabled"] = True
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ Chicken Dinner win alerts will post in {interaction.channel.mention}. "
         "The bot checks match history every 15 minutes and posts squad wins from the last 5 matches per player."
