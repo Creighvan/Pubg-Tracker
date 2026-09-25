@@ -141,6 +141,9 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
 
 
 def build_clan_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     game_mode = guild_cfg["game_mode"]
     title = guild_cfg.get("clan_name") or guild_name
 
@@ -150,16 +153,16 @@ def build_clan_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_
     total_damage = sum(p["stats"].get("damageDealt", 0.0) for p in players)
 
     embed = discord.Embed(
-        title=f"{title} — Clan Report ({game_mode})",
+        title=f"{title} — {get_translation(lang, 'clan_report')} ({game_mode})",
         color=discord.Color.orange(),
         timestamp=datetime.now(timezone.utc),
     )
-    embed.add_field(name="👥 Tracked players", value=str(len(players)), inline=True)
-    embed.add_field(name="💀 Total kills", value=f"{total_kills:,}", inline=True)
-    embed.add_field(name="🏆 Total wins", value=f"{total_wins:,}", inline=True)
-    embed.add_field(name="📊 Win rate", value=f"{_safe_div(total_wins, total_games) * 100:.1f}%", inline=True)
-    embed.add_field(name="🎯 Total damage", value=f"{total_damage:,.0f}", inline=True)
-    embed.add_field(name="⚔️ Total matches", value=f"{total_games:,}", inline=True)
+    embed.add_field(name=f"👥 {get_translation(lang, 'tracked_players')}", value=str(len(players)), inline=True)
+    embed.add_field(name=f"💀 {get_translation(lang, 'total_kills')}", value=f"{total_kills:,}", inline=True)
+    embed.add_field(name=f"🏆 {get_translation(lang, 'total_wins')}", value=f"{total_wins:,}", inline=True)
+    embed.add_field(name=f"📊 {get_translation(lang, 'win_rate')}", value=f"{_safe_div(total_wins, total_games) * 100:.1f}%", inline=True)
+    embed.add_field(name=f"🎯 {get_translation(lang, 'total_damage')}", value=f"{total_damage:,.0f}", inline=True)
+    embed.add_field(name=f"⚔️ {get_translation(lang, 'total_matches')}", value=f"{total_games:,}", inline=True)
 
     ranked = sorted(players, key=lambda p: p["stats"].get("kills", 0), reverse=True)[:10]
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
@@ -170,16 +173,16 @@ def build_clan_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_
         rank_str = medals.get(i, f"{i}.")
         lines.append(f"{rank_str} **{p['name']}** — {s.get('kills', 0):,} kills, {s.get('wins', 0)} wins, {kd:.2f} K/D")
     if lines:
-        embed.add_field(name="🔝 Top Fraggers", value="\n".join(lines), inline=False)
+        embed.add_field(name=f"🔝 {get_translation(lang, 'top_fraggers')}", value="\n".join(lines), inline=False)
 
     if not_found:
         embed.add_field(
-            name="⚠️ Not found",
+            name=f"⚠️ {get_translation(lang, 'not_found')}",
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
 
-    embed.set_footer(text="Stats from the official PUBG API · lifetime, per game mode")
+    embed.set_footer(text=get_translation(lang, "lifetime_stats_footer"))
     return embed
 
 
@@ -474,7 +477,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 10:00pm EST (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
+    embed.set_footer(text="Updates daily at 02:00 UTC (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
     return embed
 
 
