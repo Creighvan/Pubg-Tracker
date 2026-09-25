@@ -462,6 +462,7 @@ async def on_guild_remove(guild: discord.Guild):
 # ---------- slash commands ----------
 
 @bot.tree.command(description="Add a PUBG player name to this server's tracked clan roster")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
 async def addplayer(interaction: discord.Interaction, name: str):
     added = await storage.add_player(interaction.guild_id, name)
@@ -481,6 +482,7 @@ async def addplayer(interaction: discord.Interaction, name: str):
 
 
 @bot.tree.command(description="Add many PUBG players at once — paste names separated by commas or new lines")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(names="e.g. PlayerOne, PlayerTwo, PlayerThree (commas or newlines both work)")
 async def addplayers(interaction: discord.Interaction, names: str):
     raw = names.replace("\n", ",").split(",")
@@ -504,6 +506,7 @@ async def addplayers(interaction: discord.Interaction, names: str):
 
 
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to remove")
 async def removeplayer(interaction: discord.Interaction, name: str):
     removed = await storage.remove_player(interaction.guild_id, name)
@@ -523,6 +526,7 @@ async def removeplayer(interaction: discord.Interaction, name: str):
 
 
 @bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to protect")
 async def addprotected(interaction: discord.Interaction, name: str):
     added = await storage.add_protected_player(interaction.guild_id, name)
@@ -540,6 +544,7 @@ async def addprotected(interaction: discord.Interaction, name: str):
 
 
 @bot.tree.command(description="Remove a player from the protected list")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to unprotect")
 async def removeprotected(interaction: discord.Interaction, name: str):
     removed = await storage.remove_protected_player(interaction.guild_id, name)
@@ -582,6 +587,7 @@ async def cleanprotected(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Clear and reset the entire protected player list")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def resetprotected(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["protected_players"] = []
@@ -590,6 +596,7 @@ async def resetprotected(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Bulk add protected players (one per line or comma-separated)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(players="Player names (one per line or comma-separated)")
 async def addprotectedbulk(interaction: discord.Interaction, players: str):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -621,6 +628,7 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
 
 
 @bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
 async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -642,6 +650,7 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
 
 
 @bot.tree.command(description="Remove manual inactive date for a player")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -661,6 +670,7 @@ async def removeinactivedate(interaction: discord.Interaction, name: str):
 
 
 @bot.tree.command(description="Reset auto-counting for a specific player (start counting from today)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def resetinactivedate(interaction: discord.Interaction, name: str):
     reset = await storage.reset_inactive_count(interaction.guild_id, name)
@@ -884,6 +894,7 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
 
 
 @bot.tree.command(description="Set the PUBG game mode used for stats (default squad-fpp)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
     mode=[app_commands.Choice(name=m, value=m) for m in sorted(VALID_GAME_MODES)]
 )
@@ -895,6 +906,7 @@ async def setgamemode(interaction: discord.Interaction, mode: app_commands.Choic
 
 
 @bot.tree.command(description="Set the clan-level report from a current PUBG clan member")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name of a member of the clan")
 async def setclan(interaction: discord.Interaction, name: str):
     await interaction.response.defer(ephemeral=True)
@@ -936,6 +948,7 @@ async def clanlevel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["clan_channel_id"] = interaction.channel_id
@@ -989,6 +1002,7 @@ async def help(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set the preferred language for this server")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
 async def setlanguage(interaction: discord.Interaction, language: str):
     # Valid language codes
@@ -1116,6 +1130,7 @@ async def donate(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Enable the weekly Sunday donation post in this channel")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setdonationchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["donation_channel_id"] = interaction.channel_id
@@ -1129,6 +1144,7 @@ async def setdonationchannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel as where the clan digest gets auto-posted")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["post_channel_id"] = interaction.channel_id
@@ -1145,6 +1161,7 @@ async def setchannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set how often (in hours) the digest auto-posts (ignored if a fixed time is set via /setdigesttime)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hours="e.g. 6 for every 6 hours")
 async def setinterval(interaction: discord.Interaction, hours: app_commands.Range[int, 1, 24]):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -1172,6 +1189,7 @@ WEEKDAY_CHOICES = [
 
 
 @bot.tree.command(description="Post the digest once a day at a fixed UTC time, instead of by interval")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
@@ -1186,6 +1204,7 @@ async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Ran
 
 
 @bot.tree.command(description="Set the weekly clan-level report time in UTC")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(day=WEEKDAY_CHOICES, minute=QUARTER_HOUR_CHOICES)
 async def setclantime(
@@ -1205,6 +1224,7 @@ async def setclantime(
 
 
 @bot.tree.command(description="Set the Sunday UTC donation post time")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hour="0-23, UTC (e.g. 12 for noon)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdonationtime(
@@ -1289,6 +1309,7 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
 
 
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 10pm EST daily reset)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setactivitychannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["last_activity_channel_id"] = interaction.channel_id
@@ -1574,6 +1595,7 @@ async def updateranked(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["ranked_channel_id"] = interaction.channel_id
@@ -1614,6 +1636,7 @@ async def setrankedchannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.guild_only()
 @app_commands.choices(
     queue=[
@@ -1652,6 +1675,7 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
 
 
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["highlights_channel_id"] = interaction.channel_id
@@ -1672,6 +1696,7 @@ async def sethighlightschannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Post the daily highlights report at a fixed UTC time each day")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def sethighlightstime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
@@ -1715,6 +1740,7 @@ async def survivalstats(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setsurvivalchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["survival_channel_id"] = interaction.channel_id
@@ -1762,6 +1788,7 @@ async def setsurvivalchannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set the weekly Survival Mastery report time in UTC")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(day=WEEKDAY_CHOICES, minute=QUARTER_HOUR_CHOICES)
 async def setsurvivaltime(
@@ -1835,6 +1862,7 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
 
 
 @bot.tree.command(description="Set the platform-region shard used for leaderboard lookups (default pc-na)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
     region=[
         app_commands.Choice(name="NA", value="pc-na"),
@@ -1855,6 +1883,7 @@ async def setleaderboardregion(interaction: discord.Interaction, region: app_com
 
 
 @bot.tree.command(description="Set which queue the leaderboard check looks at (squad, duo, or solo TPP)")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
     queue=[
         app_commands.Choice(name="Squad TPP", value="squad"),
@@ -1928,13 +1957,14 @@ async def linkme(interaction: discord.Interaction, pubg_name: str):
 
 
 @bot.tree.command(description="Link another member's Discord account to a PUBG name on their behalf")
+@app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(member="The Discord member to link", pubg_name="Their exact PUBG in-game name")
 async def linkplayer(interaction: discord.Interaction, member: discord.Member, pubg_name: str):
     """
     Counterpart to /linkme, for linking someone other than yourself — e.g.
-    a member who won't run the self-link command themselves. Open to
-    anyone, same as /linkme; not gated behind manage_guild. Same
-    verification and storage call as /linkme, just targeting an arbitrary
+    a member who won't run the self-link command themselves. Requires
+    Manage Server permission to prevent unauthorized account linking.
+    Same verification and storage call as /linkme, just targeting an arbitrary
     member instead of the caller.
     """
     await interaction.response.defer(ephemeral=True)
@@ -2033,6 +2063,7 @@ async def chickendinner(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel for automatic Chicken Dinner win alerts (defaults to the digest channel)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
