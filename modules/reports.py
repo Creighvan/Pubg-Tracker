@@ -128,7 +128,7 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                     continue
                 
                 # Check if we have an inactive_since_date
-                if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_lower):
+                if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_normalized):
                     # Calculate days from when they first hit 14-day mark
                     inactive_since_date = datetime.fromisoformat(inactive_since)
                     days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
@@ -141,10 +141,10 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                 else:
                     # First time hitting 14-day mark - set inactive_since_date
                     # Only set if not already set (to preserve dates during downtime)
-                    if player_lower not in guild_cfg.get("inactive_since_dates", {}):
-                        guild_cfg["inactive_since_dates"][player_lower] = datetime.now(timezone.utc).isoformat()
+                    if player_normalized not in guild_cfg.get("inactive_since_dates", {}):
+                        guild_cfg["inactive_since_dates"][player_normalized] = datetime.now(timezone.utc).isoformat()
                     # Start counting from 14 days ago from the inactive_since_date
-                    inactive_since_date = datetime.fromisoformat(guild_cfg["inactive_since_dates"][player_lower])
+                    inactive_since_date = datetime.fromisoformat(guild_cfg["inactive_since_dates"][player_normalized])
                     days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
                     calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
                     player["last_match_date"] = calculated_date
