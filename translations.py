@@ -606,7 +606,37 @@ TRANSLATIONS = {
         "recent_squad_wins": "हाल के स्क्वाड जीत (प्रति खिलाड़ी पिछले 5 मैच)",
         "no_wins_yet": "आज तक कोई स्क्वाड जीत नहीं!",
         "total_wins_today": "आज कुल जीत",
-        "chicken_dinner_footer": "हर 15 मिनट में अपडेट · दैनिक UTC रात 4 बजे रीसेट · आधिकारिक PUBG API से आँकड़े",
+        "chicken_dinner_footer": "दैनिक UTC रात 4 बजे रीसेट · आधिकारिक PUBG API से आँकड़े",
+        
+        # Mastery Report
+        "mastery_report": "हथियार और जीविता महारत",
+        "mastery_description": "प्रत्येक खिलाड़ी का उच्चतम स्तरीय हथियार और समग्र जीविता महारत।",
+        "top_weapon_mastery": "शीर्ष हथियार महारत",
+        "top_survival_level": "शीर्ष जीविता स्तर",
+        "mastery": "महारत",
+        "kills": "किल",
+        "survival": "जीविता",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "स्तर के अनुसार जीविता महारत",
+        "survival_mastery_description": "प्रत्येक खिलाड़ी का जीविता महारत स्तर, स्तर के अनुसार समूहीकृत।",
+        "no_survival_data": "कोई जीविता महारत डेटा उपलब्ध नहीं।",
+        
+        # Leaderboard Report
+        "leaderboard_report": "लीडरबोर्ड परिणाम",
+        "leaderboard_description": "ट्रैक किए गए खिलाड़ियों के लिए आधिकारिक PUBG लीडरबोर्ड प्लेसमेंट परिणाम।",
+        "no_leaderboard_results": "लीडरबोर्ड पर कोई ट्रैक किए गए खिलाड़ी नहीं मिले।",
+        
+        # Report Status
+        "report_status": "निर्धारित रिपोर्ट स्थिति",
+        "report_status_description": "केवल कॉन्फ़िगर किए गए रिपोर्ट निर्धारित होते हैं। सभी समय UTC हैं।",
+        "no_reports_configured": "अभी तक कोई स्वचालित रिपोर्ट कॉन्फ़िगर नहीं किया गया है। एक शेड्यूल करने के लिए `/set...channel` और `/set...time` कमांड का उपयोग करें।",
+        "channel": "चैनल",
+        "schedule": "समय सारणी",
+        "next_run": "अगला रन",
+        "status": "स्थिति",
+        "enabled_status": "सक्षम",
+        "disabled_status": "अक्षम",
         
         # Command responses
         "no_players_tracked": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
@@ -736,6 +766,36 @@ TRANSLATIONS = {
         "total_wins_today": "إجمالي الانتصارات اليوم",
         "chicken_dinner_footer": "تحديثات كل 15 دقيقة · إعادة تعيين يومية الساعة 04:00 UTC · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
         
+        # Mastery Report
+        "mastery_report": "إتقان الأسلحة والبقاء",
+        "mastery_description": "أعلى مستوى سلاح وإتقان البقاء الشامل لكل لاعب.",
+        "top_weapon_mastery": "أعلى إتقان سلاح",
+        "top_survival_level": "أعلى مستوى بقاء",
+        "mastery": "إتقان",
+        "kills": "قتل",
+        "survival": "بقاء",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "إتقان البقاء حسب المستوى",
+        "survival_mastery_description": "مستوى إتقان البقاء لكل لاعب، مجمّع حسب المستوى.",
+        "no_survival_data": "لا توجد بيانات إتقان البقاء متاحة.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "نتائج القائمة المتصدرين",
+        "leaderboard_description": "نتائج تصنيف PUBG الرسمية للاعبين المتتبعين.",
+        "no_leaderboard_results": "لم يتم العثور على لاعبين متتبعين في القائمة المتصدرين.",
+        
+        # Report Status
+        "report_status": "حالة التقرير المجدول",
+        "report_status_description": "يتم جدولة التقارير المهيأة فقط. جميع الأوقات هي UTC.",
+        "no_reports_configured": "لم يتم تكوين أي تقارير تلقائية بعد. استخدم أوامر `/set...channel` و `/set...time` لجدولة واحدة.",
+        "channel": "قناة",
+        "schedule": "الجدول",
+        "next_run": "التشغيل التالي",
+        "status": "الحالة",
+        "enabled_status": "ممكن",
+        "disabled_status": "معطل",
+        
         # Command responses
         "no_players_tracked": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
         "player_added": "تمت إضافة اللاعب: {name}",
@@ -863,6 +923,36 @@ TRANSLATIONS = {
         "no_wins_yet": "Aucune victoire d'escouade aujourd'hui !",
         "total_wins_today": "Victoires totales aujourd'hui",
         "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · Réinitialisation quotidienne à 04:00 UTC · Statistiques de l'API PUBG officielle",
+        
+        # Mastery Report
+        "mastery_report": "Maîtrise d'armes et de survie",
+        "mastery_description": "La maîtrise d'arme de plus haut niveau et la maîtrise de survie globale de chaque joueur.",
+        "top_weapon_mastery": "Meilleure maîtrise d'arme",
+        "top_survival_level": "Meilleur niveau de survie",
+        "mastery": "Maîtrise",
+        "kills": "éliminations",
+        "survival": "Survie",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "Maîtrise de survie par niveau",
+        "survival_mastery_description": "Niveau de maîtrise de survie de chaque joueur, groupé par niveau.",
+        "no_survival_data": "Aucune donnée de maîtrise de survie disponible.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "Résultats du classement",
+        "leaderboard_description": "Résultats de classement officiel PUBG pour les joueurs suivis.",
+        "no_leaderboard_results": "Aucun joueur suivi trouvé dans le classement.",
+        
+        # Report Status
+        "report_status": "État du rapport programmé",
+        "report_status_description": "Seuls les rapports configurés sont programmés. Toutes les heures sont UTC.",
+        "no_reports_configured": "Aucun rapport automatique n'est encore configuré. Utilisez les commandes `/set...channel` et `/set...time` pour en programmer un.",
+        "channel": "Salon",
+        "schedule": "Planning",
+        "next_run": "Prochaine exécution",
+        "status": "État",
+        "enabled_status": "Activé",
+        "disabled_status": "Désactivé",
         
         # Command responses
         "no_players_tracked": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
@@ -992,6 +1082,36 @@ TRANSLATIONS = {
         "total_wins_today": "আজ মোট জয়",
         "chicken_dinner_footer": "প্রতি 15 মিনিটে আপডেট · দৈনিক UTC রাত 4 টা রিসেট · অফিসিয়াল PUBG API থেকে পরিসংখ্যান",
         
+        # Mastery Report
+        "mastery_report": "অস্ত্র এবং বেঁচে বাঁচ মাস্টারি",
+        "mastery_description": "প্রত্যেক খেলোয়াড়ের সর্বোচ্চ স্তরের অস্ত্র এবং সামগ্রিক বেঁচে বাঁচ মাস্টারি।",
+        "top_weapon_mastery": "শীর্ষ অস্ত্র মাস্টারি",
+        "top_survival_level": "শীর্ষ বেঁচে বাঁচ স্তর",
+        "mastery": "মাস্টারি",
+        "kills": "কিল",
+        "survival": "বেঁচে বাঁচ",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "স্তর অনুযায় বেঁচে বাঁচ মাস্টারি",
+        "survival_mastery_description": "প্রত্যেক খেলোয়াড়ের বেঁচে বাঁচ মাস্টারি স্তর, স্তর অনুযায় গ্রুপ করা।",
+        "no_survival_data": "কোন বেঁচে বাঁচ মাস্টারি ডেটা উপলব্ধ নেই।",
+        
+        # Leaderboard Report
+        "leaderboard_report": "লিডারবোর্ড ফলাফল",
+        "leaderboard_description": "ট্র্যাক করা খেলোয়াড়দের জন্য অফিসিয়াল PUBG লিডারবোর্ড প্লেসমেন্ট ফলাফল।",
+        "no_leaderboard_results": "লিডারবোর্ডে কোন ট্র্যাক করা খেলোয়াড় পাওয়া যায়নি।",
+        
+        # Report Status
+        "report_status": "নির্ধারিত রিপোর্ট স্থিতি",
+        "report_status_description": "শুধুমাত্র কনফিগার করা রিপোর্টগুলি নির্ধারিত হয়। সমস্ত সময UTC।",
+        "no_reports_configured": "এখনও কোন স্বয়ংক্রিয় রিপোর্ট কনফিগার করা হয়নি। একট শিডিউল করতে `/set...channel` এবং `/set...time` কমান্ড ব্যবহার করুন।",
+        "channel": "চ্যানেল",
+        "schedule": "সময়সূচি",
+        "next_run": "পরবর্তী রান",
+        "status": "স্থিতি",
+        "enabled_status": "সক্ষম",
+        "disabled_status": "অক্ষম",
+        
         # Command responses
         "no_players_tracked": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
         "player_added": "খেলোয়াড় যোগ করা হয়েছে: {name}",
@@ -1119,6 +1239,36 @@ TRANSLATIONS = {
         "no_wins_yet": "Ainda não há vitórias de esquadrão hoje!",
         "total_wins_today": "Vitórias totais hoje",
         "chicken_dinner_footer": "Atualizações a cada 15 minutos · Redefinição diária às 04:00 UTC · Estatísticas da API oficial do PUBG",
+        
+        # Mastery Report
+        "mastery_report": "Maestria de armas e sobrevivência",
+        "mastery_description": "A maestria de arma de maior nível e a maestria de sobrevivência geral de cada jogador.",
+        "top_weapon_mastery": "Melhor maestria de arma",
+        "top_survival_level": "Melhor nível de sobrevivência",
+        "mastery": "Maestria",
+        "kills": "abates",
+        "survival": "Sobrevivência",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "Maestria de sobrevivência por nível",
+        "survival_mastery_description": "Nível de maestria de sobrevivência de cada jogador, agrupado por nível.",
+        "no_survival_data": "Nenhum dado de maestria de sobrevivência disponível.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "Resultados do ranking",
+        "leaderboard_description": "Resultados de classificação oficial PUBG para jogadores rastreados.",
+        "no_leaderboard_results": "Nenhum jogador rastreado encontrado no ranking.",
+        
+        # Report Status
+        "report_status": "Status do relatório agendado",
+        "report_status_description": "Apenas relatórios configurados são agendados. Todos os horários são UTC.",
+        "no_reports_configured": "Ainda não há relatórios automáticos configurados. Use os comandos `/set...channel` e `/set...time` para agendar um.",
+        "channel": "Canal",
+        "schedule": "Cronograma",
+        "next_run": "Próxima execução",
+        "status": "Status",
+        "enabled_status": "Habilitado",
+        "disabled_status": "Desabilitado",
         
         # Command responses
         "no_players_tracked": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
@@ -1248,6 +1398,36 @@ TRANSLATIONS = {
         "total_wins_today": "Total kemenangan hari ini",
         "chicken_dinner_footer": "Pembaruan setiap 15 menit · Reset harian pukul 04:00 UTC · Statistik dari API PUBG resmi",
         
+        # Mastery Report
+        "mastery_report": "Penguasaan senjata dan bertahan hidup",
+        "mastery_description": "Penguasaan senjata tingkat tertinggi dan penguasaan bertahan hidup keseluruhan setiap pemain.",
+        "top_weapon_mastery": "Penguasaan senjata terbaik",
+        "top_survival_level": "Level bertahan hidup terbaik",
+        "mastery": "Penguasaan",
+        "kills": "bunuh",
+        "survival": "Bertahan hidup",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "Penguasaan bertahan hidup berdasarkan level",
+        "survival_mastery_description": "Level penguasaan bertahan hidup setiap pemain, dikelompokkan berdasarkan level.",
+        "no_survival_data": "Tidak ada data penguasaan bertahan hidup yang tersedia.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "Hasil papan peringkat",
+        "leaderboard_description": "Hasil penempatan papan peringkat PUBG resmi untuk pemain yang dilacak.",
+        "no_leaderboard_results": "Tidak ada pemain yang dilacak ditemukan di papan peringkat.",
+        
+        # Report Status
+        "report_status": "Status laporan terjadwal",
+        "report_status_description": "Hanya laporan yang dikonfigurasi yang dijadwalkan. Semua waktu adalah UTC.",
+        "no_reports_configured": "Belum ada laporan otomatis yang dikonfigurasi. Gunakan perintah `/set...channel` dan `/set...time` untuk menjadwalkan satu.",
+        "channel": "Saluran",
+        "schedule": "Jadwal",
+        "next_run": "Jalankan berikutnya",
+        "status": "Status",
+        "enabled_status": "Diaktifkan",
+        "disabled_status": "Dinonaktifkan",
+        
         # Command responses
         "no_players_tracked": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
         "player_added": "Pemain ditambahkan: {name}",
@@ -1375,6 +1555,36 @@ TRANSLATIONS = {
         "no_wins_yet": "آج تک کوئی اسکواڈ جیت نہیں!",
         "total_wins_today": "آج کل جیت",
         "chicken_dinner_footer": "ہر 15 منٹ میں اپ ڈیٹ · روزانہ UTC رات 4 بجے ری سیٹ · آفیشیل PUBG API سے اعدادوشمار",
+        
+        # Mastery Report
+        "mastery_report": "ہتھیار اور بقا کی مہارت",
+        "mastery_description": "ہر کھلاڑی کا سب سے از درجے ہتھیار اور مجموعی بقا کی مہارت۔",
+        "top_weapon_mastery": "سب سے درجے ہتھیار",
+        "top_survival_level": "سب سے درجے بقا کی سطح",
+        "mastery": "مہارت",
+        "kills": "کلز",
+        "survival": "بقا",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "سطح کے مطابق بقا کی مہارت",
+        "survival_mastery_description": "ہر کھلاڑی کی بقا کی مہارت سطح، سطح کے مطابق گروپ کی گئی۔",
+        "no_survival_data": "کوئی بقا کی مہارت ڈیٹا دستیاب نہیں۔",
+        
+        # Leaderboard Report
+        "leaderboard_report": "لیڈر بورڈ نتائج",
+        "leaderboard_description": "ٹریک کیے گئے کھلاڑیوں کے لیے آفیشیل PUBG لیڈر بورڈ پلیسمنٹ نتائج۔",
+        "no_leaderboard_results": "لیڈر بورڈ پر کوئی ٹریک کیا گیا کھلاڑی نہیں ملا۔",
+        
+        # Report Status
+        "report_status": "شیڈول شدہ رپورٹ کی حیثیت",
+        "report_status_description": "صرف کنفیگر شدہ رپورٹ شیڈول کیے جاتے ہیں۔ تمام اوقات UTC ہیں۔",
+        "no_reports_configured": "ابھی تک کوئی خودکار رپورٹ کنفیگر نہیں کی گئی۔ ایک شیڈول کرنے کے لیے `/set...channel` اور `/set...time` کمانڈز استعمال کریں۔",
+        "channel": "چینل",
+        "schedule": "شیڈول",
+        "next_run": "اگلا رن",
+        "status": "حیثیت",
+        "enabled_status": "فعال",
+        "disabled_status": "غیر فعال",
         
         # Command responses
         "no_players_tracked": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
