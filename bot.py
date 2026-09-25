@@ -29,7 +29,6 @@ Slash commands:
   /postnow                  - manually trigger a digest post immediately
   /lastactive                - show when each roster player last played, right now
   /setactivitychannel        - set current channel for the 24h "last active" report
-  /setactivitytime <0-23>     - fixed UTC hour for the last-active report (obsolete)
   /rankedsquad                 - show current-season ranked Squad TPP standings
   /rankedduo                   - show current-season ranked Duo TPP standings
   /rankedsolo                  - show current-season ranked Solo TPP standings
@@ -1380,9 +1379,9 @@ async def setauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
         await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
         return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["audit_log_channel_id"] = interaction.channel_id
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["audit_log_channel_id"] = interaction.channel_id
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ Audit logs for this server will now post in {interaction.channel.mention} instead of the central audit server."
     )
@@ -1393,9 +1392,9 @@ async def clearauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
         await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
         return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["audit_log_channel_id"] = None
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["audit_log_channel_id"] = None
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         "✅ Custom audit channel removed. This server will now use the central audit server for logs."
     )
@@ -1514,13 +1513,15 @@ async def rankedsolofpp(interaction: discord.Interaction):
 
 @bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
 async def refreshranked(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["ranked_known_players"] = {}
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["ranked_known_players"] = {}
+    
+    await storage.modify_guild(interaction.guild_id, modifier)
     
     await interaction.response.defer()
     
     # Update the ranked report if a message exists
+    guild_cfg = await storage.get_guild(interaction.guild_id)
     channel_id = guild_cfg.get("ranked_channel_id")
     message_id = guild_cfg.get("ranked_message_id")
     
