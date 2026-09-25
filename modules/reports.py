@@ -28,6 +28,7 @@ from pubg_api import PubgApiError
 import translations
 
 from modules.config import VALID_GAME_MODES, RANKED_MODE_LABELS
+from modules.utils import normalize_player_name
 
 # Import storage's modify_guild for atomic operations
 modify_guild = storage.modify_guild
@@ -84,33 +85,33 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     def update_inactive_dates(guild_cfg):
         """Update inactive dates for players with no recent matches."""
         # Clean up protected players who are not in the tracked list to prevent mismatch
-        tracked_lower = [p.lower() for p in guild_cfg["players"]]
+        tracked_normalized = [normalize_player_name(p) for p in guild_cfg["players"]]
         guild_cfg["protected_players"] = [
             p for p in guild_cfg.get("protected_players", [])
-            if p.lower() in tracked_lower
+            if normalize_player_name(p) in tracked_normalized
         ]
         
         # First, clear manual/auto inactivity for players who have recent matches
         for player in players:
-            player_lower = player["name"].lower()
+            player_normalized = normalize_player_name(player["name"])
             
             if player.get("last_match_at"):
                 # Player has recent matches (active within 14 days)
                 # Clean up both auto-counting and manual overrides
-                if player_lower in guild_cfg.get("inactive_since_dates", {}):
-                    del guild_cfg["inactive_since_dates"][player_lower]
-                if player_lower in guild_cfg.get("manual_inactive_dates", {}):
-                    del guild_cfg["manual_inactive_dates"][player_lower]
+                if player_normalized in guild_cfg.get("inactive_since_dates", {}):
+                    del guild_cfg["inactive_since_dates"][player_normalized]
+                if player_normalized in guild_cfg.get("manual_inactive_dates", {}):
+                    del guild_cfg["manual_inactive_dates"][player_normalized]
         
         # Then handle players with no recent matches (beyond 14-day API limit)
         for player in players:
-            player_lower = player["name"].lower()
+            player_normalized = normalize_player_name(player["name"])
             
             if not player.get("last_match_at"):
                 # Player has no recent matches (beyond 14-day API limit)
                 
                 # Check if we have manual override first
-                if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_lower):
+                if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_normalized):
                     # Increment manual date daily based on when it was set
                     manual_date = datetime.fromisoformat(manual_data["date"])
                     set_at = datetime.fromisoformat(manual_data["set_at"])
@@ -122,8 +123,8 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
                     current_manual_date = manual_date + timedelta(days=days_since_set)
                     player["days_inactive"] = (datetime.now(timezone.utc) - current_manual_date).days
                     # Also remove from auto-counting if it exists to avoid conflicts
-                    if player_lower in guild_cfg.get("inactive_since_dates", {}):
-                        del guild_cfg["inactive_since_dates"][player_lower]
+                    if player_normalized in guild_cfg.get("inactive_since_dates", {}):
+                        del guild_cfg["inactive_since_dates"][player_normalized]
                     continue
                 
                 # Check if we have an inactive_since_date
@@ -153,15 +154,15 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
         # Also clear manual/auto inactivity for players not found in API results
         # This handles name changes or players who were removed from PUBG API
         for player_name in guild_cfg["players"]:
-            player_lower = player_name.lower()
-            player_found = any(p["name"].lower() == player_lower for p in players)
+            player_normalized = normalize_player_name(player_name)
+            player_found = any(normalize_player_name(p["name"]) == player_normalized for p in players)
             if not player_found:
                 # Player not found in API results - they may have changed names or been removed
                 # Clear both manual and auto inactivity to avoid stale data
-                if player_lower in guild_cfg.get("manual_inactive_dates", {}):
-                    del guild_cfg["manual_inactive_dates"][player_lower]
-                if player_lower in guild_cfg.get("inactive_since_dates", {}):
-                    del guild_cfg["inactive_since_dates"][player_lower]
+                if player_normalized in guild_cfg.get("manual_inactive_dates", {}):
+                    del guild_cfg["manual_inactive_dates"][player_normalized]
+                if player_normalized in guild_cfg.get("inactive_since_dates", {}):
+                    del guild_cfg["inactive_since_dates"][player_normalized]
     
     # Apply inactive date updates atomically
     await modify_guild(guild_id, update_inactive_dates)

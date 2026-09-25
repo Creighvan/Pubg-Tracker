@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 import discord
 
 from modules.config import RANKED_MODE_LABELS, VALID_GAME_MODES
-from modules.utils import _channel_mention, _safe_div
+from modules.utils import _channel_mention, _safe_div, normalize_player_name
 
 # Import scheduler helpers from bot.utils (these are used in build_report_status_embed)
 # Note: These are imported dynamically to avoid circular imports
@@ -242,7 +242,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     lang = guild_cfg.get("language", "en")
     
     title = guild_cfg.get("clan_name") or guild_name
-    protected_lower = [p.lower().strip() for p in (protected_players or [])]
+    protected_lower = [normalize_player_name(p) for p in (protected_players or [])]
 
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'last_active_report')}",
@@ -264,7 +264,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
 
     active_24h = sum(1 for p in players if p.get("last_match_at") and _recency_emoji(p["last_match_at"]) == "🟢")
     # Count only protected players who are actually in the tracked list
-    protected_count = sum(1 for p in players if p["name"].lower().strip() in protected_lower)
+    protected_count = sum(1 for p in players if normalize_player_name(p["name"]) in protected_lower)
 
     embed.add_field(name=f"🟢 {get_translation(lang, 'active_24h')}", value=str(active_24h), inline=True)
     embed.add_field(name=f"👥 {get_translation(lang, 'tracked_players')}", value=str(len(players)), inline=True)
@@ -273,7 +273,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
 
     def get_match_date(p):
         """Extract the match date for sorting, defaulting to None (oldest)."""
-        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
+        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(normalize_player_name(p["name"])):
             return manual_data["date"] if isinstance(manual_data, dict) else manual_data
         elif p.get("data_source") == "auto_count":
             return p.get("last_match_date")
@@ -286,7 +286,7 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     lines = []
     for idx, p in enumerate(players_sorted, start=1):
         # Check for manual inactive date override or auto-counted date
-        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(p["name"].lower()):
+        if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(normalize_player_name(p["name"])):
             # manual_data is a dict with 'date' and 'set_at' keys
             match_date = manual_data["date"] if isinstance(manual_data, dict) else manual_data
             source_note = get_translation(lang, "source_manual")
@@ -301,8 +301,8 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             days_inactive = None
 
         # Case-insensitive comparison for protected players
-        player_lower = p["name"].lower().strip()
-        is_protected = player_lower in protected_lower
+        player_normalized = normalize_player_name(p["name"])
+        is_protected = player_normalized in protected_lower
         protected_mark = " 🛡️" if is_protected else ""
         lines.append(f"{idx}. **{p['name']}**{protected_mark} — {_format_time_ago(match_date, days_inactive, lang)}{source_note}")
 
@@ -619,7 +619,7 @@ def build_survival_mastery_embeds(
             key=lambda p: (
                 p.get("mastery", {}).get("survival_level", 0),
                 p.get("mastery", {}).get("survival_xp", 0),
-                p.get("name", "").lower(),
+                normalize_player_name(p.get("name", "")),
             ),
             reverse=True,
         )
@@ -705,7 +705,7 @@ def build_leaderboard_embed(
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     lines = []
     for i, e in enumerate(ranked, start=1):
-        discord_id = guild_cfg.get("discord_links", {}).get(e["name"].lower())
+        discord_id = guild_cfg.get("discord_links", {}).get(normalize_player_name(e["name"]))
         who = f"<@{discord_id}>" if discord_id and mentions_enabled else f"**{e['name']}**"
         rank_str = medals.get(i, f"#{i}")
         lines.append(f"{rank_str} — Ladder #{e['rank']:,} — {who}")
@@ -796,7 +796,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     match_lines = []
     for match_id, players, created_at in matches_list:
         # Sort players alphabetically for consistent display
-        players_sorted = sorted(players, key=lambda x: x[0].lower())
+        players_sorted = sorted(players, key=lambda x: normalize_player_name(x[0]))
         
         # Build player list (names only, no kills)
         player_names = [name for name, _ in players_sorted]
