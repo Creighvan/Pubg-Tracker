@@ -61,6 +61,17 @@ TRANSLATIONS = {
         "protected_footer": "🛡️ = Protected from inactivity removal",
         "updates_daily": "Updates daily at 02:00 UTC (live-updating, not reposted)",
         
+        # Last Active Report
+        "last_active_report": "Last Active Report",
+        "last_active_description": "PUBG's API doesn't expose login history, so this shows the time of each player's most recent match, which is the closest available signal for \"last played.\"",
+        "players": "Players",
+        "source_manual": " *(manual)*",
+        "source_auto_count": " *(auto-count)*",
+        "less_than_1_hour": "< 1 hour ago",
+        "hours_ago": "{hours} hour(s) ago",
+        "days_ago": "{days} day(s) ago",
+        "no_recent_matches": "No recent matches found",
+        
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
         "player_added": "Added player: {name}",
@@ -122,6 +133,17 @@ TRANSLATIONS = {
         "not_found": "未找到",
         "protected_footer": "🛡️ = 免受不活跃移除保护",
         "updates_daily": "每天UTC凌晨2点更新（实时更新，不重新发布）",
+        
+        # Last Active Report
+        "last_active_report": "最后活跃报告",
+        "last_active_description": "PUBG API 不暴露登录历史，因此显示每位玩家最近**比赛**的时间，这是最接近“最后游戏”的可用信号。",
+        "players": "玩家",
+        "source_manual": " *(手动)*",
+        "source_auto_count": " *(自动计数)*",
+        "less_than_1_hour": "小于1小时前",
+        "hours_ago": "{hours}小时前",
+        "days_ago": "{days}天前",
+        "no_recent_matches": "未找到最近的比赛",
         
         # Command responses
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
@@ -185,6 +207,17 @@ TRANSLATIONS = {
         "protected_footer": "🛡️ = Protegido de eliminación por inactividad",
         "updates_daily": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado)",
         
+        # Last Active Report
+        "last_active_report": "Informe de última actividad",
+        "last_active_description": "La API de PUBG no expone el historial de inicio de sesión, por lo que esto muestra la hora de la **partida** más reciente de cada jugador, que es la señal más cercana disponible para \"última jugada\".",
+        "players": "Jugadores",
+        "source_manual": " *(manual)*",
+        "source_auto_count": " *(auto-contador)*",
+        "less_than_1_hour": "Hace menos de 1 hora",
+        "hours_ago": "Hace {hours} hora(s)",
+        "days_ago": "Hace {days} día(s)",
+        "no_recent_matches": "No se encontraron partidas recientes",
+        
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
         "player_added": "Jugador agregado: {name}",
@@ -246,6 +279,17 @@ TRANSLATIONS = {
         "not_found": "नहीं मिला",
         "protected_footer": "🛡️ = निष्क्रियता हटाने से संरक्षित",
         "updates_daily": "दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं)",
+        
+        # Last Active Report
+        "last_active_report": "अंतिम सक्रिय रिपोर्ट",
+        "last_active_description": "PUBG API लॉगिन इतिहास को उजागर नहीं करता, इसलिए यह प्रत्येक खिलाड़ी के सबसे हालिया **मैच** का समय दिखाता है, जो \"अंतिम खेला\" के लिए उपलब्ध सबसे करीबी संकेत है।",
+        "players": "खिलाड़ी",
+        "source_manual": " *(मैनुअल)*",
+        "source_auto_count": " *(स्वचालित गणना)*",
+        "less_than_1_hour": "1 घंटे से कम पहले",
+        "hours_ago": "{hours} घंटे पहले",
+        "days_ago": "{days} दिन पहले",
+        "no_recent_matches": "हाल के मैच नहीं मिले",
         
         # Command responses
         "no_players_tracked": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
@@ -309,6 +353,17 @@ TRANSLATIONS = {
         "protected_footer": "🛡️ = محمي من الإزالة بسبب عدم النشاط",
         "updates_daily": "تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر)",
         
+        # Last Active Report
+        "last_active_report": "تقرير آخر نشاط",
+        "last_active_description": "واجهة برمجة تطبيقات PUBG لا تكشف عن سجل تسجيل الدخول، لذا يعرض هذا وقت آخر **مباراة** لكل لاعب، وهو أقرب إشارة متاحة لـ \"آخر لعبت\".",
+        "players": "اللاعبون",
+        "source_manual": " *(يدوي)*",
+        "source_auto_count": " *(عداد تلقائي)*",
+        "less_than_1_hour": "أقل من ساعة",
+        "hours_ago": "منذ {hours} ساعة",
+        "days_ago": "منذ {days} يوم",
+        "no_recent_matches": "لم يتم العثور على مباريات حديثة",
+        
         # Command responses
         "no_players_tracked": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
         "player_added": "تمت إضافة اللاعب: {name}",
@@ -370,6 +425,17 @@ TRANSLATIONS = {
         "not_found": "Non trouvé",
         "protected_footer": "🛡️ = Protégé de la suppression par inactivité",
         "updates_daily": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié)",
+        
+        # Last Active Report
+        "last_active_report": "Rapport de dernière activité",
+        "last_active_description": "L'API PUBG n'expose pas l'historique de connexion, donc cela affiche l'heure du **match** le plus récent de chaque joueur, qui est le signal le plus proche disponible pour \"dernier joué\".",
+        "players": "Joueurs",
+        "source_manual": " *(manuel)*",
+        "source_auto_count": " *(comptage auto)*",
+        "less_than_1_hour": "Il y a moins d'1 heure",
+        "hours_ago": "Il y a {hours} heure(s)",
+        "days_ago": "Il y a {days} jour(s)",
+        "no_recent_matches": "Aucune partie récente trouvée",
         
         # Command responses
         "no_players_tracked": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
@@ -433,6 +499,17 @@ TRANSLATIONS = {
         "protected_footer": "🛡️ = নিষ্ক্রিয়তা অপসারণ থেকে সুরক্ষিত",
         "updates_daily": "দৈনিক UTC রাত 2 টায় আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়)",
         
+        # Last Active Report
+        "last_active_report": "শেষ সক্রিয় রিপোর্ট",
+        "last_active_description": "PUBG API লগইন ইতিহাস প্রকাশ করে না, তাই এটি প্রতিটি খেলোয়াড়ের সবচেয়ে সাম্প্রতিক **ম্যাচ** এর সময় দেখায়, যা \"শেষ খেলা\" এর জন্য উপলব্ধ নিকটতম সংকেত।",
+        "players": "খেলোয়াড়",
+        "source_manual": " *(ম্যানুয়াল)*",
+        "source_auto_count": " *(স্বয়ংক্রিয় গণনা)*",
+        "less_than_1_hour": "1 ঘন্টার কম",
+        "hours_ago": "{hours} ঘন্টা আগে",
+        "days_ago": "{days} দিন আগে",
+        "no_recent_matches": "সাম্প্রতিক ম্যাচ পাওয়া যায়নি",
+        
         # Command responses
         "no_players_tracked": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
         "player_added": "খেলোয়াড় যোগ করা হয়েছে: {name}",
@@ -494,6 +571,17 @@ TRANSLATIONS = {
         "not_found": "Não encontrado",
         "protected_footer": "🛡️ = Protegido de remoção por inatividade",
         "updates_daily": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado)",
+        
+        # Last Active Report
+        "last_active_report": "Relatório de última atividade",
+        "last_active_description": "A API da PUBG não expõe o histórico de login, então isso mostra a hora da **partida** mais recente de cada jogador, que é o sinal mais próximo disponível para \"última jogada\".",
+        "players": "Jogadores",
+        "source_manual": " *(manual)*",
+        "source_auto_count": " *(contagem automática)*",
+        "less_than_1_hour": "Menos de 1 hora atrás",
+        "hours_ago": "{hours} hora(s) atrás",
+        "days_ago": "{days} dia(s) atrás",
+        "no_recent_matches": "Nenhuma partida recente encontrada",
         
         # Command responses
         "no_players_tracked": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
@@ -557,6 +645,17 @@ TRANSLATIONS = {
         "protected_footer": "🛡️ = Dilindungi dari penghapusan karena tidak aktif",
         "updates_daily": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang)",
         
+        # Last Active Report
+        "last_active_report": "Laporan aktivitas terakhir",
+        "last_active_description": "API PUBG tidak mengekspos riwayat login, jadi ini menunjukkan waktu **pertandingan** terbaru setiap pemain, yang merupakan sinyal terdekat yang tersedia untuk \"terakhir dimainkan\".",
+        "players": "Pemain",
+        "source_manual": " *(manual)*",
+        "source_auto_count": " *(hitungan otomatis)*",
+        "less_than_1_hour": "Kurang dari 1 jam yang lalu",
+        "hours_ago": "{hours} jam yang lalu",
+        "days_ago": "{days} hari yang lalu",
+        "no_recent_matches": "Tidak ada pertandingan terbaru ditemukan",
+        
         # Command responses
         "no_players_tracked": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
         "player_added": "Pemain ditambahkan: {name}",
@@ -618,6 +717,17 @@ TRANSLATIONS = {
         "not_found": "نہیں ملا",
         "protected_footer": "🛡️ = عدم فعالیت سے ہٹانے سے محفوظ",
         "updates_daily": "روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں)",
+        
+        # Last Active Report
+        "last_active_report": "آخری فعال رپورٹ",
+        "last_active_description": "PUBG API لاگ ان ہسٹری کو ظاہر نہیں کرتا، اس لیے یہ ہر کھلاڑی کے حالیہ **میچ** کا وقت دکھاتا ہے، جو \"آخری کھیلا\" کے لیے دستیاب قریب ترین سگنل ہے۔",
+        "players": "کھلاڑی",
+        "source_manual": " *(دستی)*",
+        "source_auto_count": " *(خودکار گنتی)*",
+        "less_than_1_hour": "1 گھنٹے سے کم پہلے",
+        "hours_ago": "{hours} گھنٹے پہلے",
+        "days_ago": "{days} دن پہلے",
+        "no_recent_matches": "حالیہ میچ نہیں ملا",
         
         # Command responses
         "no_players_tracked": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
