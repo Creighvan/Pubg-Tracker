@@ -125,7 +125,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Recent squad wins (last 5 matches per player)",
         "no_wins_yet": "No squad wins yet today!",
         "total_wins_today": "Total wins today",
-        "chicken_dinner_footer": "Updates every 15 minutes · Resets daily at 04:00 UTC · Stats from the official PUBG API",
+        "chicken_dinner_footer": "Updates every 15 minutes · Resets daily at 02:00 UTC · Stats from the official PUBG API",
         
         # Mastery Report
         "mastery_report": "Weapon & Survival Mastery",
@@ -426,7 +426,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
         "no_wins_yet": "Aún no hay victorias de escuadrón hoy!",
         "total_wins_today": "Victorias totales hoy",
-        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 04:00 UTC · Estadísticas de la API oficial de PUBG",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 02:00 UTC · Estadísticas de la API oficial de PUBG",
         
         # Mastery Report
         "mastery_report": "Maestría de armas y supervivencia",
@@ -478,7 +478,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
         "no_wins_yet": "¡Aún no hay victorias de escuadrón hoy!",
         "total_wins_today": "Victorias totales hoy",
-        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 04:00 UTC · Estadísticas de la API oficial de PUBG",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 02:00 UTC · Estadísticas de la API oficial de PUBG",
         
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
@@ -764,7 +764,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "انتصارات الفريق الأخيرة (آخر 5 مباريات لكل لاعب)",
         "no_wins_yet": "لا توجد انتصارات للفريق حتى الآن!",
         "total_wins_today": "إجمالي الانتصارات اليوم",
-        "chicken_dinner_footer": "تحديثات كل 15 دقيقة · إعادة تعيين يومية الساعة 04:00 UTC · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
+        "chicken_dinner_footer": "تحديثات كل 15 دقيقة · إعادة تعيين يومية الساعة 02:00 UTC · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
         
         # Mastery Report
         "mastery_report": "إتقان الأسلحة والبقاء",
@@ -922,7 +922,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Victoires d'escouade récentes (5 dernières parties par joueur)",
         "no_wins_yet": "Aucune victoire d'escouade aujourd'hui !",
         "total_wins_today": "Victoires totales aujourd'hui",
-        "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · Réinitialisation quotidienne à 04:00 UTC · Statistiques de l'API PUBG officielle",
+        "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · Réinitialisation quotidienne à 02:00 UTC · Statistiques de l'API PUBG officielle",
         
         # Mastery Report
         "mastery_report": "Maîtrise d'armes et de survie",
@@ -1238,7 +1238,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Vitórias recentes de esquadrão (últimas 5 partidas por jogador)",
         "no_wins_yet": "Ainda não há vitórias de esquadrão hoje!",
         "total_wins_today": "Vitórias totais hoje",
-        "chicken_dinner_footer": "Atualizações a cada 15 minutos · Redefinição diária às 04:00 UTC · Estatísticas da API oficial do PUBG",
+        "chicken_dinner_footer": "Atualizações a cada 15 minutos · Redefinição diária às 02:00 UTC · Estatísticas da API oficial do PUBG",
         
         # Mastery Report
         "mastery_report": "Maestria de armas e sobrevivência",
@@ -1396,7 +1396,7 @@ TRANSLATIONS = {
         "recent_squad_wins": "Kemenangan tim terbaru (5 pertandingan terakhir per pemain)",
         "no_wins_yet": "Belum ada kemenangan tim hari ini!",
         "total_wins_today": "Total kemenangan hari ini",
-        "chicken_dinner_footer": "Pembaruan setiap 15 menit · Reset harian pukul 04:00 UTC · Statistik dari API PUBG resmi",
+        "chicken_dinner_footer": "Pembaruan setiap 15 menit · Reset harian pukul 02:00 UTC · Statistik dari API PUBG resmi",
         
         # Mastery Report
         "mastery_report": "Penguasaan senjata dan bertahan hidup",

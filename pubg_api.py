@@ -525,7 +525,7 @@ class PubgClient:
         self, names: list[str], hours: int = 24, max_matches_checked: int = None
     ) -> tuple[list[dict], list[str]]:
         """
-        For each roster player, checks all matches since daily reset (3am KST)
+        For each roster player, checks all matches since daily reset (02:00 UTC)
         and aggregates their best stats from that window (kills/damage/headshots/
         revives/assists/wins, and via match telemetry — splits kills into human vs AI-bot kills).
         PUBG tags bot accounts with an "ai." accountId prefix; there's no
@@ -546,14 +546,9 @@ class PubgClient:
         winPlace achieved in a match where they got 0 kills, or None if
         every match had at least 1 kill. Sorted by kills, highest first.
         """
-        # Use 12:00am EST (UTC-5) as daily reset time instead of rolling 24-hour window
-        from zoneinfo import ZoneInfo
-        est = ZoneInfo("America/New_York")
-        now_est = datetime.now(est)
-        reset_time_est = now_est.replace(hour=0, minute=0, second=0, microsecond=0)
-        if now_est < reset_time_est:
-            reset_time_est -= timedelta(days=1)
-        cutoff = reset_time_est.astimezone(timezone.utc)
+        # Use centralized PUBG daily reset function (02:00 UTC)
+        from modules.utils import get_current_pubg_day
+        cutoff = get_current_pubg_day()
 
         found: list[dict] = []
         not_found: list[str] = []
