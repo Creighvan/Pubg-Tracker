@@ -796,7 +796,7 @@ class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical 
                 stats = player.get("stats", {})
                 flags = _detect_statistical_anomalies(stats)
                 if flags:
-                    await storage.update_suspicious_player(interaction.guild_id, player_name, stats, flags)
+                    await storage.update_statistical_anomaly(interaction.guild_id, player_name, stats, flags)
             
             embed = discord.Embed(
                 title="📊 Statistical Anomaly Report Submitted",
@@ -820,7 +820,7 @@ class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical 
             if channel_id:
                 channel = bot.get_channel(channel_id)
                 if channel:
-                    await channel.send(f"🚨 New cheat report submitted by {reporter_name} against **{accused_name}**")
+                    await channel.send(f"🚨 New cheat report submitted by {reporter_name} against **{player_name}**")
                     
         except Exception as e:
             await interaction.followup.send(f"Error submitting report: {e}")

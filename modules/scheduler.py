@@ -78,18 +78,19 @@ async def auto_digest():
         channel = _get_bot().get_channel(channel_id)
         if guild is None or channel is None:
             continue
-        # Mark the attempt now, before making any API calls — so a failure
-        # (e.g. a transient rate limit) waits for the next full interval
-        # instead of retrying on every 15-min check, which is what was
-        # causing bursts and repeated rate-limit errors.
-        guild_cfg["last_post_at"] = now.isoformat()
-        await storage.save_guild(guild_id, guild_cfg)
         try:
             async with get_scheduler_lock():
                 result = await fetch_clan_report(guild_id, guild.name)
             if result:
                 embed, players = result
                 await channel.send(embed=embed)
+                
+                # Mark as posted after successful send
+                guild_cfg["last_post_at"] = now.isoformat()
+                def modifier(g):
+                    g["last_post_at"] = guild_cfg["last_post_at"]
+                await storage.modify_guild(guild_id, modifier)
+                
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Posted",
@@ -261,15 +262,17 @@ async def auto_ranked():
                         # Message deleted/inaccessible - post new one
                         new_message = await channel.send(embed=embed)
                         guild_cfg["ranked_message_id"] = new_message.id
-                        await storage.save_guild(guild_id, guild_cfg)
                 else:
                     new_message = await channel.send(embed=embed)
                     guild_cfg["ranked_message_id"] = new_message.id
-                    await storage.save_guild(guild_id, guild_cfg)
                 
-                # Mark as posted today
+                # Mark as posted today and save atomically
                 guild_cfg["ranked_posted_at"] = now_utc.isoformat()
-                await storage.save_guild(guild_id, guild_cfg)
+                
+                def modifier(g):
+                    g["ranked_message_id"] = guild_cfg["ranked_message_id"]
+                    g["ranked_posted_at"] = guild_cfg["ranked_posted_at"]
+                await storage.modify_guild(guild_id, modifier)
                 
                 await send_audit_log(
                     guild_id,
@@ -428,17 +431,21 @@ async def auto_clan_level():
                     # Message deleted/inaccessible - post new one
                     new_message = await channel.send(embed=embed)
                     guild_cfg["clan_message_id"] = new_message.id
-                    await storage.save_guild(guild_id, guild_cfg)
             else:
                 new_message = await channel.send(embed=embed)
                 guild_cfg["clan_message_id"] = new_message.id
-                await storage.save_guild(guild_id, guild_cfg)
             
             # A snapshot only counts after Discord accepted the report.
             guild_cfg["clan_posted_at"] = datetime.now(timezone.utc).isoformat()
             guild_cfg["clan_last_level"] = clan["level"]
             guild_cfg["clan_last_member_count"] = clan["member_count"]
-            await storage.save_guild(guild_id, guild_cfg)
+            
+            def modifier(g):
+                g["clan_message_id"] = guild_cfg["clan_message_id"]
+                g["clan_posted_at"] = guild_cfg["clan_posted_at"]
+                g["clan_last_level"] = guild_cfg["clan_last_level"]
+                g["clan_last_member_count"] = guild_cfg["clan_last_member_count"]
+            await storage.modify_guild(guild_id, modifier)
         except PubgApiError as e:
             print(f"[auto_clan_level] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_clan_level report failed for guild {guild_id}: {e}"[:200])
@@ -493,10 +500,12 @@ async def auto_survival_mastery():
                     pass
             new_message = await channel.send(embeds=embeds, files=files)
             guild_cfg["survival_message_id"] = new_message.id
-            await storage.save_guild(guild_id, guild_cfg)
-            
             guild_cfg["survival_posted_at"] = now.isoformat()
-            await storage.save_guild(guild_id, guild_cfg)
+            
+            def modifier(g):
+                g["survival_message_id"] = guild_cfg["survival_message_id"]
+                g["survival_posted_at"] = guild_cfg["survival_posted_at"]
+            await storage.modify_guild(guild_id, modifier)
         except PubgApiError as e:
             print(f"[auto_survival_mastery] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_survival_mastery report failed for guild {guild_id}: {e}"[:200])
@@ -526,7 +535,10 @@ async def auto_donations():
         try:
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
-            await storage.save_guild(guild_id, guild_cfg)
+            
+            def modifier(g):
+                g["donation_posted_at"] = guild_cfg["donation_posted_at"]
+            await storage.modify_guild(guild_id, modifier)
             # Create embed for donation message
             donation_embed = discord.Embed(
                 title="☕ Donation Message",
@@ -586,16 +598,20 @@ async def auto_chicken_dinner():
                 needs_reset = True
         else:
             # First time setup - set reset time to current PUBG day
-            guild_cfg["chicken_dinner_reset_at"] = get_current_pubg_day(now_utc).isoformat()
-            await storage.save_guild(guild_id, guild_cfg)
+            reset_time = get_current_pubg_day(now_utc).isoformat()
+            def modifier(g):
+                g["chicken_dinner_reset_at"] = reset_time
+            await storage.modify_guild(guild_id, modifier)
             guild_cfg = await storage.get_guild(guild_id)
         
         if needs_reset:
             # New day - reset tally and posted matches
-            guild_cfg["chicken_dinner_posted_matches"] = {}
-            guild_cfg["chicken_dinner_total_wins"] = 0
-            guild_cfg["chicken_dinner_reset_at"] = get_current_pubg_day(now_utc).isoformat()
-            await storage.save_guild(guild_id, guild_cfg)
+            reset_time = get_current_pubg_day(now_utc).isoformat()
+            def modifier(g):
+                g["chicken_dinner_posted_matches"] = {}
+                g["chicken_dinner_total_wins"] = 0
+                g["chicken_dinner_reset_at"] = reset_time
+            await storage.modify_guild(guild_id, modifier)
             # Update guild_cfg after reset
             guild_cfg = await storage.get_guild(guild_id)
             # Use the reset timestamp for filtering
@@ -654,7 +670,7 @@ async def auto_chicken_dinner():
 
         # Update running tally for current 24-hour period (count matches, not players)
         current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
-        new_match_count = len([win for win in wins if win.get("match_id") not in posted_matches])
+        new_match_count = len(new_wins)
         total_wins = current_total + new_match_count
 
         try:
@@ -695,7 +711,12 @@ async def auto_chicken_dinner():
             # accepted the message
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
             guild_cfg["chicken_dinner_total_wins"] = total_wins
-            await storage.save_guild(guild_id, guild_cfg)
+            
+            def modifier(g):
+                g["chicken_dinner_posted_matches"] = guild_cfg["chicken_dinner_posted_matches"]
+                g["chicken_dinner_total_wins"] = guild_cfg["chicken_dinner_total_wins"]
+                g["chicken_dinner_message_id"] = guild_cfg.get("chicken_dinner_message_id")
+            await storage.modify_guild(guild_id, modifier)
             
             if new_wins:
                 await send_audit_log(
@@ -752,9 +773,6 @@ async def auto_feedback_prompt():
         if channel is None:
             continue
 
-        guild_cfg["last_feedback_prompt_at"] = now.isoformat()
-        await storage.save_guild(guild_id, guild_cfg)
-
         embed = build_feedback_prompt_embed()
         try:
             # Import FeedbackPromptView from bot.py to avoid circular import
@@ -763,6 +781,12 @@ async def auto_feedback_prompt():
             FeedbackPromptView = bot_module.FeedbackPromptView
             await channel.send(embed=embed, view=FeedbackPromptView())
             print(f"[auto_feedback] Posted 14-day feedback prompt to {guild.name} (#{channel.name})")
+            
+            # Only mark as posted after successful send
+            guild_cfg["last_feedback_prompt_at"] = now.isoformat()
+            def modifier(g):
+                g["last_feedback_prompt_at"] = guild_cfg["last_feedback_prompt_at"]
+            await storage.modify_guild(guild_id, modifier)
         except Exception as e:
             print(f"[auto_feedback] Failed to send prompt in {guild.name}: {e}")
 

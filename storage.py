@@ -185,8 +185,12 @@ async def modify_guild(guild_id: int, modifier):
     receives the guild dict and can mutate it, then the changes are
     saved immediately while still holding the lock.
     
+    The modifier can optionally return a value, which will be returned
+    by this function. This is useful for commands that need to know
+    whether a change was made.
+    
     Example:
-        await modify_guild(guild_id, lambda g: g["players"].append(name))
+        result = await modify_guild(guild_id, lambda g: g["players"].append(name))
     """
     async with _lock:
         data = _load()
@@ -197,9 +201,10 @@ async def modify_guild(guild_id: int, modifier):
             merged = copy.deepcopy(_DEFAULT_GUILD)
             merged.update(guild)
             guild = merged
-        modifier(guild)
+        result = modifier(guild)
         data[str(guild_id)] = guild
         _save(data)
+        return result
 
 
 async def all_guild_ids() -> list[int]:
