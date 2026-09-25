@@ -12,7 +12,6 @@ circular imports. Only standard library and external dependencies are allowed.
 import asyncio
 import os
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
 import discord
 from discord import app_commands
@@ -67,9 +66,9 @@ RANKED_MODE_LABELS = {
 
 # ---------- Timezone ----------
 # America/New_York rather than a fixed UTC-5 offset, so this automatically
-# tracks EST/EDT across daylight saving changes instead of drifting an hour
+# tracks UTC consistently
 # twice a year.
-EASTERN = ZoneInfo("America/New_York")
+
 
 # ---------- Discord bot setup ----------
 intents = discord.Intents.default()

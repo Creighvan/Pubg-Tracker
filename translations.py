@@ -35,9 +35,9 @@ TRANSLATIONS = {
         
         # Time expressions
         "every_hours": "Every {hours} hour(s)",
-        "daily_at": "Daily at {hour:02d}:{minute:02d} Eastern",
-        "every_weekday_at": "Every {weekday} at {hour:02d}:{minute:02d} Eastern",
-        "every_sunday_at": "Every Sunday at {hour:02d}:{minute:02d} Eastern",
+        "daily_at": "Daily at {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "Every {weekday} at {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "Every Sunday at {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "Monday",
@@ -50,7 +50,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "PUBG's API doesn't expose login history, so this shows the time of each player's most recent **match**, which is the closest available signal for \"last played.\"",
-        "scheduled_report_status": "Only configured reports are scheduled. All times are Eastern and automatically follow EST/EDT.",
+        "scheduled_report_status": "Only configured reports are scheduled. All times are in UTC.",
         "no_reports_configured": "No automatic reports are configured yet. Use the `/set...channel` and `/set...time` commands to schedule one.",
         
         # Status messages
@@ -208,7 +208,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "PUBG API 不暴露登录历史，因此显示每位玩家最近**比赛**的时间，这是最接近“最后游戏”的可用信号。",
-        "scheduled_report_status": "仅配置的报告会自动发布。所有时间均为东部时间，并自动遵循 EST/EDT。",
+        "scheduled_report_status": "仅配置的报告会自动发布。所有时间均为 UTC。",
         "no_reports_configured": "尚未配置自动报告。使用 `/set...channel` 和 `/set...time` 命令进行安排。",
         
         # Status messages
@@ -366,7 +366,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "La API de PUBG no expone el historial de inicio de sesión, por lo que esto muestra la hora de la **partida** más reciente de cada jugador, que es la señal más cercana disponible para \"última jugada\".",
-        "scheduled_report_status": "Solo se programan los informes configurados. Todos los horarios son del este y siguen automáticamente EST/EDT.",
+        "scheduled_report_status": "Solo se programan los informes configurados. Todos los horarios son en UTC.",
         "no_reports_configured": "Aún no hay informes automáticos configurados. Use los comandos `/set...channel` y `/set...time` para programar uno.",
         
         # Status messages
@@ -531,7 +531,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "PUBG API लॉगिन इतिहास को उजागर नहीं करता, इसलिए यह प्रत्येक खिलाड़ी के सबसे हालिया **मैच** का समय दिखाता है, जो \"अंतिम खेला\" के लिए उपलब्ध सबसे करीबी संकेत है।",
-        "scheduled_report_status": "केवल कॉन्फ़िगर किए गए रिपोर्ट शेड्यूल किए जाते हैं। सभी समय पूर्वी हैं और स्वचालित रूप से EST/EDT का पालन करते हैं।",
+        "scheduled_report_status": "केवल कॉन्फ़िगर किए गए रिपोर्ट शेड्यूल किए जाते हैं। सभी समय UTC में हैं।",
         "no_reports_configured": "अभी तक कोई स्वचालित रिपोर्ट कॉन्फ़िगर नहीं की गई है। एक को शेड्यूल करने के लिए `/set...channel` और `/set...time` कमांड का उपयोग करें।",
         
         # Status messages
@@ -689,7 +689,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "واجهة برمجة تطبيقات PUBG لا تكشف عن سجل تسجيل الدخول، لذا يعرض هذا وقت آخر **مباراة** لكل لاعب، وهو أقرب إشارة متاحة لـ \"آخر لعبت\".",
-        "scheduled_report_status": "يتم جدولة التقارير المهيأة فقط. جميع الأوقات شرقية وتتبع تلقائيًا EST/EDT.",
+        "scheduled_report_status": "يتم جدولة التقارير المهيأة فقط. جميع الأوقات بالتوقيت العالمي (UTC).",
         "no_reports_configured": "لم يتم تكوين أي تقارير تلقائية بعد. استخدم أوامر `/set...channel` و `/set...time` لجدولة واحدة.",
         
         # Status messages
@@ -847,7 +847,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "L'API PUBG n'expose pas l'historique de connexion, donc cela affiche l'heure du **match** le plus récent de chaque joueur, qui est le signal le plus proche disponible pour \"dernier joué\".",
-        "scheduled_report_status": "Seuls les rapports configurés sont planifiés. Toutes les heures sont de l'Est et suivent automatiquement EST/EDT.",
+        "scheduled_report_status": "Seuls les rapports configurés sont planifiés. Toutes les heures sont en UTC.",
         "no_reports_configured": "Aucun rapport automatique n'est encore configuré. Utilisez les commandes `/set...channel` et `/set...time` pour en planifier un.",
         
         # Status messages
@@ -1005,7 +1005,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "PUBG API লগইন ইতিহাস প্রকাশ করে না, তাই এটি প্রতিটি খেলোয়াড়ের সবচেয়ে সাম্প্রতিক **ম্যাচ** এর সময় দেখায়, যা \"শেষ খেলা\" এর জন্য উপলব্ধ নিকটতম সংকেত।",
-        "scheduled_report_status": "শুধুমাত্র কনফিগার করা রিপোর্টগুলি নির্ধারিত হয়। সমস্ত সময় পূর্বাঞ্চল এবং স্বয়ংক্রিয়ভাবে EST/EDT অনুসরণ করে।",
+        "scheduled_report_status": "শুধুমাত্র কনফিগার করা রিপোর্টগুলি নির্ধারিত হয়। সমস্ত সময় UTC-এ।",
         "no_reports_configured": "এখনও কোনো স্বয়ংক্রিয় রিপোর্ট কনফিগার করা হয়নি। একটি নির্ধারণ করতে `/set...channel` এবং `/set...time` কমান্ড ব্যবহার করুন।",
         
         # Status messages
@@ -1163,7 +1163,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "A API da PUBG não expõe o histórico de login, então isso mostra a hora da **partida** mais recente de cada jogador, que é o sinal mais próximo disponível para \"última jogada\".",
-        "scheduled_report_status": "Apenas relatórios configurados são agendados. Todos os horários são do leste e seguem automaticamente EST/EDT.",
+        "scheduled_report_status": "Apenas relatórios configurados são agendados. Todos os horários são em UTC.",
         "no_reports_configured": "Ainda não há relatórios automáticos configurados. Use os comandos `/set...channel` e `/set...time` para agendar um.",
         
         # Status messages
@@ -1321,7 +1321,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "API PUBG tidak mengekspos riwayat login, jadi ini menunjukkan waktu **pertandingan** terbaru setiap pemain, yang merupakan sinyal terdekat yang tersedia untuk \"terakhir dimainkan\".",
-        "scheduled_report_status": "Hanya laporan yang dikonfigurasi yang dijadwalkan. Semua waktu adalah Timur dan secara otomatis mengikuti EST/EDT.",
+        "scheduled_report_status": "Hanya laporan yang dikonfigurasi yang dijadwalkan. Semua waktu dalam UTC.",
         "no_reports_configured": "Belum ada laporan otomatis yang dikonfigurasi. Gunakan perintah `/set...channel` dan `/set...time` untuk menjadwalkan satu.",
         
         # Status messages
@@ -1479,7 +1479,7 @@ TRANSLATIONS = {
         
         # Embed descriptions
         "last_active_description": "PUBG API لاگ ان ہسٹری کو ظاہر نہیں کرتا، اس لیے یہ ہر کھلاڑی کے حالیہ **میچ** کا وقت دکھاتا ہے، جو \"آخری کھیلا\" کے لیے دستیاب قریب ترین سگنل ہے۔",
-        "scheduled_report_status": "صرف کنفیگر کردہ رپورٹس شیڈول ہوتی ہیں۔ تمام اوقات مشرقی ہیں اور خود بخود EST/EDT کی پیروی کرتے ہیں۔",
+        "scheduled_report_status": "صرف کنفیگر کردہ رپورٹس شیڈول ہوتی ہیں۔ تمام اوقات UTC میں ہیں۔",
         "no_reports_configured": "ابھی تک کوئی خودکار رپورٹ کنفیگر نہیں کی گئی۔ ایک شیڈول کرنے کے لیے `/set...channel` اور `/set...time` کمانڈز استعمال کریں۔",
         
         # Status messages

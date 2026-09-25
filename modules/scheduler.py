@@ -60,7 +60,7 @@ def _get_pubg():
 async def auto_digest():
     """
     Every 15 minutes, checks whether each guild's digest is due — either
-    a fixed Eastern-time hour (digest_hour_est) or the older interval-based
+    a fixed UTC hour (digest_hour_utc) or the older interval-based
     behavior (post_interval_hours), depending on what's configured.
     """
     now = datetime.now(timezone.utc)
@@ -71,7 +71,7 @@ async def auto_digest():
         channel_id = guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
-        if not _is_due(guild_cfg, "digest_hour_est", "digest_minute_est", "last_post_at", 6):
+        if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -398,7 +398,7 @@ async def run_auto_highlights():
 
 @tasks.loop(minutes=15)
 async def auto_clan_level():
-    """Post the configured clan-level snapshot once per Eastern calendar week."""
+    """Post the configured clan-level snapshot once per UTC calendar week."""
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("clan_level_enabled", True):
@@ -463,9 +463,9 @@ async def auto_survival_mastery():
         channel_id = guild_cfg.get("survival_channel_id")
         if channel_id is None or not _is_weekly_due(
             guild_cfg,
-            weekday_key="survival_weekday_est",
-            hour_key="survival_hour_est",
-            minute_key="survival_minute_est",
+            weekday_key="survival_weekday_utc",
+            hour_key="survival_hour_utc",
+            minute_key="survival_minute_utc",
             posted_key="survival_posted_at",
         ):
             continue
