@@ -188,35 +188,35 @@ def build_clan_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_
 
 def build_clan_level_embed(guild_cfg: dict, clan: dict) -> discord.Embed:
     """Build the weekly clan-level report from the official clan endpoint."""
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     embed = discord.Embed(
-        title=f"{clan['name']} — Clan Level & Weekly Progress",
+        title=f"{clan['name']} — {get_translation(lang, 'clan_level_report')}",
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
     embed.add_field(name="Clan", value=f"**{clan['name']}**\nTag: `{clan['tag']}`", inline=True)
-    embed.add_field(name="Current Level", value=str(clan["level"]), inline=True)
-    embed.add_field(name="Members", value=str(clan["member_count"]), inline=True)
+    embed.add_field(name=get_translation(lang, "current_level"), value=str(clan["level"]), inline=True)
+    embed.add_field(name=get_translation(lang, "members"), value=str(clan["member_count"]), inline=True)
 
     previous_level = guild_cfg.get("clan_last_level")
     previous_members = guild_cfg.get("clan_last_member_count")
     if previous_level is None:
-        progress = "This is the first clan snapshot. The next weekly report will show the level change."
+        progress = get_translation(lang, "first_snapshot")
     else:
         level_change = clan["level"] - previous_level
         member_change = clan["member_count"] - previous_members if previous_members is not None else 0
-        progress = f"Level change since last weekly report: **{level_change:+d}**"
+        progress = get_translation(lang, "level_change").format(change=level_change)
         if previous_members is not None:
-            progress += f" · Member change: **{member_change:+d}**"
-    embed.add_field(name="Weekly Progress", value=progress, inline=False)
+            progress += get_translation(lang, "member_change").format(change=member_change)
+    embed.add_field(name=get_translation(lang, "weekly_progress"), value=progress, inline=False)
     embed.add_field(
-        name="Important",
-        value=(
-            "PUBG exposes the clan level and member count, but not the XP needed for the next level. "
-            "Progress is therefore measured by the change in clan level between weekly reports."
-        ),
+        name=get_translation(lang, "important_note"),
+        value=get_translation(lang, "clan_level_note"),
         inline=False,
     )
-    embed.set_footer(text="Weekly Clan Progress · Official PUBG API")
+    embed.set_footer(text=get_translation(lang, "weekly_clan_progress_footer"))
     return embed
 
 
@@ -329,11 +329,14 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
 
 
 def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str) -> discord.Embed:
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     title = guild_cfg.get("clan_name") or guild_name
     queue_label = f"{RANKED_MODE_LABELS[game_mode]} {'FPP' if game_mode.endswith('-fpp') else 'TPP'}"
     embed = discord.Embed(
-        title=f"{title} — Ranked ({queue_label})",
-        description="Current-season competitive ranked standings.",
+        title=f"{title} — {get_translation(lang, 'ranked_report')} ({queue_label})",
+        description=get_translation(lang, "ranked_description"),
         color=discord.Color.purple(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -343,8 +346,8 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
         top = ranked_players[0]
         top_tier = top["ranked"]["currentTier"]
         top_tier_name = f"{top_tier.get('tier', '?')} {top_tier.get('subTier', '')}".strip()
-        embed.add_field(name="🏅 Highest Ranked", value=f"**{top['name']}** — {top_tier_name}", inline=True)
-    embed.add_field(name="👥 Ranked this season", value=f"{len(ranked_players)}/{len(guild_cfg['players'])}", inline=True)
+        embed.add_field(name=f"🏅 {get_translation(lang, 'highest_ranked')}", value=f"**{top['name']}** — {top_tier_name}", inline=True)
+    embed.add_field(name=f"👥 {get_translation(lang, 'ranked_this_season')}", value=f"{len(ranked_players)}/{len(guild_cfg['players'])}", inline=True)
 
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     lines = []
@@ -362,16 +365,16 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
         lines.append(f"{rank_str} **{p['name']}** — {tier_name} ({rp} RP), {wins}W, {kd:.2f} K/D")
     if lines:
         for i in range(0, len(lines), 15):
-            embed.add_field(name="Ranking" if i == 0 else "\u200b", value="\n".join(lines[i:i + 15]), inline=False)
+            embed.add_field(name=get_translation(lang, "ranking") if i == 0 else "\u200b", value="\n".join(lines[i:i + 15]), inline=False)
     else:
-        embed.add_field(name="No ranked matches", value="No tracked players have ranked matches in this queue this season.", inline=False)
+        embed.add_field(name=get_translation(lang, "no_ranked_matches"), value=get_translation(lang, "no_ranked_description"), inline=False)
     if not_found:
         embed.add_field(
-            name="⚠️ Not found",
+            name=f"⚠️ {get_translation(lang, 'not_found')}",
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 04:30 UTC (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
+    embed.set_footer(text=get_translation(lang, "ranked_footer"))
     return embed
 
 
@@ -429,12 +432,15 @@ def _compute_award_winners(active_players: list[dict]) -> list[tuple[str, str, s
 
 
 def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int) -> discord.Embed:
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    
     title = guild_cfg.get("clan_name") or guild_name
     active_players = [p for p in players if p["daily"]["matches"] > 0]
 
     embed = discord.Embed(
-        title=f"{title} — Daily Highlights (Fun Titles)",
-        description=f"Based on {len(active_players)} player(s) who played since daily reset (3am EST).",
+        title=f"{title} — {get_translation(lang, 'daily_highlights')} ({get_translation(lang, 'fun_titles')})",
+        description=get_translation(lang, "highlights_description").format(count=len(active_players)),
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -444,12 +450,12 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
         expired_count = sum(1 for p in players if p.get("_expired_matches", 0) > 0)
         if expired_count > 0:
             embed.add_field(
-                name="No recent matches available",
-                value=f"PUBG match telemetry is only available for the last 14 days. {expired_count} player(s) have older matches that can't be analyzed.",
+                name=get_translation(lang, "no_recent_matches_available"),
+                value=get_translation(lang, "no_recent_matches_description").format(count=expired_count),
                 inline=False
             )
         else:
-            embed.add_field(name="No matches played", value="Nobody on the roster played in this window.", inline=False)
+            embed.add_field(name=get_translation(lang, "no_matches_played"), value=get_translation(lang, "no_matches_description"), inline=False)
         return embed
 
     for emoji, label, winner_name, val_str in _compute_award_winners(active_players):
@@ -466,18 +472,18 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
         best_kills = d.get("best_match_kills", d["kills"])
         best_damage = d.get("best_match_damage", d["damageDealt"])
         lines.append(
-            f"{i}. **{p['name']}** — {best_kills} kills (best match), {best_damage:,.0f} dmg (best match), "
-            f"{d['human_kills']} human / {d['bot_kills']} bot, {d['wins']}W, {d['matches']} match(es)"
+            f"{i}. **{p['name']}** — {best_kills} {get_translation(lang, 'kills_best_match')}, {best_damage:,.0f} {get_translation(lang, 'dmg_best_match')}, "
+            f"{d['human_kills']} {get_translation(lang, 'human_bot_split').format(count=d['bot_kills'])}, {d['wins']}W, {d['matches']} {get_translation(lang, 'matches_count')}"
         )
-    embed.add_field(name="Top 10", value="\n".join(lines), inline=False)
+    embed.add_field(name=get_translation(lang, "top_10"), value="\n".join(lines), inline=False)
 
     if not_found:
         embed.add_field(
-            name="⚠️ Not found",
+            name=f"⚠️ {get_translation(lang, 'not_found')}",
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 02:00 UTC (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours")
+    embed.set_footer(text=get_translation(lang, "highlights_footer"))
     return embed
 
 
