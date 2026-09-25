@@ -6,10 +6,54 @@ no storage calls. They are moved here to avoid code duplication and
 improve testability.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 from zoneinfo import ZoneInfo
 
 from modules.config import EASTERN
+
+# PUBG daily reset time in UTC (confirmed by PUBG documentation)
+PUBG_DAILY_RESET_UTC = time(2, 0)  # 02:00 UTC
+
+
+def get_current_pubg_day(now_utc: datetime = None) -> datetime:
+    """
+    Get the start of the current PUBG day in UTC.
+    
+    PUBG's daily reset occurs at 02:00 UTC. This function returns the
+    datetime of the most recent 02:00 UTC reset point.
+    
+    Args:
+        now_utc: Current UTC datetime (defaults to now if None)
+    
+    Returns:
+        datetime: The start of the current PUBG day in UTC
+    """
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+    
+    # If it's before 02:00 UTC, the PUBG day started yesterday
+    if now_utc.hour < 2 or (now_utc.hour == 2 and now_utc.minute == 0 and now_utc.second == 0):
+        return now_utc.replace(hour=2, minute=0, second=0, microsecond=0) - timedelta(days=1)
+    else:
+        return now_utc.replace(hour=2, minute=0, second=0, microsecond=0)
+
+
+def get_next_pubg_reset(now_utc: datetime = None) -> datetime:
+    """
+    Get the next PUBG daily reset time in UTC.
+    
+    Args:
+        now_utc: Current UTC datetime (defaults to now if None)
+    
+    Returns:
+        datetime: The next 02:00 UTC reset point
+    """
+    if now_utc is None:
+        now_utc = datetime.now(timezone.utc)
+    
+    current_day_start = get_current_pubg_day(now_utc)
+    next_reset = current_day_start + timedelta(days=1)
+    return next_reset
 
 
 def _safe_div(a: float, b: float) -> float:

@@ -43,7 +43,7 @@ from modules.reports import (
     fetch_leaderboard_report,
 )
 from modules.embeds import build_report_status_embed, build_feedback_prompt_embed
-from modules.utils import _is_due, _is_weekly_due, _is_sunday_donation_due
+from modules.utils import _is_due, _is_weekly_due, _is_sunday_donation_due, get_current_pubg_day
 
 # Late-binding helpers to avoid stale imports at module load time
 # These re-read the values from config on each call to get the real instances
@@ -115,11 +115,10 @@ async def before_auto_digest():
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild.
     Runs once per day after 02:00 UTC daily reset. Recovers if bot was offline."""
+    from modules.utils import get_current_pubg_day
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    reset_time_utc = now_utc.replace(hour=2, minute=0, second=0, microsecond=0)
-    if now_utc < reset_time_utc:
-        reset_time_utc -= timedelta(days=1)
+    reset_time_utc = get_current_pubg_day(now_utc)
     print(f"[auto_last_active] Running at {now_utc}")
     
     for guild_id in await storage.all_guild_ids():
@@ -337,7 +336,7 @@ async def auto_highlights():
             last_posted = guild_cfg.get("highlights_posted_at")
             if last_posted:
                 last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
-                reset_time_utc = now_utc.replace(hour=2, minute=0, second=0, microsecond=0)
+                reset_time_utc = get_current_pubg_day(now_utc)
                 if last_posted_date >= reset_time_utc:
                     continue  # Already posted since the most recent reset
 
@@ -576,17 +575,18 @@ async def auto_chicken_dinner():
         if guild is None or channel is None:
             continue
 
-        # Check if we need to reset for new day (04:00 UTC daily reset)
+        # Check if we need to reset for new day (02:00 UTC daily reset - same as PUBG reset)
         last_reset = guild_cfg.get("chicken_dinner_reset_at")
         needs_reset = False
         if last_reset:
             last_reset_date = datetime.fromisoformat(last_reset).astimezone(utc)
-            # Reset if we're on a different date
-            if last_reset_date.date() != now_utc.date():
+            reset_time_utc = get_current_pubg_day(now_utc)
+            # Reset if we're on a different PUBG day
+            if last_reset_date < reset_time_utc:
                 needs_reset = True
         else:
-            # First time setup - set reset time
-            guild_cfg["chicken_dinner_reset_at"] = datetime.now(timezone.utc).isoformat()
+            # First time setup - set reset time to current PUBG day
+            guild_cfg["chicken_dinner_reset_at"] = get_current_pubg_day(now_utc).isoformat()
             await storage.save_guild(guild_id, guild_cfg)
             guild_cfg = await storage.get_guild(guild_id)
         
@@ -594,7 +594,7 @@ async def auto_chicken_dinner():
             # New day - reset tally and posted matches
             guild_cfg["chicken_dinner_posted_matches"] = {}
             guild_cfg["chicken_dinner_total_wins"] = 0
-            guild_cfg["chicken_dinner_reset_at"] = datetime.now(timezone.utc).isoformat()
+            guild_cfg["chicken_dinner_reset_at"] = get_current_pubg_day(now_utc).isoformat()
             await storage.save_guild(guild_id, guild_cfg)
             # Update guild_cfg after reset
             guild_cfg = await storage.get_guild(guild_id)
