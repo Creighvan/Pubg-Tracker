@@ -81,7 +81,7 @@ _DEFAULT_GUILD = {
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
     "cheat_reports": [],  # list of cheat report dicts
-    "suspicious_players": {},  # pubg_name.lower() -> {stats, flags, last_checked}
+    "statistical_anomalies": {},  # pubg_name.lower() -> {stats, flags, last_checked}
     "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # pubg_name.lower() -> {"date": iso_date, "set_at": iso_timestamp}
@@ -327,24 +327,24 @@ async def update_cheat_report_status(guild_id: int, report_id: str, status: str,
     return result["found"]
 
 
-async def update_suspicious_player(guild_id: int, player_name: str, stats: dict, flags: list[str]):
-    """Update or add a suspicious player entry."""
+async def update_statistical_anomaly(guild_id: int, player_name: str, stats: dict, flags: list[str]):
+    """Update or add a statistical anomaly entry."""
     def modifier(guild):
         player_lower = player_name.lower()
-        guild["suspicious_players"][player_lower] = {
+        guild["statistical_anomalies"][player_lower] = {
             "name": player_name,
             "stats": stats,
             "flags": flags,
             "last_checked": datetime.now(timezone.utc).isoformat(),
-            "report_count": guild["suspicious_players"].get(player_lower, {}).get("report_count", 0) + 1,
+            "report_count": guild["statistical_anomalies"].get(player_lower, {}).get("report_count", 0) + 1,
         }
     await modify_guild(guild_id, modifier)
 
 
-async def get_suspicious_players(guild_id: int) -> dict[str, dict]:
-    """Get all suspicious players for a guild."""
+async def get_statistical_anomalies(guild_id: int) -> dict[str, dict]:
+    """Get all statistical anomalies for a guild."""
     guild = await get_guild(guild_id)
-    return guild.get("suspicious_players", {})
+    return guild.get("statistical_anomalies", {})
 
 
 async def add_protected_player(guild_id: int, player_name: str) -> bool:
