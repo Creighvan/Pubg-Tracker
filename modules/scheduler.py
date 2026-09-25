@@ -129,21 +129,32 @@ async def auto_last_active():
             print(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
-        # Check if we've already posted today (using last_activity_posted_at)
+        # Check if we've already posted
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
-            last_posted_date = datetime.fromisoformat(last_posted).astimezone(est)
-            days_since_last_post = (now_est.date() - last_posted_date.date()).days
-            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date.date()}, now={now_est.date()}, days_since={days_since_last_post}")
-            if days_since_last_post == 0:
-                print(f"[auto_last_active] Guild {guild_id}: Already posted today, skipping")
-                continue  # Already posted today
-            elif days_since_last_post < 0:
-                print(f"[auto_last_active] Guild {guild_id}: Last post is in the future (clock skew?), treating as today and skipping")
-                continue
+            last_posted_time = datetime.fromisoformat(last_posted).astimezone(est)
+            
+            # Calculate today's 10pm EST
+            today_10pm = now_est.replace(hour=22, minute=0, second=0, microsecond=0)
+            
+            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted_time}, today_10pm={today_10pm}, now={now_est}")
+            
+            # If we're after 10pm EST today
+            if now_est >= today_10pm:
+                # Skip if we already posted after 10pm EST today
+                if last_posted_time >= today_10pm:
+                    print(f"[auto_last_active] Guild {guild_id}: Already posted after 10pm EST today, skipping")
+                    continue
+                else:
+                    print(f"[auto_last_active] Guild {guild_id}: Posted before 10pm EST today, updating now")
             else:
-                # Bot was offline for multiple days - proceed to update immediately
-                print(f"[auto_last_active] Guild {guild_id}: Last post was {days_since_last_post} days ago, updating (recovering from offline period)")
+                # We're before 10pm EST today
+                # Skip if we already posted today (regardless of time)
+                if last_posted_time.date() == now_est.date():
+                    print(f"[auto_last_active] Guild {guild_id}: Already posted today before 10pm EST, skipping")
+                    continue
+                else:
+                    print(f"[auto_last_active] Guild {guild_id}: Posted on different day, updating now")
         else:
             print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
             # Only run after 10pm EST daily reset for first run
@@ -234,13 +245,24 @@ async def auto_ranked():
         if channel_id is None:
             continue
         
-        # Check if already posted today (using EST date)
+        # Check if we've already posted
         posted_at = guild_cfg.get("ranked_posted_at")
         if posted_at:
-            posted_date = datetime.fromisoformat(posted_at).astimezone(est).date()
-            today_est = reset_time_est.date()
-            if posted_date >= today_est:
-                continue  # Already posted today (or future date)
+            posted_time = datetime.fromisoformat(posted_at).astimezone(est)
+            
+            # Calculate today's 12:30am EST
+            today_1230am = now_est.replace(hour=0, minute=30, second=0, microsecond=0)
+            
+            # If we're after 12:30am EST today
+            if now_est >= today_1230am:
+                # Skip if we already posted after 12:30am EST today
+                if posted_time >= today_1230am:
+                    continue
+            else:
+                # We're before 12:30am EST today (shouldn't happen with current schedule)
+                # Skip if we already posted today
+                if posted_time.date() == now_est.date():
+                    continue
         
         # Only run during or after the 12:30am EST window
         reset_total = 0 * 60 + 30  # 12:30 AM in minutes
@@ -340,12 +362,24 @@ async def auto_highlights():
             if channel_id is None:
                 continue
 
-            # Check if we've already posted today (using highlights_posted_at)
+            # Check if we've already posted
             last_posted = guild_cfg.get("highlights_posted_at")
             if last_posted:
-                last_posted_date = datetime.fromisoformat(last_posted).astimezone(est)
-                if last_posted_date.date() == now_est.date():
-                    continue  # Already posted today
+                last_posted_time = datetime.fromisoformat(last_posted).astimezone(est)
+                
+                # Calculate today's 10pm EST
+                today_10pm = now_est.replace(hour=22, minute=0, second=0, microsecond=0)
+                
+                # If we're after 10pm EST today
+                if now_est >= today_10pm:
+                    # Skip if we already posted after 10pm EST today
+                    if last_posted_time >= today_10pm:
+                        continue
+                else:
+                    # We're before 10pm EST today
+                    # Skip if we already posted today (regardless of time)
+                    if last_posted_time.date() == now_est.date():
+                        continue
 
             guild = _get_bot().get_guild(guild_id)
             channel = _get_bot().get_channel(channel_id)
