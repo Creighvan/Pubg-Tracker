@@ -9,13 +9,13 @@ def test_imports():
         import bot
         import pubg_api
         import storage
-        print("✅ All imports successful")
+        print("[OK] All imports successful")
         return True
     except ImportError as e:
-        print(f"❌ Import failed: {e}")
+        print(f"[X] Import failed: {e}")
         return False
     except Exception as e:
-        print(f"❌ Unexpected error: {e}")
+        print(f"[X] Unexpected error: {e}")
         return False
 
 if __name__ == "__main__":
