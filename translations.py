@@ -440,7 +440,7 @@ TRANSLATIONS = {
         "ranked_footer": "Actualizaciones diarias a las 04:30 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · clasificada, temporada actual",
         
         # Chicken Dinner Report
-        "chicken_dinner": "Pollo al horno",
+        "chicken_dinner": "Chicken Dinner",
         "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
         "no_wins_yet": "Aún no hay victorias de escuadrón hoy!",
         "total_wins_today": "Victorias totales hoy",
@@ -492,7 +492,7 @@ TRANSLATIONS = {
         "highlights_footer": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · resaltados diarios, últimas 24 horas",
         
         # Chicken Dinner Report
-        "chicken_dinner": "Pollo al horno",
+        "chicken_dinner": "Chicken Dinner",
         "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
         "no_wins_yet": "¡Aún no hay victorias de escuadrón hoy!",
         "total_wins_today": "Victorias totales hoy",
@@ -954,7 +954,7 @@ TRANSLATIONS = {
         "highlights_footer": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié) · Statistiques de l'API PUBG officielle · faits marquants quotidiens, dernières 24 heures",
         
         # Chicken Dinner Report
-        "chicken_dinner": "Poulet rôti",
+        "chicken_dinner": "Chicken Dinner",
         "recent_squad_wins": "Victoires d'escouade récentes (5 dernières parties par joueur)",
         "no_wins_yet": "Aucune victoire d'escouade aujourd'hui !",
         "total_wins_today": "Victoires totales aujourd'hui",
@@ -1282,7 +1282,7 @@ TRANSLATIONS = {
         "highlights_footer": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado) · Estatísticas da API oficial do PUBG · destaques diários, últimas 24 horas",
         
         # Chicken Dinner Report
-        "chicken_dinner": "Frango assado",
+        "chicken_dinner": "Chicken Dinner",
         "recent_squad_wins": "Vitórias recentes de esquadrão (últimas 5 partidas por jogador)",
         "no_wins_yet": "Ainda não há vitórias de esquadrão hoje!",
         "total_wins_today": "Vitórias totais hoje",
@@ -1446,7 +1446,7 @@ TRANSLATIONS = {
         "highlights_footer": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang) · Statistik dari API PUBG resmi · poin harian, 24 jam terakhir",
         
         # Chicken Dinner Report
-        "chicken_dinner": "Ayam panggang",
+        "chicken_dinner": "Chicken Dinner",
         "recent_squad_wins": "Kemenangan tim terbaru (5 pertandingan terakhir per pemain)",
         "no_wins_yet": "Belum ada kemenangan tim hari ini!",
         "total_wins_today": "Total kemenangan hari ini",

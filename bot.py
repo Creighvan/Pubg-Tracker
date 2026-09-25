@@ -85,6 +85,7 @@ from discord.ext import commands, tasks
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
+from modules.utils import normalize_player_name
 
 logger = logging.getLogger(__name__)
 
@@ -623,16 +624,16 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
     player_list = [p for p in player_list if p]  # Remove empty entries
     
     def modifier(guild_cfg):
-        current_protected = set(p.lower() for p in guild_cfg["protected_players"])
+        current_protected = set(normalize_player_name(p) for p in guild_cfg["protected_players"])
         added = []
         duplicates = []
         
         for player in player_list:
-            if player.lower() in current_protected:
+            if normalize_player_name(player) in current_protected:
                 duplicates.append(player)
             else:
                 guild_cfg["protected_players"].append(player)
-                current_protected.add(player.lower())
+                current_protected.add(normalize_player_name(player))
                 added.append(player)
         
         return {"added": added, "duplicates": duplicates}
@@ -655,7 +656,7 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
     inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
     
     def modifier(guild_cfg):
-        guild_cfg["manual_inactive_dates"][name.lower()] = {
+        guild_cfg["manual_inactive_dates"][normalize_player_name(name)] = {
             "date": inactive_date,
             "set_at": datetime.now(timezone.utc).isoformat()
         }
@@ -676,8 +677,8 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
     def modifier(guild_cfg):
-        if name.lower() in guild_cfg.get("manual_inactive_dates", {}):
-            del guild_cfg["manual_inactive_dates"][name.lower()]
+        if normalize_player_name(name) in guild_cfg.get("manual_inactive_dates", {}):
+            del guild_cfg["manual_inactive_dates"][normalize_player_name(name)]
             return True
         return False
     
@@ -2028,7 +2029,7 @@ async def linkplayer(interaction: discord.Interaction, member: discord.Member, p
 @app_commands.describe(pubg_name="The PUBG name to unlink")
 async def unlinkme(interaction: discord.Interaction, pubg_name: str):
     guild_cfg = await storage.get_guild(interaction.guild_id)
-    linked_id = guild_cfg["discord_links"].get(pubg_name.lower())
+    linked_id = guild_cfg["discord_links"].get(normalize_player_name(pubg_name))
     # Only the Discord account a link points to — or a server manager — may
     # remove it. Previously anyone in the server could delete anyone's link.
     is_their_own_link = linked_id is not None and linked_id == interaction.user.id
@@ -2058,14 +2059,14 @@ async def links(interaction: discord.Interaction):
         )
         return
 
-    # discord_links keys are lowercased; show the roster's actual casing
+    # discord_links keys are normalized; show the roster's actual casing
     # when the linked name is still tracked, otherwise fall back to the
-    # lowercased key as stored (e.g. the player was later removed from
+    # normalized key as stored (e.g. the player was later removed from
     # the roster but the link was never cleaned up).
-    proper_case = {p.lower(): p for p in guild_cfg["players"]}
+    proper_case = {normalize_player_name(p): p for p in guild_cfg["players"]}
     lines = [
-        f"**{proper_case.get(name_lower, name_lower)}** — <@{discord_id}>"
-        for name_lower, discord_id in sorted(discord_links.items())
+        f"**{proper_case.get(name_normalized, name_normalized)}** — <@{discord_id}>"
+        for name_normalized, discord_id in sorted(discord_links.items())
     ]
 
     embed = discord.Embed(title="🔗 Linked Accounts", color=discord.Color.blurple())

@@ -6,10 +6,29 @@ no storage calls. They are moved here to avoid code duplication and
 improve testability.
 """
 
+import unicodedata
 from datetime import datetime, timezone, timedelta, time
 
 # PUBG daily reset time in UTC (confirmed by PUBG documentation)
 PUBG_DAILY_RESET_UTC = time(2, 0)  # 02:00 UTC
+
+
+def normalize_player_name(name: str) -> str:
+    """
+    Normalize a PUBG player name for consistent identity matching.
+
+    Uses Unicode NFKC normalization and casefold() to handle:
+    - Different Unicode representations of the same characters
+    - Case-insensitive matching across languages
+    - Leading/trailing whitespace
+
+    Args:
+        name: The raw player name
+
+    Returns:
+        Normalized name suitable for identity keys
+    """
+    return unicodedata.normalize("NFKC", name).strip().casefold()
 
 
 def get_current_pubg_day(now_utc: datetime = None) -> datetime:

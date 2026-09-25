@@ -16,6 +16,8 @@ import shutil
 import uuid
 from datetime import datetime, timezone
 
+from modules.utils import normalize_player_name
+
 logger = logging.getLogger(__name__)
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data.json")
@@ -72,7 +74,7 @@ _DEFAULT_GUILD = {
     "donation_hour_utc": 12,  # Sunday noon UTC by default
     "donation_minute_utc": 0,
     "donation_posted_at": None,
-    "discord_links": {},  # pubg_name.lower() -> discord user id (int), for @mentions/congrats
+    "discord_links": {},  # normalize_player_name(pubg_name) -> discord user id (int), for @mentions/congrats
     "leaderboard_shard": "pc-na",  # platform-REGION shard, only used by the leaderboards endpoint
     "leaderboard_queue": "squad",  # squad, duo, or solo — TPP
     "last_feedback_prompt_at": None,  # ISO timestamp of the last 14-day feedback prompt
@@ -86,11 +88,11 @@ _DEFAULT_GUILD = {
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
     "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
     "cheat_reports": [],  # list of cheat report dicts
-    "statistical_anomalies": {},  # pubg_name.lower() -> {stats, flags, last_checked}
+    "statistical_anomalies": {},  # normalize_player_name(pubg_name) -> {stats, flags, last_checked}
     "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
-    "manual_inactive_dates": {},  # pubg_name.lower() -> {"date": iso_date, "set_at": iso_timestamp}
-    "inactive_since_dates": {},  # pubg_name.lower() -> iso date when player first hit 14-day mark
+    "manual_inactive_dates": {},  # normalize_player_name(pubg_name) -> {"date": iso_date, "set_at": iso_timestamp}
+    "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso date when player first hit 14-day mark
     "audit_log_channel_id": None,  # custom channel for this server's audit logs (overrides default)
 }
 
@@ -201,8 +203,9 @@ async def all_guild_ids() -> list[int]:
 async def add_player(guild_id: int, name: str) -> bool:
     result = {"added": False}
     def modifier(guild):
-        lowered = [p.lower() for p in guild["players"]]
-        if name.lower() in lowered:
+        normalized = normalize_player_name(name)
+        lowered = [normalize_player_name(p) for p in guild["players"]]
+        if normalized in lowered:
             result["added"] = False
             return
         guild["players"].append(name)
@@ -221,19 +224,19 @@ async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[
     result = {"added": [], "duplicates": []}
     
     def modifier(guild):
-        existing_lower = {p.lower() for p in guild["players"]}
+        existing_lower = {normalize_player_name(p) for p in guild["players"]}
         seen_this_batch: set[str] = set()
 
         for name in names:
             name = name.strip()
             if not name:
                 continue
-            lowered = name.lower()
-            if lowered in existing_lower or lowered in seen_this_batch:
+            normalized = normalize_player_name(name)
+            if normalized in existing_lower or normalized in seen_this_batch:
                 result["duplicates"].append(name)
                 continue
             guild["players"].append(name)
-            existing_lower.add(lowered)
+            existing_lower.add(normalized)
             seen_this_batch.add(lowered)
             result["added"].append(name)
 
@@ -248,7 +251,8 @@ async def remove_player(guild_id: int, name: str) -> bool:
     result = {"changed": False}
     def modifier(guild):
         before = len(guild["players"])
-        guild["players"] = [p for p in guild["players"] if p.lower() != name.lower()]
+        normalized = normalize_player_name(name)
+        guild["players"] = [p for p in guild["players"] if normalize_player_name(p) != normalized]
         changed = len(guild["players"]) != before
         if changed:
             guild["ranked_known_players"] = {}
@@ -262,14 +266,14 @@ async def link_discord_account(guild_id: int, pubg_name: str, discord_user_id: i
     can @mention the right person. Overwrites any existing link for that
     name."""
     def modifier(guild):
-        guild["discord_links"][pubg_name.lower()] = discord_user_id
+        guild["discord_links"][normalize_player_name(pubg_name)] = discord_user_id
     await modify_guild(guild_id, modifier)
 
 
 async def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
     result = {"existed": False}
     def modifier(guild):
-        existed = guild["discord_links"].pop(pubg_name.lower(), None) is not None
+        existed = guild["discord_links"].pop(normalize_player_name(pubg_name), None) is not None
         result["existed"] = existed
     await modify_guild(guild_id, modifier)
     return result["existed"]
@@ -277,7 +281,7 @@ async def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
 
 async def get_discord_id(guild_id: int, pubg_name: str) -> int | None:
     guild = await get_guild(guild_id)
-    return guild["discord_links"].get(pubg_name.lower())
+    return guild["discord_links"].get(normalize_player_name(pubg_name))
 
 
 async def get_mentions_enabled(guild_id: int) -> bool:
@@ -313,7 +317,7 @@ async def add_cheat_report(
             "reported_at": datetime.now(timezone.utc).isoformat(),
             "reporter_name": reporter_name,
             "accused_name": accused_name,
-            "accused_name_lower": accused_name.lower(),
+            "accused_name_lower": normalize_player_name(accused_name),
             "cheat_type": cheat_type,
             "description": description,
             "match_id": match_id,
@@ -363,13 +367,13 @@ async def update_cheat_report_status(guild_id: int, report_id: str, status: str,
 async def update_statistical_anomaly(guild_id: int, player_name: str, stats: dict, flags: list[str]):
     """Update or add a statistical anomaly entry."""
     def modifier(guild):
-        player_lower = player_name.lower()
-        guild["statistical_anomalies"][player_lower] = {
+        player_normalized = normalize_player_name(player_name)
+        guild["statistical_anomalies"][player_normalized] = {
             "name": player_name,
             "stats": stats,
             "flags": flags,
             "last_checked": datetime.now(timezone.utc).isoformat(),
-            "report_count": guild["statistical_anomalies"].get(player_lower, {}).get("report_count", 0) + 1,
+            "report_count": guild["statistical_anomalies"].get(player_normalized, {}).get("report_count", 0) + 1,
         }
     await modify_guild(guild_id, modifier)
 
@@ -389,8 +393,9 @@ async def add_protected_player(guild_id: int, player_name: str) -> bool:
         guild["protected_players"] = [p for p in guild["protected_players"] if p and p.strip()]
         guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))  # Remove duplicates while preserving order
         
-        lowered = [p.lower() for p in guild["protected_players"]]
-        if player_name.lower() in lowered:
+        normalized = normalize_player_name(player_name)
+        lowered = [normalize_player_name(p) for p in guild["protected_players"]]
+        if normalized in lowered:
             result["added"] = False
             return
         guild["protected_players"].append(player_name.strip())  # Store cleaned name
@@ -410,7 +415,8 @@ async def remove_protected_player(guild_id: int, player_name: str) -> bool:
         guild["protected_players"] = list(dict.fromkeys(guild["protected_players"]))
         
         before = len(guild["protected_players"])
-        guild["protected_players"] = [p for p in guild["protected_players"] if p.lower() != player_name.lower()]
+        normalized = normalize_player_name(player_name)
+        guild["protected_players"] = [p for p in guild["protected_players"] if normalize_player_name(p) != normalized]
         changed = len(guild["protected_players"]) != before
         if changed:
             result["changed"] = True
@@ -428,7 +434,8 @@ async def get_protected_players(guild_id: int) -> list[str]:
 async def is_protected_player(guild_id: int, player_name: str) -> bool:
     """Check if a player is on the protected list."""
     guild = await get_guild(guild_id)
-    return player_name.lower() in [p.lower() for p in guild.get("protected_players", [])]
+    normalized = normalize_player_name(player_name)
+    return normalized in [normalize_player_name(p) for p in guild.get("protected_players", [])]
 
 
 async def clean_protected_players(guild_id: int) -> int:
@@ -452,8 +459,9 @@ async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
     result = {"reset": False}
     
     def modifier(guild):
-        if player_name.lower() in guild.get("inactive_since_dates", {}):
-            del guild["inactive_since_dates"][player_name.lower()]
+        normalized = normalize_player_name(player_name)
+        if normalized in guild.get("inactive_since_dates", {}):
+            del guild["inactive_since_dates"][normalized]
             result["reset"] = True
     
     await modify_guild(guild_id, modifier)

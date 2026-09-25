@@ -25,6 +25,8 @@ from typing import Any
 
 import aiohttp
 
+from modules.utils import normalize_player_name
+
 BASE_URL = "https://api.pubg.com"
 
 
@@ -270,9 +272,9 @@ class PubgClient:
 
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_names_lower = {p["name"].lower() for p in resolved}
+            resolved_names_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_names_lower:
+                if normalize_player_name(n) not in resolved_names_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
@@ -312,9 +314,9 @@ class PubgClient:
 
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_names_lower = {p["name"].lower() for p in resolved}
+            resolved_names_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_names_lower:
+                if normalize_player_name(n) not in resolved_names_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
@@ -353,9 +355,9 @@ class PubgClient:
         not_found: list[str] = []
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_lower = {p["name"].lower() for p in resolved}
+            resolved_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_lower:
+                if normalize_player_name(n) not in resolved_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
@@ -475,9 +477,9 @@ class PubgClient:
 
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_names_lower = {p["name"].lower() for p in resolved}
+            resolved_names_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_names_lower:
+                if normalize_player_name(n) not in resolved_names_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
@@ -554,9 +556,9 @@ class PubgClient:
         not_found: list[str] = []
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_lower = {p["name"].lower() for p in resolved}
+            resolved_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_lower:
+                if normalize_player_name(n) not in resolved_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
@@ -795,9 +797,9 @@ class PubgClient:
         not_found: list[str] = []
         for chunk in _chunk(names, 10):
             resolved = await self.get_players_by_name(chunk)
-            resolved_lower = {p["name"].lower() for p in resolved}
+            resolved_normalized = {normalize_player_name(p["name"]) for p in resolved}
             for n in chunk:
-                if n.lower() not in resolved_lower:
+                if normalize_player_name(n) not in resolved_normalized:
                     not_found.append(n)
             found.extend(resolved)
 
