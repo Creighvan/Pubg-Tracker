@@ -20,8 +20,8 @@ def _safe_div(a: float, b: float) -> float:
 def _is_due(guild_cfg: dict, hour_key: str, minute_key: str, posted_at_key: str, default_interval_hours: int) -> bool:
     """
     Two scheduling modes, chosen per-report:
-    - If hour_key is set (0-23): post once per Eastern calendar day, at that
-      Eastern-time hour:minute (minute_key, 0/15/30/45). Uses a 15-minute
+    - If hour_key is set (0-23): post once per UTC calendar day, at that
+      UTC hour:minute (minute_key, 0/15/30/45). Uses a 15-minute
       match window rather than exact equality, since the scheduler loop
       itself only ticks every 15 minutes and its phase isn't necessarily
       aligned to :00/:15/:30/:45 on the wall clock — the window guarantees
@@ -35,15 +35,15 @@ def _is_due(guild_cfg: dict, hour_key: str, minute_key: str, posted_at_key: str,
 
     if target_hour is not None:
         target_minute = guild_cfg.get(minute_key, 0)
-        now_est = datetime.now(EASTERN)
+        now_utc = datetime.now(timezone.utc)
         target_total = target_hour * 60 + target_minute
-        now_total = now_est.hour * 60 + now_est.minute
+        now_total = now_utc.hour * 60 + now_utc.minute
         if not (target_total <= now_total < target_total + 15):
             return False
         if not posted_at:
             return True
-        posted_est = datetime.fromisoformat(posted_at).astimezone(EASTERN)
-        return posted_est.date() != now_est.date()
+        posted_utc = datetime.fromisoformat(posted_at).astimezone(timezone.utc)
+        return posted_utc.date() != now_utc.date()
 
     now = datetime.now(timezone.utc)
     interval_hours = guild_cfg.get("post_interval_hours", default_interval_hours) if hour_key == "digest_hour_est" else default_interval_hours

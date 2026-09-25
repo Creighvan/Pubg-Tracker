@@ -6,9 +6,9 @@ discord.ext.tasks to automatically post reports at configured times.
 
 Functions:
     auto_digest: Clan digest every 15 minutes (checks if due)
-    auto_last_active: Last active report daily (after 10pm EST, recovers from downtime)
-    auto_ranked: Ranked standings daily (after 12:30am EST, recovers from downtime)
-    auto_highlights: Highlights report daily (after 10:00pm EST, recovers from downtime)
+    auto_last_active: Last active report daily (after 02:00 UTC, recovers from downtime)
+    auto_ranked: Ranked standings daily (after 04:30 UTC, recovers from downtime)
+    auto_highlights: Highlights report daily (after 02:00 UTC, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
     auto_donations: Donation message weekly (Sunday)
@@ -114,10 +114,13 @@ async def before_auto_digest():
 @tasks.loop(minutes=15)
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild.
-    Runs once per day after 10pm EST daily reset. Recovers if bot was offline."""
-    est = ZoneInfo("America/New_York")
-    now_est = datetime.now(est)
-    print(f"[auto_last_active] Running at {now_est}")
+    Runs once per day after 02:00 UTC daily reset. Recovers if bot was offline."""
+    utc = timezone.utc
+    now_utc = datetime.now(utc)
+    reset_time_utc = now_utc.replace(hour=2, minute=0, second=0, microsecond=0)
+    if now_utc < reset_time_utc:
+        reset_time_utc -= timedelta(days=1)
+    print(f"[auto_last_active] Running at {now_utc}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -129,37 +132,22 @@ async def auto_last_active():
             print(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
-        # Check if we've already posted
+        # Check if we've already posted since the most recent 02:00 UTC reset
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
-            last_posted_time = datetime.fromisoformat(last_posted).astimezone(est)
-            
-            # Calculate today's 10pm EST
-            today_10pm = now_est.replace(hour=22, minute=0, second=0, microsecond=0)
-            
-            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted_time}, today_10pm={today_10pm}, now={now_est}")
-            
-            # If we're after 10pm EST today
-            if now_est >= today_10pm:
-                # Skip if we already posted after 10pm EST today
-                if last_posted_time >= today_10pm:
-                    print(f"[auto_last_active] Guild {guild_id}: Already posted after 10pm EST today, skipping")
-                    continue
-                else:
-                    print(f"[auto_last_active] Guild {guild_id}: Posted before 10pm EST today, updating now")
+            last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
+            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
+            if last_posted_date >= reset_time_utc:
+                print(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:00 UTC reset, skipping")
+                continue  # Already posted since the most recent reset
             else:
-                # We're before 10pm EST today
-                # Skip if we already posted today (regardless of time)
-                if last_posted_time.date() == now_est.date():
-                    print(f"[auto_last_active] Guild {guild_id}: Already posted today before 10pm EST, skipping")
-                    continue
-                else:
-                    print(f"[auto_last_active] Guild {guild_id}: Posted on different day, updating now")
+                # Bot was offline (or this is the first tick since the reset) - proceed to update
+                print(f"[auto_last_active] Guild {guild_id}: Last post was before {reset_time_utc}, updating")
         else:
             print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
-            # Only run after 10pm EST daily reset for first run
-            if now_est.hour < 22:
-                print(f"[auto_last_active] Guild {guild_id}: Before 10pm EST ({now_est.hour}), skipping")
+            # Only run after the 02:00 UTC daily reset for first run
+            if now_utc.hour < 2:
+                print(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
                 continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -202,7 +190,7 @@ async def auto_last_active():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Last active report updated at 10pm EST daily reset",
+                    f"Last active report updated at 02:00 UTC daily reset",
                     is_automated=True,
                     details={"Report Type": "Last Active", "Players": len(players)},
                     report_embed=embed
@@ -223,19 +211,16 @@ async def before_auto_last_active():
 @tasks.loop(minutes=15)
 async def auto_ranked():
     """
-    Updates the ranked standings report daily at 12:30am EST.
+    Updates the ranked standings report daily at 04:30 UTC.
     Edits a single message in place instead of posting new messages.
     Uses a posted_at timestamp to ensure it runs once per day even if
-    the bot is offline during the 12:30am EST window.
+    the bot is offline during the 04:30 UTC window.
     """
-    now = datetime.now(timezone.utc)
-    
-    # Check if it's 12:30am EST daily reset time
-    est = ZoneInfo("America/New_York")
-    now_est = datetime.now(est)
-    reset_time_est = now_est.replace(hour=0, minute=30, second=0, microsecond=0)
-    if now_est < reset_time_est:
-        reset_time_est -= timedelta(days=1)
+    utc = timezone.utc
+    now_utc = datetime.now(utc)
+    reset_time_utc = now_utc.replace(hour=4, minute=30, second=0, microsecond=0)
+    if now_utc < reset_time_utc:
+        reset_time_utc -= timedelta(days=1)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -245,30 +230,16 @@ async def auto_ranked():
         if channel_id is None:
             continue
         
-        # Check if we've already posted
+        # Check if we've already posted since the most recent 04:30 UTC reset
         posted_at = guild_cfg.get("ranked_posted_at")
         if posted_at:
-            posted_time = datetime.fromisoformat(posted_at).astimezone(est)
-            
-            # Calculate today's 12:30am EST
-            today_1230am = now_est.replace(hour=0, minute=30, second=0, microsecond=0)
-            
-            # If we're after 12:30am EST today
-            if now_est >= today_1230am:
-                # Skip if we already posted after 12:30am EST today
-                if posted_time >= today_1230am:
-                    continue
-            else:
-                # We're before 12:30am EST today (shouldn't happen with current schedule)
-                # Skip if we already posted today
-                if posted_time.date() == now_est.date():
-                    continue
+            posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
+            if posted_date >= reset_time_utc:
+                continue  # Already posted since the most recent reset
         
-        # Only run during or after the 12:30am EST window
-        reset_total = 0 * 60 + 30  # 12:30 AM in minutes
-        now_total = now_est.hour * 60 + now_est.minute
-        if now_total < reset_total:
-            continue  # Not yet 12:30 AM EST
+        # Only run during or after the 04:30 UTC window
+        if now_utc.hour < 4 or (now_utc.hour == 4 and now_utc.minute < 30):
+            continue  # Not yet 04:30 UTC
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
@@ -298,13 +269,13 @@ async def auto_ranked():
                     await storage.save_guild(guild_id, guild_cfg)
                 
                 # Mark as posted today
-                guild_cfg["ranked_posted_at"] = now.isoformat()
+                guild_cfg["ranked_posted_at"] = now_utc.isoformat()
                 await storage.save_guild(guild_id, guild_cfg)
                 
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Ranked standings report updated at 12:30am EST daily",
+                    f"Ranked standings report updated at 04:30 UTC daily",
                     is_automated=True,
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
@@ -343,16 +314,16 @@ async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: s
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours at exactly 10:00pm EST.
+    human/bot kill split) every 24 hours at exactly 02:00 UTC.
     Edits existing message instead of posting new ones.
     """
     while True:
-        # Wait until 10:00pm EST
-        await _wait_until_time(22, 0, "America/New_York")
+        # Wait until 02:00 UTC
+        await _wait_until_time(2, 0, "UTC")
         
         # Run the highlights report for all guilds
-        est = ZoneInfo("America/New_York")
-        now_est = datetime.now(est)
+        utc = timezone.utc
+        now_utc = datetime.now(utc)
         
         for guild_id in await storage.all_guild_ids():
             guild_cfg = await storage.get_guild(guild_id)
@@ -362,24 +333,13 @@ async def auto_highlights():
             if channel_id is None:
                 continue
 
-            # Check if we've already posted
+            # Check if we've already posted since the most recent 02:00 UTC reset
             last_posted = guild_cfg.get("highlights_posted_at")
             if last_posted:
-                last_posted_time = datetime.fromisoformat(last_posted).astimezone(est)
-                
-                # Calculate today's 10pm EST
-                today_10pm = now_est.replace(hour=22, minute=0, second=0, microsecond=0)
-                
-                # If we're after 10pm EST today
-                if now_est >= today_10pm:
-                    # Skip if we already posted after 10pm EST today
-                    if last_posted_time >= today_10pm:
-                        continue
-                else:
-                    # We're before 10pm EST today
-                    # Skip if we already posted today (regardless of time)
-                    if last_posted_time.date() == now_est.date():
-                        continue
+                last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
+                reset_time_utc = now_utc.replace(hour=2, minute=0, second=0, microsecond=0)
+                if last_posted_date >= reset_time_utc:
+                    continue  # Already posted since the most recent reset
 
             guild = _get_bot().get_guild(guild_id)
             channel = _get_bot().get_channel(channel_id)
@@ -416,7 +376,7 @@ async def auto_highlights():
                         await send_audit_log(
                             guild_id,
                             "Scheduled Report Updated",
-                            f"Highlights report updated at 10:00pm EST daily",
+                            f"Highlights report updated at 02:00 UTC daily",
                             is_automated=True,
                             details={"Report Type": "Highlights", "Players": len(players)},
                             report_embed=embed
@@ -598,11 +558,11 @@ async def auto_chicken_dinner():
     Every 15 minutes, checks each opted-in guild's roster for recent squad wins
     in the last 5 matches per player. Groups players who won together in the same match.
     Updates a persistent message with the list of squad wins and a running tally
-    of total wins for the current 24-hour period starting at 12:00am EST.
-    The tally and posted matches reset daily at 12:00am EST.
+    of total wins for the current 24-hour period starting at 04:00 UTC.
+    The tally and posted matches reset daily at 04:00 UTC.
     """
-    est = ZoneInfo("America/New_York")
-    now_est = datetime.now(est)
+    utc = timezone.utc
+    now_utc = datetime.now(utc)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -616,13 +576,13 @@ async def auto_chicken_dinner():
         if guild is None or channel is None:
             continue
 
-        # Check if we need to reset for new day (12:00am EST daily reset)
+        # Check if we need to reset for new day (04:00 UTC daily reset)
         last_reset = guild_cfg.get("chicken_dinner_reset_at")
         needs_reset = False
         if last_reset:
-            last_reset_date = datetime.fromisoformat(last_reset).astimezone(est)
+            last_reset_date = datetime.fromisoformat(last_reset).astimezone(utc)
             # Reset if we're on a different date
-            if last_reset_date.date() != now_est.date():
+            if last_reset_date.date() != now_utc.date():
                 needs_reset = True
         else:
             # First time setup - set reset time
