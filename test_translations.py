@@ -29,6 +29,13 @@ PLURALIZATION_KEYS = {
 # Keys that should NOT contain literal "(s)" strings
 NO_LITERAL_PLURAL_KEYS = PLURALIZATION_KEYS
 
+# Keys that require unit placeholders for pluralization
+UNIT_PLACEHOLDER_KEYS = {
+    "every_hours",
+    "hours_ago",
+    "days_ago",
+}
+
 
 def extract_placeholders(text):
     """Extract all {placeholder} patterns from a string."""
@@ -163,6 +170,45 @@ def validate_pluralization_strings():
     return True
 
 
+def validate_unit_placeholders():
+    """Check that unit placeholder keys exist for pluralization."""
+    print("\n=== Checking unit placeholder keys ===")
+    
+    missing_unit_keys = []
+    
+    for locale in EXPECTED_LOCALES:
+        locale_translations = TRANSLATIONS.get(locale, {})
+        
+        for key in UNIT_PLACEHOLDER_KEYS:
+            # Check that unit keys exist
+            unit_key = key.replace("hours_ago", "hour").replace("days_ago", "day")
+            unit_plural_key = key.replace("hours_ago", "hours").replace("days_ago", "days")
+            
+            if unit_key not in locale_translations:
+                missing_unit_keys.append({
+                    'locale': locale,
+                    'key': unit_key,
+                    'for': key,
+                })
+            if unit_plural_key not in locale_translations:
+                missing_unit_keys.append({
+                    'locale': locale,
+                    'key': unit_plural_key,
+                    'for': key,
+                })
+    
+    if missing_unit_keys:
+        print(f"[X] Missing unit placeholder keys: {len(missing_unit_keys)}")
+        for issue in missing_unit_keys[:10]:
+            print(f"  {issue['locale']} / {issue['key']} (needed for {issue['for']})")
+        if len(missing_unit_keys) > 10:
+            print(f"  ... and {len(missing_unit_keys) - 10} more")
+    else:
+        print("[OK] All unit placeholder keys present")
+    
+    return not missing_unit_keys
+
+
 def validate_utc_terminology():
     """Ensure no Eastern/EST/EDT timezone references remain."""
     print("\n=== Checking UTC terminology ===")
@@ -238,6 +284,7 @@ def run_all_tests():
         "Completeness": validate_locale_completeness(),
         "Placeholder consistency": validate_placeholder_consistency(),
         "Pluralization strings": validate_pluralization_strings(),
+        "Unit placeholders": validate_unit_placeholders(),
         "UTC terminology": validate_utc_terminology(),
     }
     

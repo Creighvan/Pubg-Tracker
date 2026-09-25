@@ -34,7 +34,9 @@ TRANSLATIONS = {
         "donation_message": "Donation Message",
         
         # Time expressions
-        "every_hours": "Every {hours} hour(s)",
+        "every_hours": "Every {count} {unit}",
+        "hour": "hour",
+        "hours": "hours",
         "daily_at": "Daily at {hour:02d}:{minute:02d} UTC",
         "every_weekday_at": "Every {weekday} at {hour:02d}:{minute:02d} UTC",
         "every_sunday_at": "Every Sunday at {hour:02d}:{minute:02d} UTC",
@@ -68,8 +70,12 @@ TRANSLATIONS = {
         "source_manual": " *(manual)*",
         "source_auto_count": " *(auto-count)*",
         "less_than_1_hour": "< 1 hour ago",
-        "hours_ago": "{hours} hour(s) ago",
-        "days_ago": "{days} day(s) ago",
+        "hours_ago": "{count} {unit} ago",
+        "hour": "hour",
+        "hours": "hours",
+        "days_ago": "{count} {unit} ago",
+        "day": "day",
+        "days": "days",
         "no_recent_matches": "No recent matches found",
         
         # Clan Report
@@ -192,7 +198,9 @@ TRANSLATIONS = {
         "donation_message": "捐赠信息",
         
         # Time expressions
-        "every_hours": "每 {hours} 小时",
+        "every_hours": "每 {count} {unit}",
+        "hour": "小时",
+        "hours": "小时",
         "daily_at": "每天 {hour:02d}:{minute:02d} UTC",
         "every_weekday_at": "每周 {weekday} {hour:02d}:{minute:02d} UTC",
         "every_sunday_at": "每周日 {hour:02d}:{minute:02d} UTC",
@@ -226,8 +234,12 @@ TRANSLATIONS = {
         "source_manual": " *(手动)*",
         "source_auto_count": " *(自动计数)*",
         "less_than_1_hour": "小于1小时前",
-        "hours_ago": "{hours}小时前",
-        "days_ago": "{days}天前",
+        "hours_ago": "{count} {unit}前",
+        "hour": "小时",
+        "hours": "小时",
+        "days_ago": "{count} {unit}前",
+        "day": "天",
+        "days": "天",
         "no_recent_matches": "未找到最近的比赛",
         
         # Clan Report
@@ -350,10 +362,12 @@ TRANSLATIONS = {
         "donation_message": "Mensaje de donación",
         
         # Time expressions
-        "every_hours": "Cada {hours} hora(s)",
-        "daily_at": "Diariamente a las {hour:02d}:{minute:02d} hora del este",
-        "every_weekday_at": "Cada {weekday} a las {hour:02d}:{minute:02d} hora del este",
-        "every_sunday_at": "Cada domingo a las {hour:02d}:{minute:02d} hora del este",
+        "every_hours": "Cada {count} {unit}",
+        "hour": "hora",
+        "hours": "horas",
+        "daily_at": "Diariamente a las {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "Cada {weekday} a las {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "Cada domingo a las {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "Lunes",
@@ -384,8 +398,12 @@ TRANSLATIONS = {
         "source_manual": " *(manual)*",
         "source_auto_count": " *(auto-contador)*",
         "less_than_1_hour": "Hace menos de 1 hora",
-        "hours_ago": "Hace {hours} hora(s)",
-        "days_ago": "Hace {days} día(s)",
+        "hours_ago": "Hace {count} {unit}",
+        "hour": "hora",
+        "hours": "horas",
+        "days_ago": "Hace {count} {unit}",
+        "day": "día",
+        "days": "días",
         "no_recent_matches": "No se encontraron partidas recientes",
         
         # Clan Report
@@ -515,10 +533,12 @@ TRANSLATIONS = {
         "donation_message": "दान संदेश",
         
         # Time expressions
-        "every_hours": "हर {hours} घंटे",
-        "daily_at": "दैनिक {hour:02d}:{minute:02d} पूर्वी समय",
-        "every_weekday_at": "हर {weekday} {hour:02d}:{minute:02d} पूर्वी समय",
-        "every_sunday_at": "हर रविवार {hour:02d}:{minute:02d} पूर्वी समय",
+        "every_hours": "हर {count} {unit}",
+        "hour": "घंटा",
+        "hours": "घंटे",
+        "daily_at": "दैनिक {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "हर {weekday} {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "हर रविवार {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "सोमवार",
@@ -549,8 +569,12 @@ TRANSLATIONS = {
         "source_manual": " *(मैनुअल)*",
         "source_auto_count": " *(स्वचालित गणना)*",
         "less_than_1_hour": "1 घंटे से कम पहले",
-        "hours_ago": "{hours} घंटे पहले",
-        "days_ago": "{days} दिन पहले",
+        "hours_ago": "{count} {unit} पहले",
+        "hour": "घंटा",
+        "hours": "घंटे",
+        "days_ago": "{count} {unit} पहले",
+        "day": "दिन",
+        "days": "दिन",
         "no_recent_matches": "हाल के मैच नहीं मिले",
         
         # Clan Report
@@ -673,10 +697,12 @@ TRANSLATIONS = {
         "donation_message": "رسالة التبرع",
         
         # Time expressions
-        "every_hours": "كل {hours} ساعة",
-        "daily_at": "يومياً في {hour:02d}:{minute:02d} التوقيت الشرقي",
-        "every_weekday_at": "كل {weekday} في {hour:02d}:{minute:02d} التوقيت الشرقي",
-        "every_sunday_at": "كل يوم أحد في {hour:02d}:{minute:02d} التوقيت الشرقي",
+        "every_hours": "كل {count} {unit}",
+        "hour": "ساعة",
+        "hours": "ساعات",
+        "daily_at": "يومياً في {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "كل {weekday} في {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "كل يوم أحد في {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "الاثنين",
@@ -707,8 +733,12 @@ TRANSLATIONS = {
         "source_manual": " *(يدوي)*",
         "source_auto_count": " *(عداد تلقائي)*",
         "less_than_1_hour": "أقل من ساعة",
-        "hours_ago": "منذ {hours} ساعة",
-        "days_ago": "منذ {days} يوم",
+        "hours_ago": "منذ {count} {unit}",
+        "hour": "ساعة",
+        "hours": "ساعات",
+        "days_ago": "منذ {count} {unit}",
+        "day": "يوم",
+        "days": "أيام",
         "no_recent_matches": "لم يتم العثور على مباريات حديثة",
         
         # Clan Report
@@ -831,7 +861,9 @@ TRANSLATIONS = {
         "donation_message": "Message de don",
         
         # Time expressions
-        "every_hours": "Toutes les {hours} heure(s)",
+        "every_hours": "Toutes les {count} {unit}",
+        "hour": "heure",
+        "hours": "heures",
         "daily_at": "Quotidien à {hour:02d}:{minute:02d} UTC",
         "every_weekday_at": "Chaque {weekday} à {hour:02d}:{minute:02d} UTC",
         "every_sunday_at": "Chaque dimanche à {hour:02d}:{minute:02d} UTC",
@@ -865,8 +897,12 @@ TRANSLATIONS = {
         "source_manual": " *(manuel)*",
         "source_auto_count": " *(comptage auto)*",
         "less_than_1_hour": "Il y a moins d'1 heure",
-        "hours_ago": "Il y a {hours} heure(s)",
-        "days_ago": "Il y a {days} jour(s)",
+        "hours_ago": "Il y a {count} {unit}",
+        "hour": "heure",
+        "hours": "heures",
+        "days_ago": "Il y a {count} {unit}",
+        "day": "jour",
+        "days": "jours",
         "no_recent_matches": "Aucune partie récente trouvée",
         
         # Clan Report
@@ -989,7 +1025,9 @@ TRANSLATIONS = {
         "donation_message": "দান বার্তা",
         
         # Time expressions
-        "every_hours": "প্রতি {hours} ঘন্টা",
+        "every_hours": "প্রতি {count} {unit}",
+        "hour": "ঘন্টা",
+        "hours": "ঘন্টা",
         "daily_at": "দৈনিক {hour:02d}:{minute:02d} UTC",
         "every_weekday_at": "প্রতি {weekday} {hour:02d}:{minute:02d} UTC",
         "every_sunday_at": "প্রতি রবিবার {hour:02d}:{minute:02d} UTC",
@@ -1023,8 +1061,12 @@ TRANSLATIONS = {
         "source_manual": " *(ম্যানুয়াল)*",
         "source_auto_count": " *(স্বয়ংক্রিয় গণনা)*",
         "less_than_1_hour": "1 ঘন্টার কম",
-        "hours_ago": "{hours} ঘন্টা আগে",
-        "days_ago": "{days} দিন আগে",
+        "hours_ago": "{count} {unit} আগে",
+        "hour": "ঘন্টা",
+        "hours": "ঘন্টা",
+        "days_ago": "{count} {unit} আগে",
+        "day": "দিন",
+        "days": "দিন",
         "no_recent_matches": "সাম্প্রতিক ম্যাচ পাওয়া যায়নি",
         
         # Clan Report
@@ -1147,10 +1189,12 @@ TRANSLATIONS = {
         "donation_message": "Mensagem de doação",
         
         # Time expressions
-        "every_hours": "A cada {hours} hora(s)",
-        "daily_at": "Diariamente às {hour:02d}:{minute:02d} horário do leste",
-        "every_weekday_at": "Toda {weekday} às {hour:02d}:{minute:02d} horário do leste",
-        "every_sunday_at": "Todo domingo às {hour:02d}:{minute:02d} horário do leste",
+        "every_hours": "A cada {count} {unit}",
+        "hour": "hora",
+        "hours": "horas",
+        "daily_at": "Diariamente às {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "Toda {weekday} às {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "Todo domingo às {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "Segunda-feira",
@@ -1181,8 +1225,12 @@ TRANSLATIONS = {
         "source_manual": " *(manual)*",
         "source_auto_count": " *(contagem automática)*",
         "less_than_1_hour": "Menos de 1 hora atrás",
-        "hours_ago": "{hours} hora(s) atrás",
-        "days_ago": "{days} dia(s) atrás",
+        "hours_ago": "{count} {unit} atrás",
+        "hour": "hora",
+        "hours": "horas",
+        "days_ago": "{count} {unit} atrás",
+        "day": "dia",
+        "days": "dias",
         "no_recent_matches": "Nenhuma partida recente encontrada",
         
         # Clan Report
@@ -1305,10 +1353,12 @@ TRANSLATIONS = {
         "donation_message": "Pesan donasi",
         
         # Time expressions
-        "every_hours": "Setiap {hours} jam",
-        "daily_at": "Harian di {hour:02d}:{minute:02d} waktu Timur",
-        "every_weekday_at": "Setiap {weekday} di {hour:02d}:{minute:02d} waktu Timur",
-        "every_sunday_at": "Setiap Minggu di {hour:02d}:{minute:02d} waktu Timur",
+        "every_hours": "Setiap {count} {unit}",
+        "hour": "jam",
+        "hours": "jam",
+        "daily_at": "Harian di {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "Setiap {weekday} di {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "Setiap Minggu di {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "Senin",
@@ -1339,8 +1389,12 @@ TRANSLATIONS = {
         "source_manual": " *(manual)*",
         "source_auto_count": " *(hitungan otomatis)*",
         "less_than_1_hour": "Kurang dari 1 jam yang lalu",
-        "hours_ago": "{hours} jam yang lalu",
-        "days_ago": "{days} hari yang lalu",
+        "hours_ago": "{count} {unit} yang lalu",
+        "hour": "jam",
+        "hours": "jam",
+        "days_ago": "{count} {unit} yang lalu",
+        "day": "hari",
+        "days": "hari",
         "no_recent_matches": "Tidak ada pertandingan terbaru ditemukan",
         
         # Clan Report
@@ -1463,7 +1517,9 @@ TRANSLATIONS = {
         "donation_message": "عطیہ کا پیغام",
         
         # Time expressions
-        "every_hours": "ہر {hours} گھنٹے",
+        "every_hours": "ہر {count} {unit}",
+        "hour": "گھنٹہ",
+        "hours": "گھنٹے",
         "daily_at": "روزانہ {hour:02d}:{minute:02d} UTC",
         "every_weekday_at": "ہر {weekday} {hour:02d}:{minute:02d} UTC",
         "every_sunday_at": "ہر اتوار {hour:02d}:{minute:02d} UTC",
@@ -1497,8 +1553,12 @@ TRANSLATIONS = {
         "source_manual": " *(دستی)*",
         "source_auto_count": " *(خودکار گنتی)*",
         "less_than_1_hour": "1 گھنٹے سے کم پہلے",
-        "hours_ago": "{hours} گھنٹے پہلے",
-        "days_ago": "{days} دن پہلے",
+        "hours_ago": "{count} {unit} پہلے",
+        "hour": "گھنٹہ",
+        "hours": "گھنٹے",
+        "days_ago": "{count} {unit} پہلے",
+        "day": "دن",
+        "days": "دن",
         "no_recent_matches": "حالیہ میچ نہیں ملا",
         
         # Clan Report
