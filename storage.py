@@ -95,7 +95,15 @@ _DEFAULT_GUILD = {
 }
 
 
+# Global flag to track database corruption state
+_CORRUPTION_DETECTED = False
+
+
 def _load() -> dict:
+    global _CORRUPTION_DETECTED
+    if _CORRUPTION_DETECTED:
+        logger.critical("Database in corrupted state - refusing to load and returning empty dict")
+        return {}
     if not os.path.exists(DATA_PATH):
         return {}
     with open(DATA_PATH, "r", encoding="utf-8") as f:
@@ -109,11 +117,24 @@ def _load() -> dict:
             shutil.copy2(DATA_PATH, corrupt_path)
             logger.critical(f"Corrupted file preserved as {corrupt_path}")
             logger.critical("Bot will continue with empty database. Administrator should investigate corruption.")
+            # Set corruption flag to prevent writes
+            _CORRUPTION_DETECTED = True
             # Return empty dict to allow bot to continue, but the corrupted file is preserved
             return {}
 
 
+def reset_corruption_state():
+    """Reset the corruption flag after manual recovery. Call this only after verifying the database is valid."""
+    global _CORRUPTION_DETECTED
+    _CORRUPTION_DETECTED = False
+    logger.info("Database corruption state reset - writes re-enabled")
+
+
 def _save(data: dict):
+    global _CORRUPTION_DETECTED
+    if _CORRUPTION_DETECTED:
+        logger.critical("Refusing to save database - corruption detected and administrator intervention required")
+        return
     tmp_path = DATA_PATH + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
