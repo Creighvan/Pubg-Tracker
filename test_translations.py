@@ -254,6 +254,71 @@ def validate_utc_terminology():
     return not timezone_issues
 
 
+def validate_runtime_formatting():
+    """Test that translations can be formatted with the expected placeholders."""
+    print("\n=== Checking runtime formatting ===")
+    
+    formatting_issues = []
+    
+    # Test time-related translations with actual format calls
+    test_cases = [
+        ("hours_ago", {"count": 2, "unit": "hours"}),
+        ("hours_ago", {"count": 1, "unit": "hour"}),
+        ("days_ago", {"count": 3, "unit": "days"}),
+        ("days_ago", {"count": 1, "unit": "day"}),
+        ("every_hours", {"count": 6, "unit": "hours"}),
+        ("every_hours", {"count": 1, "unit": "hour"}),
+    ]
+    
+    for locale in EXPECTED_LOCALES:
+        locale_translations = TRANSLATIONS.get(locale, {})
+        
+        for key, format_args in test_cases:
+            if key not in locale_translations:
+                continue
+            
+            try:
+                template = locale_translations[key]
+                formatted = template.format(**format_args)
+                if not formatted or formatted == template:
+                    formatting_issues.append({
+                        'locale': locale,
+                        'key': key,
+                        'args': format_args,
+                        'template': template,
+                        'error': 'Formatting produced no change or empty result',
+                    })
+            except KeyError as e:
+                formatting_issues.append({
+                    'locale': locale,
+                    'key': key,
+                    'args': format_args,
+                    'template': template,
+                    'error': f'Missing placeholder: {e}',
+                })
+            except Exception as e:
+                formatting_issues.append({
+                    'locale': locale,
+                    'key': key,
+                    'args': format_args,
+                    'template': template,
+                    'error': str(e),
+                })
+    
+    if formatting_issues:
+        print(f"[X] Runtime formatting issues found: {len(formatting_issues)}")
+        for issue in formatting_issues[:10]:
+            print(f"  {issue['locale']} / {issue['key']}")
+            print(f"    Args: {issue['args']}")
+            print(f"    Error: {issue['error']}")
+        if len(formatting_issues) > 10:
+            print(f"  ... and {len(formatting_issues) - 10} more")
+    else:
+        print("[OK] All runtime formatting tests passed")
+    
+    return not formatting_issues
+
+
 def validate_locales_present():
     """Verify all expected locales are present."""
     print("\n=== Checking expected locales ===")
@@ -286,6 +351,7 @@ def run_all_tests():
         "Pluralization strings": validate_pluralization_strings(),
         "Unit placeholders": validate_unit_placeholders(),
         "UTC terminology": validate_utc_terminology(),
+        "Runtime formatting": validate_runtime_formatting(),
     }
     
     print("\n" + "=" * 60)
