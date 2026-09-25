@@ -1,7 +1,7 @@
 """
 Translation system for PUBG Tracker bot.
 
-Supports the top 10 most used languages:
+Supports 10 languages:
 - English (en)
 - Mandarin Chinese (zh)
 - Hindi (hi)
