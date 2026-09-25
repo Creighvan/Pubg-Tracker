@@ -71,6 +71,7 @@ Setup:
 """
 
 import asyncio
+import copy
 import logging
 import os
 import random
@@ -268,14 +269,16 @@ async def send_audit_log(
         
         # If we have a report embed, send it directly with a footer
         if report_embed:
+            # Copy the embed to avoid mutating the original
+            audit_embed = copy.deepcopy(report_embed)
             # Add footer with server info
             user_info = f"{user.display_name} ({user.id})" if user else "Automated (N/A)"
-            report_embed.set_footer(
+            audit_embed.set_footer(
                 text=f"Server: {guild_name} ({guild_id}) | "
                       f"User: {user_info} | "
                       f"Event: {event_type}"
             )
-            await channel.send(embed=report_embed)
+            await channel.send(embed=audit_embed)
         else:
             # Build metadata embed
             color = discord.Color.blue() if is_automated else discord.Color.green()
@@ -616,27 +619,28 @@ async def resetprotected(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(players="Player names (one per line or comma-separated)")
 async def addprotectedbulk(interaction: discord.Interaction, players: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    
     # Parse the input - handle both comma and newline separators
     player_list = [p.strip() for p in players.replace(',', '\n').split('\n')]
     player_list = [p for p in player_list if p]  # Remove empty entries
     
-    # Get current protected list
-    current_protected = set(p.lower() for p in guild_cfg["protected_players"])
+    def modifier(guild_cfg):
+        current_protected = set(p.lower() for p in guild_cfg["protected_players"])
+        added = []
+        duplicates = []
+        
+        for player in player_list:
+            if player.lower() in current_protected:
+                duplicates.append(player)
+            else:
+                guild_cfg["protected_players"].append(player)
+                current_protected.add(player.lower())
+                added.append(player)
+        
+        return {"added": added, "duplicates": duplicates}
     
-    added = []
-    duplicates = []
-    
-    for player in player_list:
-        if player.lower() in current_protected:
-            duplicates.append(player)
-        else:
-            guild_cfg["protected_players"].append(player)
-            current_protected.add(player.lower())
-            added.append(player)
-    
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    result = await storage.modify_guild(interaction.guild_id, modifier)
+    added = result["added"]
+    duplicates = result["duplicates"]
     
     message = f"✅ Added **{len(added)}** protected player(s):\n" + ", ".join(added)
     if duplicates:
@@ -648,14 +652,16 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
 async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
     from datetime import datetime, timedelta, timezone
     inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
-    guild_cfg["manual_inactive_dates"][name.lower()] = {
-        "date": inactive_date,
-        "set_at": datetime.now(timezone.utc).isoformat()
-    }
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    
+    def modifier(guild_cfg):
+        guild_cfg["manual_inactive_dates"][name.lower()] = {
+            "date": inactive_date,
+            "set_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will increment daily until they return to PUBG.")
     await send_audit_log(
         interaction.guild_id,
@@ -670,10 +676,14 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if name.lower() in guild_cfg.get("manual_inactive_dates", {}):
-        del guild_cfg["manual_inactive_dates"][name.lower()]
-        await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        if name.lower() in guild_cfg.get("manual_inactive_dates", {}):
+            del guild_cfg["manual_inactive_dates"][name.lower()]
+            return True
+        return False
+    
+    removed = await storage.modify_guild(interaction.guild_id, modifier)
+    if removed:
         await interaction.response.send_message(f"✅ Removed manual inactive date for **{name}**. Will use PUBG API data.")
         await send_audit_log(
             interaction.guild_id,
@@ -836,9 +846,9 @@ def _detect_statistical_anomalies(stats: dict) -> list[str]:
     if headshot_rate > 80:
         flags.append(f"Suspicious headshot rate: {headshot_rate:.1f}%")
     if avg_damage > 2000:
-        flags.append(f"Unrealistic average damage: {avg_damage:.0f}")
+        flags.append(f"High average damage: {avg_damage:.0f}")
     if wins / rounds > 0.5 and rounds > 10:
-        flags.append(f"Impossible win rate: {(wins/rounds)*100:.1f}%")
+        flags.append(f"High win rate: {(wins/rounds)*100:.1f}%")
     
     return flags
 
@@ -849,10 +859,10 @@ async def clanstats(interaction: discord.Interaction):
     try:
         result = await fetch_clan_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error in /clanstats")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await send_error_response(interaction, e, context="Error generating clan report")
         return
     if result is None:
         await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
@@ -893,10 +903,10 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
     try:
         players, not_found = await pubg.get_players_and_stats(guild_cfg["players"], game_mode=guild_cfg["game_mode"])
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await send_error_response(interaction, e, context="Error generating report")
         return
 
     ranked = sorted(players, key=lambda p: p["stats"].get(stat_key, 0), reverse=True)
@@ -956,7 +966,7 @@ async def clanlevel(interaction: discord.Interaction):
     try:
         result = await fetch_clan_level_report(interaction.guild_id)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
         return
     if result is None:
         await interaction.followup.send("Set a clan first with `/setclan <current clan member>`.")
@@ -1004,9 +1014,9 @@ async def setclanchannel(interaction: discord.Interaction):
                 f"Choose the weekly time with `/setclantime`."
             )
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong: {e}")
+        await send_error_response(interaction, e, context="Error")
 
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
@@ -1273,10 +1283,10 @@ async def lastactive(interaction: discord.Interaction):
         await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
         return
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
         await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
@@ -1360,18 +1370,9 @@ async def setactivitychannel(interaction: discord.Interaction):
                 report_embed=embed
             )
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ Failed to generate report: {e}")
+        await send_error_response(interaction, e, context="Failed to generate report")
     except Exception as e:
-        await interaction.followup.send(f"❌ Something went wrong: {e}")
-
-
-@bot.tree.command(description="Last-active report now updates at 02:00 UTC daily reset (no custom time needed)")
-async def setactivitytime(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        "ℹ️ The last-active report now automatically updates at **02:00 UTC daily reset**. "
-        "Custom time scheduling is no longer available for this report. "
-        "Use `/setactivitychannel` to choose where it updates."
-    )
+        await send_error_response(interaction, e, context="Error in command")
 
 
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
@@ -1468,10 +1469,14 @@ async def _run_ranked_command(interaction: discord.Interaction, game_mode: str, 
     try:
         result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name, game_mode)
     except PubgApiError as e:
-        await channel.send(f"PUBG API error while fetching {queue_label} ranked standings: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] PUBG API error while fetching {queue_label} ranked standings")
+        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
         return
     except Exception as e:
-        await channel.send(f"Something went wrong generating this report: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] Error generating ranked report")
+        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
         return
     embed, players = result
     await channel.send(embed=embed)
@@ -1648,9 +1653,9 @@ async def setrankedchannel(interaction: discord.Interaction):
         else:
             await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong: {e}")
+        await send_error_response(interaction, e, context="Error")
 
 
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
@@ -1683,10 +1688,10 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
     try:
         result = await fetch_highlights_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await send_error_response(interaction, e, context="Error generating report")
         return
     embed, players = result
     await interaction.followup.send(embed=embed)
@@ -1745,10 +1750,14 @@ async def survivalstats(interaction: discord.Interaction):
     try:
         result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
-        await channel.send(f"PUBG API error while building the Survival Mastery report: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] PUBG API error while building Survival Mastery report")
+        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
         return
     except Exception as e:
-        await channel.send(f"Something went wrong generating this report: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] Error generating Survival Mastery report")
+        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
         return
     if result is None:
         await channel.send("No players tracked yet. Add some with `/addplayer`.")
@@ -1800,9 +1809,9 @@ async def setsurvivalchannel(interaction: discord.Interaction):
         else:
             await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong: {e}")
+        await send_error_response(interaction, e, context="Error")
 
 
 @bot.tree.command(description="Set the weekly Survival Mastery report time in UTC")
@@ -1844,10 +1853,14 @@ async def masterystats(interaction: discord.Interaction):
     try:
         result = await fetch_mastery_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
-        await channel.send(f"PUBG API error while building the mastery report: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] PUBG API error while building mastery report")
+        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
         return
     except Exception as e:
-        await channel.send(f"Something went wrong generating this report: {e}")
+        error_id = generate_error_id()
+        logger.exception(f"[{error_id}] Error generating mastery report")
+        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
         return
     if result is None:
         await channel.send("No players tracked yet. Add some with `/addplayer`.")
@@ -1867,10 +1880,10 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     try:
         result = await fetch_leaderboard_report(interaction.guild_id, interaction.guild.name, max_pages=pages)
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error")
         return
     except Exception as e:
-        await interaction.followup.send(f"Something went wrong generating this report: {e}")
+        await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
         await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
