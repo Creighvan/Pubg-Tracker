@@ -293,7 +293,7 @@ async def before_auto_ranked():
 
 
 @tasks.loop(minutes=15)
-async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: str = "America/New_York"):
+async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: str = "UTC"):
     """Sleep until the specified time in the given timezone."""
     tz = ZoneInfo(timezone_str)
     while True:
