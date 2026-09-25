@@ -1464,9 +1464,9 @@ TRANSLATIONS = {
         
         # Time expressions
         "every_hours": "ہر {hours} گھنٹے",
-        "daily_at": "روزانہ {hour:02d}:{minute:02d} مشرقی وقت",
-        "every_weekday_at": "ہر {weekday} {hour:02d}:{minute:02d} مشرقی وقت",
-        "every_sunday_at": "ہر اتوار {hour:02d}:{minute:02d} مشرقی وقت",
+        "daily_at": "روزانہ {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "ہر {weekday} {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "ہر اتوار {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "پیر",

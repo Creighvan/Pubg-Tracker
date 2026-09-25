@@ -10,8 +10,13 @@ volume for this file or swap this module for SQLite/Postgres later).
 import asyncio
 import copy
 import json
+import logging
 import os
+import shutil
+import uuid
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data.json")
 _lock = asyncio.Lock()
@@ -96,7 +101,15 @@ def _load() -> dict:
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         try:
             return json.load(f)
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            # Log the corruption and preserve the damaged file
+            logger.critical(f"Database corruption detected in {DATA_PATH}: {e}")
+            timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+            corrupt_path = f"{DATA_PATH}.corrupt-{timestamp}"
+            shutil.copy2(DATA_PATH, corrupt_path)
+            logger.critical(f"Corrupted file preserved as {corrupt_path}")
+            logger.critical("Bot will continue with empty database. Administrator should investigate corruption.")
+            # Return empty dict to allow bot to continue, but the corrupted file is preserved
             return {}
 
 
@@ -272,9 +285,8 @@ async def add_cheat_report(
     result = {"report_id": None}
     
     def modifier(guild):
-        # Use timestamp as primary key to avoid race conditions on length
-        timestamp = int(datetime.now(timezone.utc).timestamp())
-        report_id = f"report_{timestamp}"
+        # Use UUID for guaranteed uniqueness even under concurrent requests
+        report_id = f"report_{uuid.uuid4().hex}"
         report = {
             "report_id": report_id,
             "reported_at": datetime.now(timezone.utc).isoformat(),

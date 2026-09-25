@@ -71,7 +71,10 @@ Setup:
 """
 
 import asyncio
+import logging
 import os
+import random
+import string
 import hmac
 from datetime import datetime, timedelta, timezone
 
@@ -82,6 +85,19 @@ from discord.ext import commands, tasks
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
+
+logger = logging.getLogger(__name__)
+
+def generate_error_id() -> str:
+    """Generate a unique error reference ID for user-facing messages."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+async def send_error_response(interaction, error, error_id=None, context=""):
+    """Send a sanitized error response to the user and log the full exception."""
+    if error_id is None:
+        error_id = generate_error_id()
+    logger.exception(f"[{error_id}] {context}: {error}")
+    await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
 
 # Import all shared configuration and state
 from modules.config import (
@@ -100,7 +116,6 @@ from modules.config import (
     DONATION_MESSAGE,
     VALID_GAME_MODES,
     RANKED_MODE_LABELS,
-    EASTERN,
     intents,
     GuildOnlyTree,
     get_scheduler_lock,
@@ -129,8 +144,8 @@ from modules.utils import (
     _is_due,
     _is_weekly_due,
     _is_sunday_donation_due,
-    _as_eastern,
-    _format_eastern_time,
+    _as_utc,
+    _format_utc_time,
     _next_daily_report,
     _next_interval_report,
     _next_weekly_report,
@@ -307,8 +322,9 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     ensures every command always gets SOME reply.
     """
     cmd_name = interaction.command.name if interaction.command else "unknown"
-    print(f"[app_command_error] /{cmd_name}: {error}")
-    message = f"Something went wrong running this command: {error}"
+    error_id = generate_error_id()
+    logger.exception(f"[{error_id}] /{cmd_name} command error: {error}")
+    message = f"❌ Something went wrong running this command. Error reference: {error_id}"
     try:
         if interaction.response.is_done():
             await interaction.followup.send(message, ephemeral=True)
@@ -580,6 +596,7 @@ async def listprotected(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Clean up protected player list (remove duplicates and empty entries)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def cleanprotected(interaction: discord.Interaction):
     removed = await storage.clean_protected_players(interaction.guild_id)
     protected = await storage.get_protected_players(interaction.guild_id)
@@ -589,9 +606,9 @@ async def cleanprotected(interaction: discord.Interaction):
 @bot.tree.command(description="Clear and reset the entire protected player list")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def resetprotected(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["protected_players"] = []
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["protected_players"] = []
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message("🗑️ Protected player list has been cleared. Use `/addprotected` to rebuild it.")
 
 
