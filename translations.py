@@ -127,6 +127,36 @@ TRANSLATIONS = {
         "total_wins_today": "Total wins today",
         "chicken_dinner_footer": "Updates every 15 minutes · Resets daily at 04:00 UTC · Stats from the official PUBG API",
         
+        # Mastery Report
+        "mastery_report": "Weapon & Survival Mastery",
+        "mastery_description": "Each player's highest-level weapon and overall survival mastery.",
+        "top_weapon_mastery": "Top Weapon Mastery",
+        "top_survival_level": "Top Survival Level",
+        "mastery": "Mastery",
+        "kills": "kills",
+        "survival": "Survival",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "Survival Mastery by Tier",
+        "survival_mastery_description": "Each player's survival mastery level, grouped by tier.",
+        "no_survival_data": "No survival mastery data available.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "Leaderboard Results",
+        "leaderboard_description": "Official PUBG leaderboard placement results for tracked players.",
+        "no_leaderboard_results": "No tracked players found on the leaderboard.",
+        
+        # Report Status
+        "report_status": "Scheduled Report Status",
+        "report_status_description": "Only configured reports are scheduled. All times are UTC.",
+        "no_reports_configured": "No automatic reports configured yet. Use `/set...channel` and `/set...time` commands to schedule one.",
+        "channel": "Channel",
+        "schedule": "Schedule",
+        "next_run": "Next run",
+        "status": "Status",
+        "enabled_status": "Enabled",
+        "disabled_status": "Disabled",
+        
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
         "player_added": "Added player: {name}",
@@ -255,6 +285,36 @@ TRANSLATIONS = {
         "total_wins_today": "今天总胜利",
         "chicken_dinner_footer": "每15分钟更新 · 每天UTC凌晨4点重置 · 来自官方PUBG API的统计数据",
         
+        # Mastery Report
+        "mastery_report": "武器和生存精通",
+        "mastery_description": "每位玩家的最高级武器和整体生存精通。",
+        "top_weapon_mastery": "顶级武器精通",
+        "top_survival_level": "顶级生存等级",
+        "mastery": "精通",
+        "kills": "击杀",
+        "survival": "生存",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "按等级分组的生存精通",
+        "survival_mastery_description": "每位玩家的生存精通等级，按等级分组。",
+        "no_survival_data": "没有生存精通数据可用。",
+        
+        # Leaderboard Report
+        "leaderboard_report": "排行榜结果",
+        "leaderboard_description": "跟踪玩家的官方PUBG排行榜定位结果。",
+        "no_leaderboard_results": "没有跟踪的玩家在排行榜上找到。",
+        
+        # Report Status
+        "report_status": "预定报告状态",
+        "report_status_description": "仅配置的报告会自动发布。所有时间均为UTC。",
+        "no_reports_configured": "尚未配置自动报告。使用 `/set...channel` 和 `/set...time` 命令进行安排。",
+        "channel": "频道",
+        "schedule": "时间表",
+        "next_run": "下次运行",
+        "status": "状态",
+        "enabled_status": "已启用",
+        "disabled_status": "已禁用",
+        
         # Command responses
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
         "player_added": "已添加玩家：{name}",
@@ -361,7 +421,44 @@ TRANSLATIONS = {
         "no_ranked_description": "Ningún jugador rastreado tiene partidas clasificadas en esta cola esta temporada.",
         "ranked_footer": "Actualizaciones diarias a las 04:30 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · clasificada, temporada actual",
         
-        # Daily Highlights Report
+        # Chicken Dinner Report
+        "chicken_dinner": "Pollo al horno",
+        "recent_squad_wins": "Victorias recientes de escuadrón (últimas 5 partidas por jugador)",
+        "no_wins_yet": "Aún no hay victorias de escuadrón hoy!",
+        "total_wins_today": "Victorias totales hoy",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Restablecimiento diario a las 04:00 UTC · Estadísticas de la API oficial de PUBG",
+        
+        # Mastery Report
+        "mastery_report": "Maestría de armas y supervivencia",
+        "mastery_description": "La maestría de arma de mayor nivel y la maestría de supervivencia general de cada jugador.",
+        "top_weapon_mastery": "Mejor maestría de arma",
+        "top_survival_level": "Mejor nivel de supervivencia",
+        "mastery": "Maestría",
+        "kills": "bajas",
+        "survival": "Supervivencia",
+        
+        # Survival Mastery Report
+        "survival_mastery_report": "Maestría de supervivencia por nivel",
+        "survival_mastery_description": "Nivel de maestría de supervivencia de cada jugador, agrupado por nivel.",
+        "no_survival_data": "No hay datos de maestría de supervivencia disponibles.",
+        
+        # Leaderboard Report
+        "leaderboard_report": "Resultados de la tabla de clasificación",
+        "leaderboard_description": "Resultados de clasificación oficial de PUBG para jugadores rastreados.",
+        "no_leaderboard_results": "No se encontraron jugadores rastreados en la tabla de clasificación.",
+        
+        # Report Status
+        "report_status": "Estado del informe programado",
+        "report_status_description": "Solo se programan los informes configurados. Todos los horarios son UTC.",
+        "no_reports_configured": "Aún no hay informes automáticos configurados. Use los comandos `/set...channel` y `/set...time` para programar uno.",
+        "channel": "Canal",
+        "schedule": "Horario",
+        "next_run": "Próxima ejecución",
+        "status": "Estado",
+        "enabled_status": "Habilitado",
+        "disabled_status": "Deshabilitado",
+        
+        # Command responses
         "daily_highlights": "Resaltados diarios",
         "fun_titles": "Títulos divertidos",
         "highlights_description": "Basado en {count} jugador(es) que jugaron desde el restablecimiento diario (02:00 UTC).",
