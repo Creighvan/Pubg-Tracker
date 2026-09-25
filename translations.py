@@ -193,9 +193,9 @@ TRANSLATIONS = {
         
         # Time expressions
         "every_hours": "每 {hours} 小时",
-        "daily_at": "每天 {hour:02d}:{minute:02d} 东部时间",
-        "every_weekday_at": "每周 {weekday} {hour:02d}:{minute:02d} 东部时间",
-        "every_sunday_at": "每周日 {hour:02d}:{minute:02d} 东部时间",
+        "daily_at": "每天 {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "每周 {weekday} {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "每周日 {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "星期一",
@@ -832,9 +832,9 @@ TRANSLATIONS = {
         
         # Time expressions
         "every_hours": "Toutes les {hours} heure(s)",
-        "daily_at": "Quotidien à {hour:02d}:{minute:02d} heure de l'Est",
-        "every_weekday_at": "Chaque {weekday} à {hour:02d}:{minute:02d} heure de l'Est",
-        "every_sunday_at": "Chaque dimanche à {hour:02d}:{minute:02d} heure de l'Est",
+        "daily_at": "Quotidien à {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "Chaque {weekday} à {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "Chaque dimanche à {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "Lundi",
@@ -990,9 +990,9 @@ TRANSLATIONS = {
         
         # Time expressions
         "every_hours": "প্রতি {hours} ঘন্টা",
-        "daily_at": "দৈনিক {hour:02d}:{minute:02d} পূর্বাঞ্চল সময়",
-        "every_weekday_at": "প্রতি {weekday} {hour:02d}:{minute:02d} পূর্বাঞ্চল সময়",
-        "every_sunday_at": "প্রতি রবিবার {hour:02d}:{minute:02d} পূর্বাঞ্চল সময়",
+        "daily_at": "দৈনিক {hour:02d}:{minute:02d} UTC",
+        "every_weekday_at": "প্রতি {weekday} {hour:02d}:{minute:02d} UTC",
+        "every_sunday_at": "প্রতি রবিবার {hour:02d}:{minute:02d} UTC",
         
         # Weekday names
         "monday": "সোমবার",
