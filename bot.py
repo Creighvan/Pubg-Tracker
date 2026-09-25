@@ -96,7 +96,7 @@ async def send_error_response(interaction, error, error_id=None, context=""):
     """Send a sanitized error response to the user and log the full exception."""
     if error_id is None:
         error_id = generate_error_id()
-    logger.exception(f"[{error_id}] {context}: {error}")
+    logger.error(f"[{error_id}] {context}: {error}", exc_info=error)
     await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
 
 # Import all shared configuration and state
@@ -305,7 +305,7 @@ async def send_audit_log(
             await channel.send(embed=embed)
     except Exception as e:
         # Log to console so admin knows if audit logging fails
-        print(f"[audit_log] Failed to send audit log: {e}")
+        logger.error(f"[audit_log] Failed to send audit log: {e}", exc_info=e)
 
 
 
@@ -335,7 +335,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
     except Exception as e:
         # The interaction token may already be expired/invalid at this
         # point — nothing more we can do but log it.
-        print(f"[app_command_error] Also failed to notify the user: {e}")
+        logger.error(f"[app_command_error] Also failed to notify the user: {e}", exc_info=e)
 
 
 # ---------- helpers ----------
@@ -398,7 +398,7 @@ async def on_ready():
             _command_templates = bot.tree.get_commands()
             for guild in bot.guilds:
                 count = await _sync_guild_commands(guild)
-                print(f"Instantly synced {count} commands to guild {guild.name} ({guild.id})")
+                logger.info(f"Instantly synced {count} commands to guild {guild.name} ({guild.id})")
 
             # Remove the old global command set. Keeping it alongside the
             # immediate guild commands can make old/global command versions
@@ -411,13 +411,13 @@ async def on_ready():
         # below from starting — this used to be able to silently kill
         # every auto-post if this step threw, since the task-start code
         # was unreachable after an unhandled exception here.
-        print(f"[on_ready] Command sync failed (scheduled reports will still start): {e}")
+        logger.warning(f"[on_ready] Command sync failed (scheduled reports will still start): {e}", exc_info=e)
     if not auto_digest.is_running():
         start_all_scheduled_tasks(bot)
         # Wire up the audit log function so scheduler uses our implementation
         _set_audit_log_func(send_audit_log)
     bot.add_view(FeedbackPromptView())
-    print(f"Logged in as {bot.user} (id={bot.user.id})")
+    logger.info(f"Logged in as {bot.user} (id={bot.user.id})")
     if not _bot_ready_once:
         _bot_ready_once = True
         await _record_status_event("Bot started and connected to Discord")
@@ -451,9 +451,9 @@ async def on_guild_join(guild: discord.Guild):
         return
     try:
         count = await _sync_guild_commands(guild)
-        print(f"Instantly synced {count} commands to newly joined guild {guild.name} ({guild.id})")
+        logger.info(f"Instantly synced {count} commands to newly joined guild {guild.name} ({guild.id})")
     except Exception as e:
-        print(f"[on_guild_join] Command sync failed for guild {guild.id}: {e}")
+        logger.error(f"[on_guild_join] Command sync failed for guild {guild.id}: {e}", exc_info=e)
 
 
 @bot.event
@@ -940,7 +940,7 @@ async def setclan(interaction: discord.Interaction, name: str):
     try:
         clan = await pubg.get_clan_for_player_name(name.strip())
     except PubgApiError as e:
-        await interaction.followup.send(f"PUBG API error: {e}", ephemeral=True)
+        await send_error_response(interaction, e, context="Failed to resolve PUBG clan")
         return
     if clan is None:
         await interaction.followup.send(
@@ -1102,6 +1102,7 @@ async def reportstatus(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="Set this channel to show live bot status (connects, joins/leaves, failures, rate limits)")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def setstatuschannel(interaction: discord.Interaction):
     """
     Points a channel at a single persistent status embed that gets EDITED
@@ -1342,7 +1343,7 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
                     guild_cfg["last_activity_message_id"] = new_message.id
                 await storage.modify_guild(guild_id, modifier)
     except Exception as e:
-        print(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}")
+        logger.error(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}", exc_info=e)
 
 
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 02:00 UTC daily reset)")
@@ -1559,10 +1560,10 @@ async def refreshranked(interaction: discord.Interaction):
                     await interaction.followup.send("✅ Ranked-player cache cleared.")
                 return
         except PubgApiError as e:
-            await interaction.followup.send(f"✅ Ranked-player cache cleared. (API error updating report: {e})")
+            await send_error_response(interaction, e, context="API error updating ranked report")
             return
         except Exception as e:
-            await interaction.followup.send(f"✅ Ranked-player cache cleared. (Error updating report: {e})")
+            await send_error_response(interaction, e, context="Error updating ranked report")
             return
     
     await interaction.followup.send(
@@ -1625,9 +1626,9 @@ async def updateranked(interaction: discord.Interaction):
         else:
             await interaction.followup.send("⚠️ No players tracked yet.")
     except PubgApiError as e:
-        await interaction.followup.send(f"⚠️ PUBG API error: {e}")
+        await send_error_response(interaction, e, context="PUBG API error updating ranked report")
     except Exception as e:
-        await interaction.followup.send(f"⚠️ Error updating ranked report: {e}")
+        await send_error_response(interaction, e, context="Error updating ranked report")
 
 
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
@@ -2233,7 +2234,7 @@ async def _send_feedback_to_support_server(interaction: discord.Interaction, fee
                 await channel.send(embed=embed)
                 delivered = True
             except Exception as e:
-                print(f"[feedback] Error sending to SUPPORT_FEEDBACK_CHANNEL_ID: {e}")
+                logger.error(f"[feedback] Error sending to SUPPORT_FEEDBACK_CHANNEL_ID: {e}", exc_info=e)
 
     if not delivered and SUPPORT_SERVER_ID:
         support_guild = bot.get_guild(SUPPORT_SERVER_ID)
@@ -2254,7 +2255,7 @@ async def _send_feedback_to_support_server(interaction: discord.Interaction, fee
                     await target_channel.send(embed=embed)
                     delivered = True
                 except Exception as e:
-                    print(f"[feedback] Error sending to support guild channel: {e}")
+                    logger.error(f"[feedback] Error sending to support guild channel: {e}", exc_info=e)
 
     if not delivered:
         try:
@@ -2263,7 +2264,7 @@ async def _send_feedback_to_support_server(interaction: discord.Interaction, fee
                 await app_info.owner.send(embed=embed)
                 delivered = True
         except Exception as e:
-            print(f"[feedback] Error sending fallback DM to owner: {e}")
+            logger.error(f"[feedback] Error sending fallback DM to owner: {e}", exc_info=e)
 
 
 class FeedbackModal(discord.ui.Modal, title="PUBG Tracker Feedback"):

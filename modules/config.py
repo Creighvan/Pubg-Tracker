@@ -10,6 +10,7 @@ circular imports. Only standard library and external dependencies are allowed.
 """
 
 import asyncio
+import logging
 import os
 from datetime import datetime, timezone
 
@@ -19,6 +20,8 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 # ---------- Environment variables ----------
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
@@ -238,7 +241,7 @@ async def _push_status_message(guild_id: int, guild_cfg: dict, channel_id: int) 
             from storage import save_guild
             await save_guild(guild_id, guild_cfg)
     except discord.HTTPException as e:
-        print(f"[status] Could not update status message for guild {guild_id}: {e}")
+        logger.error(f"[status] Could not update status message for guild {guild_id}: {e}", exc_info=e)
 
 
 async def _refresh_all_status_messages(force: bool = False) -> None:
