@@ -47,7 +47,7 @@ Slash commands:
   /setleaderboardregion               - platform-region shard for leaderboard lookups (default pc-na)
   /setleaderboardqueue                - squad, duo, or solo (TPP) for leaderboard lookups
   /linkme <pubg_name>                   - link your Discord account to a PUBG name (shows as a mention on /leaderboardstats and lets you /unlinkme it later)
-  /linkplayer <member> <pubg_name>       - link someone else's Discord account to a PUBG name (open to anyone)
+  /linkplayer <member> <pubg_name>       - link someone else's Discord account to a PUBG name (requires Manage Server)
   /unlinkme <pubg_name>                - remove a Discord-to-PUBG-name link
   /links                                - show every PUBG-name-to-Discord link for this server
   /chickendinner                        - check the roster's most recent matches for wins right now
@@ -2032,7 +2032,8 @@ async def links(interaction: discord.Interaction):
     if not discord_links:
         await interaction.response.send_message(
             "No accounts are linked yet. Use `/linkme <pubg_name>` to link your own, "
-            "or `/linkplayer <member> <pubg_name>` to link someone else's."
+            "or `/linkplayer <member> <pubg_name>` to link someone else's.",
+            ephemeral=True
         )
         return
 
@@ -2054,7 +2055,7 @@ async def links(interaction: discord.Interaction):
             value="\n".join(lines[i : i + chunk_size]),
             inline=False,
         )
-    await interaction.response.send_message(embed=embed)
+    await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 @bot.tree.command(description="Check the roster's recent match history for squad wins")

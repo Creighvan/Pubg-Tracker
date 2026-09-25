@@ -65,9 +65,7 @@ RANKED_MODE_LABELS = {
 }
 
 # ---------- Timezone ----------
-# America/New_York rather than a fixed UTC-5 offset, so this automatically
-# tracks UTC consistently
-# twice a year.
+# All scheduling uses UTC (02:00 UTC daily reset). No timezone conversion is performed.
 
 
 # ---------- Discord bot setup ----------
