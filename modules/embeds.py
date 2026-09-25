@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 import discord
 
 from modules.config import RANKED_MODE_LABELS, VALID_GAME_MODES
-from modules.utils import _channel_mention, _safe_div, _format_eastern_time, _as_eastern
+from modules.utils import _channel_mention, _safe_div
 
 # Import scheduler helpers from bot.utils (these are used in build_report_status_embed)
 # Note: These are imported dynamically to avoid circular imports
@@ -47,7 +47,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
 
     embed = discord.Embed(
         title="📅 Scheduled Report Status",
-        description="Only configured reports are scheduled. All times are Eastern and automatically follow EST/EDT.",
+        description="Only configured reports are scheduled. All times are UTC.",
         color=discord.Color.blurple(),
     )
 
@@ -61,7 +61,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             next_time = _next_interval_report(interval, guild_cfg.get("last_post_at"))
         else:
             minute = guild_cfg.get("digest_minute_est", 0)
-            schedule = f"Daily at {hour:02d}:{minute:02d} Eastern"
+            schedule = f"Daily at {hour:02d}:{minute:02d} UTC"
             next_time = _next_daily_report(hour, minute, guild_cfg.get("last_post_at"))
         embed.add_field(name="📊 Clan Digest", value=f"{_channel_mention(digest_channel)}\n{schedule}\n**Next:** {next_time}", inline=False)
 
@@ -84,7 +84,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             hour = guild_cfg.get(hour_key)
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
-                schedule = f"Daily at {hour:02d}:{minute:02d} EST (updates in place)"
+                schedule = f"Daily at {hour:02d}:{minute:02d} UTC (updates in place)"
                 next_time = f"{hour:02d}:{minute:02d} EST"
                 embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
                 continue
@@ -94,7 +94,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             next_time = _next_interval_report(interval, guild_cfg.get(posted_key))
         else:
             minute = guild_cfg.get(minute_key, 0)
-            schedule = f"Daily at {hour:02d}:{minute:02d} Eastern"
+            schedule = f"Daily at {hour:02d}:{minute:02d} UTC"
             next_time = _next_daily_report(hour, minute, guild_cfg.get(posted_key))
         if queue:
             schedule += f" · {RANKED_MODE_LABELS.get(queue, queue.title())} {'FPP' if queue.endswith('-fpp') else 'TPP'}"
@@ -368,7 +368,7 @@ def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], no
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    embed.set_footer(text="Updates daily at 12:30am EST (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
+    embed.set_footer(text="Updates daily at 04:30 UTC (live-updating, not reposted) · Stats from the official PUBG API · ranked, current season")
     return embed
 
 

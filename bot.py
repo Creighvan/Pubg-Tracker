@@ -12,24 +12,24 @@ Slash commands:
   /setclan <member_name>    - set the clan using a PUBG member's in-game name
   /clanlevel                - show the current clan level and weekly progress
   /setclanchannel           - set current channel for the weekly clan-level report
-  /setclantime <day> <hour> - set the weekly Eastern-time clan-level schedule
+  /setclantime <day> <hour> - set the weekly UTC clan-level schedule
   /survivalstats             - show roster Survival Mastery grouped by tier
   /setsurvivalchannel        - set current channel for the weekly Survival Mastery report
-  /setsurvivaltime <day> <hour> - set the weekly Eastern-time Survival Mastery schedule
+  /setsurvivaltime <day> <hour> - set the weekly UTC Survival Mastery schedule
   /reporttoggle <report> <enabled> - turn a scheduled report on or off
   /reportstatus              - show this server's report schedules and next run times
   /setstatuschannel           - set current channel for live bot status updates
   /help                     - show help and the official support server
   /donate                   - show the optional donation link
   /setdonationchannel       - enable the weekly Sunday donation post here
-  /setdonationtime <0-23>   - choose its Sunday Eastern-time posting time
+  /setdonationtime <0-23>   - choose its Sunday UTC posting time
   /setchannel               - set current channel as the auto-post channel
   /setinterval <hours>      - how often (in hours) the digest auto-posts (default 6)
-  /setdigesttime <0-23>      - post digest daily at a fixed Eastern-time hour instead
+  /setdigesttime <0-23>      - post digest daily at a fixed UTC hour instead
   /postnow                  - manually trigger a digest post immediately
   /lastactive                - show when each roster player last played, right now
   /setactivitychannel        - set current channel for the 24h "last active" report
-  /setactivitytime <0-23>     - fixed Eastern-time hour for the last-active report
+  /setactivitytime <0-23>     - fixed UTC hour for the last-active report
   /rankedsquad                 - show current-season ranked Squad TPP standings
   /rankedduo                   - show current-season ranked Duo TPP standings
   /rankedsolo                  - show current-season ranked Solo TPP standings
@@ -38,11 +38,11 @@ Slash commands:
   /rankedsolofpp               - show current-season ranked Solo FPP standings
   /refreshranked            - rescan ranked roster and update the ranked report
   /updateranked              - update the ranked report with fresh data without clearing cache
-  /setrankedchannel           - set current channel for the daily ranked report (updates at 12:30am EST)
+  /setrankedchannel           - set current channel for the daily ranked report (updates at 04:30 UTC)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
   /sethighlightschannel          - set current channel for the 24h highlights report
-  /sethighlightstime <0-23>       - fixed Eastern-time hour for the highlights report
+  /sethighlightstime <0-23>       - fixed UTC hour for the highlights report
   /masterystats                     - top weapon mastery + survival level per player (on-demand only, slow)
   /leaderboardstats [pages]          - check official leaderboard for roster placements (on-demand only)
   /setleaderboardregion               - platform-region shard for leaderboard lookups (default pc-na)
@@ -935,7 +935,7 @@ async def clanlevel(interaction: discord.Interaction):
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(description="Set this channel for the weekly clan-level report")
+@bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 async def setclanchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["clan_channel_id"] = interaction.channel_id
@@ -1171,8 +1171,8 @@ WEEKDAY_CHOICES = [
 ]
 
 
-@bot.tree.command(description="Post the digest once a day at a fixed Eastern-time, instead of by interval")
-@app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
+@bot.tree.command(description="Post the digest once a day at a fixed UTC time, instead of by interval")
+@app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -1180,13 +1180,13 @@ async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Ran
     guild_cfg["digest_minute_est"] = minute.value if minute else 0
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ Digest will now post once a day at **{hour:02d}:{guild_cfg['digest_minute_est']:02d} Eastern** (auto-adjusts for EST/EDT). "
+        f"✅ Digest will now post once a day at **{hour:02d}:{guild_cfg['digest_minute_est']:02d} UTC**. "
         f"This overrides `/setinterval`."
     )
 
 
-@bot.tree.command(description="Set the weekly clan-level report time in Eastern time")
-@app_commands.describe(day="Day of the week", hour="0-23 Eastern time", minute="Quarter-hour, defaults to :00")
+@bot.tree.command(description="Set the weekly clan-level report time in UTC")
+@app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(day=WEEKDAY_CHOICES, minute=QUARTER_HOUR_CHOICES)
 async def setclantime(
     interaction: discord.Interaction,
@@ -1200,12 +1200,12 @@ async def setclantime(
     guild_cfg["clan_minute_est"] = minute.value if minute else 0
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ Clan-level report will post every **{day.name} at {hour:02d}:{guild_cfg['clan_minute_est']:02d} Eastern**."
+        f"✅ Clan-level report will post every **{day.name} at {hour:02d}:{guild_cfg['clan_minute_est']:02d} UTC**."
     )
 
 
-@bot.tree.command(description="Set the Sunday Eastern-time donation post time")
-@app_commands.describe(hour="0-23, Eastern time (e.g. 12 for noon)", minute="Quarter-hour, defaults to :00")
+@bot.tree.command(description="Set the Sunday UTC donation post time")
+@app_commands.describe(hour="0-23, UTC (e.g. 12 for noon)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdonationtime(
     interaction: discord.Interaction,
@@ -1218,7 +1218,7 @@ async def setdonationtime(
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
         f"✅ The optional donation message will post every **Sunday at "
-        f"{hour:02d}:{guild_cfg['donation_minute_est']:02d} Eastern**."
+        f"{hour:02d}:{guild_cfg['donation_minute_est']:02d} UTC**."
     )
 
 
@@ -1326,10 +1326,10 @@ async def setactivitychannel(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ Something went wrong: {e}")
 
 
-@bot.tree.command(description="Last-active report now updates at 10pm EST daily reset (no custom time needed)")
+@bot.tree.command(description="Last-active report now updates at 02:00 UTC daily reset (no custom time needed)")
 async def setactivitytime(interaction: discord.Interaction):
     await interaction.response.send_message(
-        "ℹ️ The last-active report now automatically updates at **10pm EST daily reset**. "
+        "ℹ️ The last-active report now automatically updates at **02:00 UTC daily reset**. "
         "Custom time scheduling is no longer available for this report. "
         "Use `/setactivitychannel` to choose where it updates."
     )
@@ -1671,15 +1671,15 @@ async def sethighlightschannel(interaction: discord.Interaction):
     )
 
 
-@bot.tree.command(description="Post the daily highlights report at a fixed Eastern-time each day")
-@app_commands.describe(hour="0-23, Eastern time (e.g. 9 for 9am ET)", minute="Quarter-hour, defaults to :00")
+@bot.tree.command(description="Post the daily highlights report at a fixed UTC time each day")
+@app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def sethighlightstime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["highlights_hour_est"] = hour
     guild_cfg["highlights_minute_est"] = minute.value if minute else 0
     await storage.save_guild(interaction.guild_id, guild_cfg)
-    await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{guild_cfg['highlights_minute_est']:02d} Eastern**.")
+    await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{guild_cfg['highlights_minute_est']:02d} UTC**.")
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
@@ -1714,7 +1714,7 @@ async def survivalstats(interaction: discord.Interaction):
     await channel.send(embeds=embeds, files=files)
 
 
-@bot.tree.command(description="Set this channel for the weekly Survival Mastery report")
+@bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
 async def setsurvivalchannel(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     guild_cfg["survival_channel_id"] = interaction.channel_id
@@ -1761,8 +1761,8 @@ async def setsurvivalchannel(interaction: discord.Interaction):
         await interaction.followup.send(f"Something went wrong: {e}")
 
 
-@bot.tree.command(description="Set the weekly Survival Mastery report time in Eastern time")
-@app_commands.describe(day="Day of the week", hour="0-23 Eastern time", minute="Quarter-hour, defaults to :00")
+@bot.tree.command(description="Set the weekly Survival Mastery report time in UTC")
+@app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(day=WEEKDAY_CHOICES, minute=QUARTER_HOUR_CHOICES)
 async def setsurvivaltime(
     interaction: discord.Interaction,
@@ -1777,7 +1777,7 @@ async def setsurvivaltime(
     guild_cfg["survival_enabled"] = True
     await storage.save_guild(interaction.guild_id, guild_cfg)
     await interaction.response.send_message(
-        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{guild_cfg['survival_minute_est']:02d} Eastern**."
+        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{guild_cfg['survival_minute_est']:02d} UTC**."
     )
 
 

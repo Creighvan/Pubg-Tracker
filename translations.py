@@ -59,7 +59,7 @@ TRANSLATIONS = {
         "protected_players": "Protected players",
         "not_found": "Not found",
         "protected_footer": "🛡️ = Protected from inactivity removal",
-        "updates_daily": "Updates daily at 10:00pm EST (live-updating, not reposted)",
+        "updates_daily": "Updates daily at 02:00 UTC (live-updating, not reposted)",
         
         # Command responses
         "no_players_tracked": "No players tracked yet. Add some with `/addplayer`.",
@@ -121,7 +121,7 @@ TRANSLATIONS = {
         "protected_players": "受保护的玩家",
         "not_found": "未找到",
         "protected_footer": "🛡️ = 免受不活跃移除保护",
-        "updates_daily": "每天EST晚上10点更新（实时更新，不重新发布）",
+        "updates_daily": "每天UTC凌晨2点更新（实时更新，不重新发布）",
         
         # Command responses
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
@@ -183,7 +183,7 @@ TRANSLATIONS = {
         "protected_players": "Jugadores protegidos",
         "not_found": "No encontrado",
         "protected_footer": "🛡️ = Protegido de eliminación por inactividad",
-        "updates_daily": "Actualizaciones diarias a las 10:00pm EST (actualización en vivo, no republicado)",
+        "updates_daily": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado)",
         
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
@@ -245,7 +245,7 @@ TRANSLATIONS = {
         "protected_players": "संरक्षित खिलाड़ी",
         "not_found": "नहीं मिला",
         "protected_footer": "🛡️ = निष्क्रियता हटाने से संरक्षित",
-        "updates_daily": "दैनिक EST रात 10 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं)",
+        "updates_daily": "दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं)",
         
         # Command responses
         "no_players_tracked": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
@@ -307,7 +307,7 @@ TRANSLATIONS = {
         "protected_players": "اللاعبون المحميون",
         "not_found": "غير موجود",
         "protected_footer": "🛡️ = محمي من الإزالة بسبب عدم النشاط",
-        "updates_daily": "تحديثات يومية الساعة 10:00 مساءً EST (تحديث مباشر، لا إعادة نشر)",
+        "updates_daily": "تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر)",
         
         # Command responses
         "no_players_tracked": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
@@ -369,7 +369,7 @@ TRANSLATIONS = {
         "protected_players": "Joueurs protégés",
         "not_found": "Non trouvé",
         "protected_footer": "🛡️ = Protégé de la suppression par inactivité",
-        "updates_daily": "Mises à jour quotidiennes à 22h00 EST (mise à jour en direct, non republié)",
+        "updates_daily": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié)",
         
         # Command responses
         "no_players_tracked": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
@@ -431,7 +431,7 @@ TRANSLATIONS = {
         "protected_players": "সুরক্ষিত খেলোয়াড়",
         "not_found": "পাওয়া যায়নি",
         "protected_footer": "🛡️ = নিষ্ক্রিয়তা অপসারণ থেকে সুরক্ষিত",
-        "updates_daily": "দৈনিক EST রাত 10 টায় আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়)",
+        "updates_daily": "দৈনিক UTC রাত 2 টায় আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়)",
         
         # Command responses
         "no_players_tracked": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
@@ -493,7 +493,7 @@ TRANSLATIONS = {
         "protected_players": "Jogadores protegidos",
         "not_found": "Não encontrado",
         "protected_footer": "🛡️ = Protegido de remoção por inatividade",
-        "updates_daily": "Atualizações diárias às 22:00 EST (atualização ao vivo, não republicado)",
+        "updates_daily": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado)",
         
         # Command responses
         "no_players_tracked": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
@@ -555,7 +555,7 @@ TRANSLATIONS = {
         "protected_players": "Pemain dilindungi",
         "not_found": "Tidak ditemukan",
         "protected_footer": "🛡️ = Dilindungi dari penghapusan karena tidak aktif",
-        "updates_daily": "Pembaruan harian pukul 22:00 EST (pembaruan langsung, tidak diposting ulang)",
+        "updates_daily": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang)",
         
         # Command responses
         "no_players_tracked": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
@@ -617,7 +617,7 @@ TRANSLATIONS = {
         "protected_players": "محفوظ کھلاڑی",
         "not_found": "نہیں ملا",
         "protected_footer": "🛡️ = عدم فعالیت سے ہٹانے سے محفوظ",
-        "updates_daily": "روزانہ EST رات 10 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں)",
+        "updates_daily": "روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں)",
         
         # Command responses
         "no_players_tracked": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
