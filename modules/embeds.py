@@ -318,9 +318,11 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
             value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
             inline=False,
         )
-    footer_text = "Updates daily at 10pm EST (live-updating, not reposted)"
+    from translations import get_translation
+    lang = guild_cfg.get("language", "en")
+    footer_text = get_translation(lang, "updates_daily")
     if protected_count > 0:
-        footer_text += " | 🛡️ = Protected from inactivity removal"
+        footer_text += " | " + get_translation(lang, "protected_footer")
     embed.set_footer(text=footer_text)
     return embed
 
