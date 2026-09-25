@@ -29,7 +29,7 @@ def get_current_pubg_day(now_utc: datetime = None) -> datetime:
         now_utc = datetime.now(timezone.utc)
     
     # If it's before 02:00 UTC, the PUBG day started yesterday
-    if now_utc.hour < 2 or (now_utc.hour == 2 and now_utc.minute == 0 and now_utc.second == 0):
+    if now_utc.time() < PUBG_DAILY_RESET_UTC:
         return now_utc.replace(hour=2, minute=0, second=0, microsecond=0) - timedelta(days=1)
     else:
         return now_utc.replace(hour=2, minute=0, second=0, microsecond=0)

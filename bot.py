@@ -926,9 +926,9 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
     mode=[app_commands.Choice(name=m, value=m) for m in sorted(VALID_GAME_MODES)]
 )
 async def setgamemode(interaction: discord.Interaction, mode: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["game_mode"] = mode.value
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["game_mode"] = mode.value
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(f"Game mode set to **{mode.value}**.")
 
 
@@ -949,10 +949,10 @@ async def setclan(interaction: discord.Interaction, name: str):
             ephemeral=True,
         )
         return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["pubg_clan_id"] = clan["id"]
-    guild_cfg["pubg_clan_name"] = clan["name"]
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["pubg_clan_id"] = clan["id"]
+        guild_cfg["pubg_clan_name"] = clan["name"]
+    await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(
         f"✅ Clan-level reports will track **{clan['name']}** (`{clan['tag']}`), currently level **{clan['level']}**.",
         ephemeral=True,
@@ -977,11 +977,11 @@ async def clanlevel(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    guild_cfg["clan_channel_id"] = interaction.channel_id
-    guild_cfg["clan_level_enabled"] = True
-    guild_cfg["clan_message_id"] = None  # force a fresh message in the new channel
-    await storage.save_guild(interaction.guild_id, guild_cfg)
+    def modifier(guild_cfg):
+        guild_cfg["clan_channel_id"] = interaction.channel_id
+        guild_cfg["clan_level_enabled"] = True
+        guild_cfg["clan_message_id"] = None  # force a fresh message in the new channel
+    await storage.modify_guild(interaction.guild_id, modifier)
     
     await interaction.response.defer()
     
@@ -991,8 +991,12 @@ async def setclanchannel(interaction: discord.Interaction):
         if result:
             embed, clan = result
             new_message = await interaction.channel.send(embed=embed)
-            guild_cfg["clan_message_id"] = new_message.id
-            await storage.save_guild(interaction.guild_id, guild_cfg)
+            
+            def modifier(guild_cfg):
+                guild_cfg["clan_message_id"] = new_message.id
+                return new_message.id
+            
+            await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
                 f"✅ Clan level report posted in {interaction.channel.mention}. "
