@@ -86,6 +86,7 @@ import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
 from modules.utils import normalize_player_name
+from storage import DatabaseCorruptionError
 
 logger = logging.getLogger(__name__)
 
@@ -484,20 +485,23 @@ async def on_guild_remove(guild: discord.Guild):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
 async def addplayer(interaction: discord.Interaction, name: str):
-    added = await storage.add_player(interaction.guild_id, name)
-    if added:
-        await interaction.response.send_message(f"✅ Added **{name}** to the roster.")
-        await send_audit_log(
-            interaction.guild_id,
-            "Player Added",
-            f"Added {name} to roster",
-            user=interaction.user,
-            details={"Player": name}
-        )
-        # Refresh last active report if configured
-        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
-    else:
-        await interaction.response.send_message(f"**{name}** is already on the roster.", ephemeral=True)
+    try:
+        added = await storage.add_player(interaction.guild_id, name)
+        if added:
+            await interaction.response.send_message(f"✅ Added **{name}** to the roster.")
+            await send_audit_log(
+                interaction.guild_id,
+                "Player Added",
+                f"Added {name} to roster",
+                user=interaction.user,
+                details={"Player": name}
+            )
+            # Refresh last active report if configured
+            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
+        else:
+            await interaction.response.send_message(f"**{name}** is already on the roster.", ephemeral=True)
+    except DatabaseCorruptionError as e:
+        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
 @bot.tree.command(description="Add many PUBG players at once — paste names separated by commas or new lines")
@@ -510,56 +514,65 @@ async def addplayers(interaction: discord.Interaction, names: str):
         await interaction.response.send_message("Didn't find any names in that — separate them with commas or new lines.", ephemeral=True)
         return
 
-    added, duplicates = await storage.add_players(interaction.guild_id, candidates)
+    try:
+        added, duplicates = await storage.add_players(interaction.guild_id, candidates)
 
-    lines = [f"✅ Added **{len(added)}** player(s) to the roster."]
-    if added:
-        lines.append(", ".join(added))
-    if duplicates:
-        lines.append(f"⚠️ Skipped {len(duplicates)} already on the roster: " + ", ".join(duplicates))
-    await interaction.response.send_message("\n".join(lines))
-    
-    # Refresh last active report if configured
-    if added:
-        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
+        lines = [f"✅ Added **{len(added)}** player(s) to the roster."]
+        if added:
+            lines.append(", ".join(added))
+        if duplicates:
+            lines.append(f"⚠️ Skipped {len(duplicates)} already on the roster: " + ", ".join(duplicates))
+        await interaction.response.send_message("\n".join(lines))
+        
+        # Refresh last active report if configured
+        if added:
+            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
+    except DatabaseCorruptionError as e:
+        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to remove")
 async def removeplayer(interaction: discord.Interaction, name: str):
-    removed = await storage.remove_player(interaction.guild_id, name)
-    if removed:
-        await interaction.response.send_message(f"🗑️ Removed **{name}** from the roster.")
-        await send_audit_log(
-            interaction.guild_id,
+    try:
+        removed = await storage.remove_player(interaction.guild_id, name)
+        if removed:
+            await interaction.response.send_message(f"🗑️ Removed **{name}** from the roster.")
+            await send_audit_log(
+                interaction.guild_id,
             "Player Removed",
             f"Removed {name} from roster",
             user=interaction.user,
             details={"Player": name}
         )
-        # Refresh last active report if configured
-        await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
-    else:
-        await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
+            # Refresh last active report if configured
+            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
+        else:
+            await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
+    except DatabaseCorruptionError as e:
+        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
 @bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to protect")
 async def addprotected(interaction: discord.Interaction, name: str):
-    added = await storage.add_protected_player(interaction.guild_id, name)
-    if added:
-        await interaction.response.send_message(f"🛡️ Added **{name}** to the protected list. They won't be flagged for removal due to inactivity.")
-        await send_audit_log(
-            interaction.guild_id,
-            "Protected Player Added",
-            f"Added {name} to protected list",
-            user=interaction.user,
-            details={"Player": name}
-        )
-    else:
-        await interaction.response.send_message(f"**{name}** is already on the protected list.", ephemeral=True)
+    try:
+        added = await storage.add_protected_player(interaction.guild_id, name)
+        if added:
+            await interaction.response.send_message(f"🛡️ Added **{name}** to the protected list. They won't be flagged for removal due to inactivity.")
+            await send_audit_log(
+                interaction.guild_id,
+                "Protected Player Added",
+                f"Added {name} to protected list",
+                user=interaction.user,
+                details={"Player": name}
+            )
+        else:
+            await interaction.response.send_message(f"**{name}** is already on the protected list.", ephemeral=True)
+    except DatabaseCorruptionError as e:
+        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
 @bot.tree.command(description="Remove a player from the protected list")
@@ -1189,8 +1202,12 @@ async def setchannel(interaction: discord.Interaction):
     await storage.modify_guild(interaction.guild_id, modifier)
     guild_cfg = await storage.get_guild(interaction.guild_id)
     interval = guild_cfg.get("post_interval_hours", 6)
+    lang = guild_cfg.get("language", "en")
+    count = interval
+    unit_key = "hour" if count == 1 else "hours"
+    unit = translations.get_translation(lang, unit_key)
     await interaction.response.send_message(
-        f"✅ Digest will auto-post in {interaction.channel.mention} every **{interval} hour(s)**. "
+        f"✅ Digest will auto-post in {interaction.channel.mention} {translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)}. "
         f"Use `/postnow` any time for an immediate one."
     )
 
@@ -1202,7 +1219,12 @@ async def setinterval(interaction: discord.Interaction, hours: app_commands.Rang
     def modifier(guild_cfg):
         guild_cfg["post_interval_hours"] = hours
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Digest will now auto-post every **{hours} hour(s)**.")
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    count = hours
+    unit_key = "hour" if count == 1 else "hours"
+    unit = translations.get_translation(lang, unit_key)
+    await interaction.response.send_message(f"✅ {translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)}.")
 
 
 QUARTER_HOUR_CHOICES = [

@@ -34,6 +34,7 @@ import discord
 
 from modules.config import RANKED_MODE_LABELS, VALID_GAME_MODES
 from modules.utils import _channel_mention, _safe_div, normalize_player_name
+import translations
 
 # Import scheduler helpers from bot.utils (these are used in build_report_status_embed)
 # Note: These are imported dynamically to avoid circular imports
@@ -55,9 +56,13 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     digest_channel = guild_cfg.get("post_channel_id")
     if digest_channel and guild_cfg.get("digest_enabled", True):
         hour = guild_cfg.get("digest_hour_utc")
+        lang = guild_cfg.get("language", "en")
         if hour is None:
             interval = guild_cfg.get("post_interval_hours", 6)
-            schedule = f"Every {interval} hour(s)"
+            count = interval
+            unit_key = "hour" if count == 1 else "hours"
+            unit = get_translation(lang, unit_key)
+            schedule = get_translation(lang, "every_hours").format(count=count, unit=unit)
             next_time = _next_interval_report(interval, guild_cfg.get("last_post_at"))
         else:
             minute = guild_cfg.get("digest_minute_utc", 0)
@@ -224,7 +229,10 @@ def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str =
     from translations import get_translation
     if days_inactive is not None:
         # Use the explicit days_inactive count for auto-counted players
-        return get_translation(lang, "days_ago").format(days=days_inactive)
+        count = days_inactive
+        unit_key = "day" if count == 1 else "days"
+        unit = get_translation(lang, unit_key)
+        return get_translation(lang, "days_ago").format(count=count, unit=unit)
     if not iso_str:
         return get_translation(lang, "no_recent_matches")
     then = datetime.fromisoformat(iso_str.replace("Z", "+00:00"))
@@ -233,8 +241,14 @@ def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str =
     if hours < 1:
         return get_translation(lang, "less_than_1_hour")
     if hours < 24:
-        return get_translation(lang, "hours_ago").format(hours=int(hours))
-    return get_translation(lang, "days_ago").format(days=int(hours // 24))
+        count = int(hours)
+        unit_key = "hour" if count == 1 else "hours"
+        unit = get_translation(lang, unit_key)
+        return get_translation(lang, "hours_ago").format(count=count, unit=unit)
+    count = int(hours // 24)
+    unit_key = "day" if count == 1 else "days"
+    unit = get_translation(lang, unit_key)
+    return get_translation(lang, "days_ago").format(count=count, unit=unit)
 
 
 def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:

@@ -20,6 +20,11 @@ from modules.utils import normalize_player_name
 
 logger = logging.getLogger(__name__)
 
+
+class DatabaseCorruptionError(RuntimeError):
+    """Raised when attempting to save a corrupted database."""
+    pass
+
 DATA_PATH = os.path.join(os.path.dirname(__file__), "data.json")
 _lock = asyncio.Lock()
 
@@ -136,7 +141,10 @@ def _save(data: dict):
     global _CORRUPTION_DETECTED
     if _CORRUPTION_DETECTED:
         logger.critical("Refusing to save database - corruption detected and administrator intervention required")
-        return
+        raise DatabaseCorruptionError(
+            "Database is corrupted and requires administrator recovery. "
+            "No changes were saved. Please contact the bot administrator."
+        )
     tmp_path = DATA_PATH + ".tmp"
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
@@ -237,7 +245,7 @@ async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[
                 continue
             guild["players"].append(name)
             existing_lower.add(normalized)
-            seen_this_batch.add(lowered)
+            seen_this_batch.add(normalized)
             result["added"].append(name)
 
         if result["added"]:
