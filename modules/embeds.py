@@ -753,10 +753,15 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         Solo wins show "won a Chicken Dinner!" while squad wins show "won a Chicken Dinner together!"
         Dates are not displayed - matches are sorted by match_id.
     """
+    from translations import get_translation
+    # Use guild language if available, otherwise default to English
+    # Note: This function doesn't receive guild_cfg, so we'll use a default
+    lang = "en"  # Could be enhanced to fetch from guild config if needed
+    
     if not winners:
         return discord.Embed(
             title="🥈 No Chicken Dinners",
-            description="No recent wins found in the roster's match history.",
+            description=get_translation(lang, "no_wins_yet"),
             color=discord.Color.light_gray(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -779,7 +784,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     # Build the embed with simple styling
     embed = discord.Embed(
-        title="🍗 Chicken Dinner",
+        title=f"🍗 {get_translation(lang, 'chicken_dinner')}",
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -806,21 +811,21 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     # Add the matches as a single field
     embed.add_field(
-        name="Recent Wins",
+        name=get_translation(lang, "recent_squad_wins"),
         value="\n".join(match_lines),
         inline=False,
     )
     
     # Add total wins summary
     embed.add_field(
-        name="Total Wins",
+        name=get_translation(lang, "total_wins_today"),
         value=f"**{total_wins}**",
         inline=True,
     )
     
     # Footer based on whether it's automated or manual
     if is_automated:
-        embed.set_footer(text="Live-updating · Resets daily at 3am EST")
+        embed.set_footer(text=get_translation(lang, "chicken_dinner_footer"))
     else:
         embed.set_footer(text="Manual check · Last 5 matches per player")
     
