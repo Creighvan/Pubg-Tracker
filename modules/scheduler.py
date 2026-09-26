@@ -114,12 +114,10 @@ async def before_auto_digest():
 
 @tasks.loop(minutes=15)
 async def auto_last_active():
-    """Posts the 'last active' report every 24 hours, per guild.
-    Runs once per day after 02:00 UTC daily reset. Recovers if bot was offline."""
-    from modules.utils import get_current_pubg_day
+    """Posts the 'last active' report every 15 minutes for live updates.
+    Edits existing message instead of posting new ones."""
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    reset_time_utc = get_current_pubg_day(now_utc)
     print(f"[auto_last_active] Running at {now_utc}")
     
     for guild_id in await storage.all_guild_ids():
@@ -131,24 +129,6 @@ async def auto_last_active():
         if channel_id is None:
             print(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
-
-        # Check if we've already posted since the most recent 02:00 UTC reset
-        last_posted = guild_cfg.get("last_activity_posted_at")
-        if last_posted:
-            last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
-            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
-            if last_posted_date >= reset_time_utc:
-                print(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:00 UTC reset, skipping")
-                continue  # Already posted since the most recent reset
-            else:
-                # Bot was offline (or this is the first tick since the reset) - proceed to update
-                print(f"[auto_last_active] Guild {guild_id}: Last post was before {reset_time_utc}, updating")
-        else:
-            print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
-            # Only run after the 02:00 UTC daily reset for first run
-            if now_utc.hour < 2:
-                print(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
-                continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
@@ -316,15 +296,15 @@ async def _wait_until_time(target_hour: int, target_minute: int):
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours at exactly 02:00 UTC.
+    human/bot kill split) every 15 minutes for live updates.
     Edits existing message instead of posting new ones.
     """
     print("[auto_highlights] Starting highlights loop")
     while True:
-        # Wait until 02:00 UTC
-        print("[auto_highlights] Waiting until 02:00 UTC")
-        await _wait_until_time(2, 0)
-        print(f"[auto_highlights] Reached 02:00 UTC, processing guilds")
+        # Wait 15 minutes between updates
+        print("[auto_highlights] Waiting 15 minutes before next update")
+        await asyncio.sleep(15 * 60)
+        print(f"[auto_highlights] Processing guilds for highlights update")
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -337,14 +317,6 @@ async def auto_highlights():
             channel_id = guild_cfg.get("highlights_channel_id") or guild_cfg.get("post_channel_id")
             if channel_id is None:
                 continue
-
-            # Check if we've already posted since the most recent 02:00 UTC reset
-            last_posted = guild_cfg.get("highlights_posted_at")
-            if last_posted:
-                last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
-                reset_time_utc = get_current_pubg_day(now_utc)
-                if last_posted_date >= reset_time_utc:
-                    continue  # Already posted since the most recent reset
 
             guild = _get_bot().get_guild(guild_id)
             channel = _get_bot().get_channel(channel_id)
