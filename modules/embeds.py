@@ -493,7 +493,8 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
         best_damage = d.get("best_match_damage", d["damageDealt"])
         lines.append(
             f"{i}. **{p['name']}** — {best_kills} {get_translation(lang, 'kills_best_match')}, {best_damage:,.0f} {get_translation(lang, 'dmg_best_match')}, "
-            f"{d['human_kills']} {get_translation(lang, 'human_bot_split').format(count=d['bot_kills'])}, {d['wins']}W, {d['matches']} {get_translation(lang, 'matches_count')}"
+            f"{d['human_kills']} {get_translation(lang, 'human_bot_split').format(count=d['bot_kills'])}, {d['wins']}W, "
+            f"{get_translation(lang, 'matches_count').format(count=d['matches'], unit=get_translation(lang, 'matches' if d['matches'] != 1 else 'match'))}"
         )
     embed.add_field(name=get_translation(lang, "top_10"), value="\n".join(lines), inline=False)
 
