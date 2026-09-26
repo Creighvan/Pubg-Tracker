@@ -344,9 +344,9 @@ class PubgClient:
 
     async def get_squad_wins(self, names: list[str], matches_to_check: int = 5) -> tuple[list[dict], list[str]]:
         """
-        Fetches recent match history for roster players and identifies squad-fpp wins
-        where clan members were in the same squad together. Only counts squad mode games
-        (squad-fpp, squad) to avoid solo/duo wins being counted as squad wins.
+        Fetches recent match history for roster players and identifies wins
+        where clan members won together. Counts wins in all game modes
+        (squad-fpp, squad, duo-fpp, duo, solo-fpp, solo).
 
         Args:
             names: List of PUBG player names to check
