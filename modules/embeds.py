@@ -851,6 +851,6 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     if is_automated:
         embed.set_footer(text=get_translation(lang, "chicken_dinner_footer"))
     else:
-        embed.set_footer(text="Manual check · Last 50 matches per player · All game modes")
+        embed.set_footer(text="Manual check · Last 50 matches per player · All game modes · Showing 25 most recent")
     
     return embed

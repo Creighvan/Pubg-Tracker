@@ -580,10 +580,9 @@ async def auto_chicken_dinner():
     """
     Every 15 minutes, checks each opted-in guild's roster for recent wins
     in the last 50 matches per player. Groups players who won together in the same match.
-    Updates a persistent message with the list of wins and a running tally
-    of total wins for the current 24-hour period starting at 02:00 UTC.
-    The tally and posted matches reset daily at 02:00 UTC.
+    Updates a persistent message with the list of wins and a running tally.
     Counts wins in all game modes (squad, duo, solo).
+    Displays the 25 most recent wins to avoid Discord embed character limits.
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
