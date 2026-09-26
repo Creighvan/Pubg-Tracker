@@ -406,11 +406,9 @@ class PubgClient:
                 continue
             processed_matches.add(match_id)
 
-            # Filter for squad-fpp games only (adjust as needed for other modes)
+            # Count wins in all game modes (squad, duo, solo)
             # PUBG API game modes: 'squad-fpp', 'squad', 'duo-fpp', 'duo', 'solo-fpp', 'solo'
-            game_mode = match.get("game_mode", "")
-            if not game_mode.startswith("squad"):
-                continue  # Only count squad wins
+            # We no longer filter by game mode to catch all wins
 
             # Check if any roster player won this match
             roster_players_in_match = []
