@@ -578,11 +578,12 @@ async def before_auto_donations():
 @tasks.loop(minutes=15)
 async def auto_chicken_dinner():
     """
-    Every 15 minutes, checks each opted-in guild's roster for recent squad wins
-    in the last 5 matches per player. Groups players who won together in the same match.
-    Updates a persistent message with the list of squad wins and a running tally
-    of total wins for the current 24-hour period starting at 04:00 UTC.
-    The tally and posted matches reset daily at 04:00 UTC.
+    Every 15 minutes, checks each opted-in guild's roster for recent wins
+    in the last 50 matches per player. Groups players who won together in the same match.
+    Updates a persistent message with the list of wins and a running tally
+    of total wins for the current 24-hour period starting at 02:00 UTC.
+    The tally and posted matches reset daily at 02:00 UTC.
+    Counts wins in all game modes (squad, duo, solo).
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
@@ -599,38 +600,7 @@ async def auto_chicken_dinner():
         if guild is None or channel is None:
             continue
 
-        # Check if we need to reset for new day (02:00 UTC daily reset - same as PUBG reset)
-        last_reset = guild_cfg.get("chicken_dinner_reset_at")
-        needs_reset = False
-        if last_reset:
-            last_reset_date = datetime.fromisoformat(last_reset).astimezone(utc)
-            reset_time_utc = get_current_pubg_day(now_utc)
-            # Reset if we're on a different PUBG day
-            if last_reset_date < reset_time_utc:
-                needs_reset = True
-        else:
-            # First time setup - set reset time to current PUBG day
-            reset_time = get_current_pubg_day(now_utc).isoformat()
-            def modifier(g):
-                g["chicken_dinner_reset_at"] = reset_time
-            await storage.modify_guild(guild_id, modifier)
-            guild_cfg = await storage.get_guild(guild_id)
-        
-        if needs_reset:
-            # New day - reset tally and posted matches
-            reset_time = get_current_pubg_day(now_utc).isoformat()
-            def modifier(g):
-                g["chicken_dinner_posted_matches"] = {}
-                g["chicken_dinner_total_wins"] = 0
-                g["chicken_dinner_reset_at"] = reset_time
-            await storage.modify_guild(guild_id, modifier)
-            # Update guild_cfg after reset
-            guild_cfg = await storage.get_guild(guild_id)
-            # Use the reset timestamp for filtering
-            reset_timestamp = datetime.fromisoformat(guild_cfg["chicken_dinner_reset_at"])
-        else:
-            # Use existing reset timestamp
-            reset_timestamp = datetime.fromisoformat(guild_cfg["chicken_dinner_reset_at"]) if guild_cfg.get("chicken_dinner_reset_at") else None
+        # No daily reset filter - show all recent wins
 
         try:
             async with get_scheduler_lock():
@@ -649,23 +619,15 @@ async def auto_chicken_dinner():
         new_wins = []
         new_match_ids = set()  # Track unique match IDs for tally (count matches, not players)
         
-        # Process squad wins from the new format
+        # Process ALL wins (not just new ones) - show everything in the checked range
         for win in wins:
             match_id = win.get("match_id")
             if not match_id:
                 continue
             
-            # Check if this match was already posted
-            if match_id in posted_matches:
-                continue
-            
-            # Filter out wins from before the daily reset to prevent double-counting
-            if reset_timestamp:
-                match_time = win.get("created_at")
-                if match_time:
-                    match_date = datetime.fromisoformat(match_time)
-                    if match_date < reset_timestamp:
-                        continue
+            # Track this match as posted
+            updated_matches[match_id] = match_id
+            new_match_ids.add(match_id)
             
             # Extract player data for this win
             players_data = []
@@ -678,27 +640,19 @@ async def auto_chicken_dinner():
                 }))
             
             new_wins.extend(players_data)
-            new_match_ids.add(match_id)  # Track match ID for tally
-            # Track this match as posted using match_id as key
-            updated_matches[match_id] = match_id
 
-        # Update running tally for current 24-hour period (count matches, not players)
-        current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
-        new_match_count = len(new_match_ids)  # Count unique matches, not players
-        total_wins = current_total + new_match_count
+        # Count total wins (all matches in range)
+        total_wins = len(new_match_ids)
 
         try:
             from modules.embeds import build_chicken_dinner_embed
             
-            # Get all squad wins for the display - use the same filtered matches as the tally
+            # Get all wins for the display
             all_winners = []
             for win in wins:
-                match_id = win.get("match_id")
-                # Only include matches that passed our filters (in new_match_ids)
-                if match_id in new_match_ids:
-                    for player in win.get("players", []):
-                        all_winners.append((player["name"], {
-                            "winPlace": player["winPlace"],
+                for player in win.get("players", []):
+                    all_winners.append((player["name"], {
+                        "winPlace": player["winPlace"],
                             "kills": player["kills"],
                             "match_id": match_id
                         }))
@@ -724,8 +678,7 @@ async def auto_chicken_dinner():
                 new_message = await channel.send(embed=embed)
                 guild_cfg["chicken_dinner_message_id"] = new_message.id
             
-            # Only record these matches as alerted once Discord actually
-            # accepted the message
+            # Only record match IDs to track what we've seen
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
             guild_cfg["chicken_dinner_total_wins"] = total_wins
             

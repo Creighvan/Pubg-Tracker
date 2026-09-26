@@ -2162,7 +2162,7 @@ async def links(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(description="Check the roster's recent match history for squad wins")
+@bot.tree.command(description="Check the roster's recent match history for wins in all game modes")
 async def chickendinner(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
@@ -2176,7 +2176,7 @@ async def chickendinner(interaction: discord.Interaction):
         await interaction.followup.send(f"❌ Could not check the PUBG API right now: {e}")
         return
 
-    # Convert squad wins to the format expected by the embed
+    # Convert all wins to the format expected by the embed
     winners = []
     for win in wins:
         for player in win.get("players", []):
@@ -2187,14 +2187,8 @@ async def chickendinner(interaction: discord.Interaction):
                 "created_at": win.get("created_at")
             }))
 
-    total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
-    
-    # If total_wins is 0 but we have recent wins, initialize the tally (count matches, not players)
-    if total_wins == 0 and wins:
-        total_wins = len(wins)
-        def modifier(guild_cfg):
-            guild_cfg["chicken_dinner_total_wins"] = total_wins
-        await storage.modify_guild(interaction.guild_id, modifier)
+    # Count total wins (all matches in range)
+    total_wins = len(wins)
     
     embed = build_chicken_dinner_embed(winners, is_automated=False, total_wins=total_wins)
     await interaction.followup.send(embed=embed)
@@ -2209,7 +2203,7 @@ async def setchickendinnerchannel(interaction: discord.Interaction):
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
         f"✅ Chicken Dinner win alerts will post in {interaction.channel.mention}. "
-        "The bot checks match history every 15 minutes and posts squad wins from the last 5 matches per player."
+        "The bot checks match history every 15 minutes and posts wins from the last 50 matches per player in all game modes."
     )
 
 
