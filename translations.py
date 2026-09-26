@@ -136,10 +136,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Recent wins (last 50 matches per player, all game modes)",
+        "recent_squad_wins": "Recent wins (last 50 matches per player, all game modes, showing 25 most recent)",
         "no_wins_yet": "No wins yet!",
         "total_wins_today": "Total wins",
-        "chicken_dinner_footer": "Updates every 15 minutes · Stats from the official PUBG API",
+        "chicken_dinner_footer": "Updates every 15 minutes · Showing 25 most recent wins · Stats from the official PUBG API",
         
         # Mastery Report
         "mastery_report": "Weapon & Survival Mastery",
@@ -308,10 +308,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "吃鸡",
-        "recent_squad_wins": "最近胜利（每位玩家最近50场比赛，所有游戏模式）",
+        "recent_squad_wins": "最近胜利（每位玩家最近50场比赛，所有游戏模式，显示最近25场）",
         "no_wins_yet": "还没有胜利！",
         "total_wins_today": "总胜利",
-        "chicken_dinner_footer": "每15分钟更新 · 来自官方PUBG API的统计数据",
+        "chicken_dinner_footer": "每15分钟更新 · 显示最近25场胜利 · 来自官方PUBG API的统计数据",
         
         # Mastery Report
         "mastery_report": "武器和生存精通",
@@ -463,10 +463,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Victorias recientes (últimas 50 partidas por jugador, todos los modos)",
+        "recent_squad_wins": "Victorias recientes (últimas 50 partidas por jugador, todos los modos, mostrando 25 más recientes)",
         "no_wins_yet": "¡Aún no hay victorias hoy!",
         "total_wins_today": "Victorias totales",
-        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Estadísticas de la API oficial de PUBG",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Mostrando 25 más recientes · Estadísticas de la API oficial de PUBG",
         
         # Mastery Report
         "mastery_report": "Maestría de armas y supervivencia",
@@ -515,10 +515,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Victorias recientes (últimas 50 partidas por jugador, todos los modos)",
+        "recent_squad_wins": "Victorias recientes (últimas 50 partidas por jugador, todos los modos, mostrando 25 más recientes)",
         "no_wins_yet": "¡Aún no hay victorias hoy!",
         "total_wins_today": "Victorias totales",
-        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Estadísticas de la API oficial de PUBG",
+        "chicken_dinner_footer": "Actualizaciones cada 15 minutos · Mostrando 25 más recientes · Estadísticas de la API oficial de PUBG",
         
         # Command responses
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
@@ -655,10 +655,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "चिकन डिनर",
-        "recent_squad_wins": "हाल के जीत (प्रति खिलाड़ी पिछले 50 मैच, सभी मोड)",
+        "recent_squad_wins": "हाल के जीत (प्रति खिलाड़ी पिछले 50 मैच, सभी मोड, 25 सबसे हाल के)",
         "no_wins_yet": "आज तक कोई जीत नहीं!",
         "total_wins_today": "कुल जीत",
-        "chicken_dinner_footer": "दैनिक 15 मिनटे अपडेट · आधिकारिक PUBG API से आँकड़े",
+        "chicken_dinner_footer": "दैनिक 15 मिनटे अपडेट · 25 सबसे हाल दिखावा · आधिकारिक PUBG API से आँकड़े",
         
         # Mastery Report
         "mastery_report": "हथियार और जीविता महारत",
@@ -825,10 +825,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "عشاء الدجاج",
-        "recent_squad_wins": "انتصارات الأخيرة (آخر 50 مباراة لكل لاعب، جميع الأوضاع)",
+        "recent_squad_wins": "انتصارات الأخيرة (آخر 50 مباراة لكل لاعب، جميع الأوضاع، تعرض 25 الأحدث)",
         "no_wins_yet": "لا توجد انتصارات حتى الآن!",
         "total_wins_today": "إجمالي الانتصارات",
-        "chicken_dinner_footer": "تحديثات كل 15 دقيقة · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
+        "chicken_dinner_footer": "تحديثات كل 15 دقيقة · عرض 25 الأحدث · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية",
         
         # Mastery Report
         "mastery_report": "إتقان الأسلحة والبقاء",
@@ -995,10 +995,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Victoires récentes (50 dernières parties par joueur, tous les modes)",
+        "recent_squad_wins": "Victoires récentes (50 dernières parties par joueur, tous les modes, 25 plus récentes)",
         "no_wins_yet": "Aucune victoire aujourd'hui !",
         "total_wins_today": "Victoires totales",
-        "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · Statistiques de l'API PUBG officielle",
+        "chicken_dinner_footer": "Mises à jour toutes les 15 minutes · 25 plus récentes · Statistiques de l'API PUBG officielle",
         
         # Mastery Report
         "mastery_report": "Maîtrise d'armes et de survie",
@@ -1165,10 +1165,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "চিকেন ডিনার",
-        "recent_squad_wins": "সাম্প্রতিক জয় (প্রতি খেলোয়াড়ের শেষ 50 ম্যাচ, সব মোড)",
+        "recent_squad_wins": "সাম্প্রতিক জয় (প্রতি খেলোয়াড়ের শেষ 50 ম্যাচ, সব মোড, 25 সবশে হাল)",
         "no_wins_yet": "আজ এখনও কোন জয় নেই!",
         "total_wins_today": "মোট জয়",
-        "chicken_dinner_footer": "প্রতি 15 মিনিটে আপডেট · অফিসিয়াল PUBG API থেকে পরিসংখ্যান",
+        "chicken_dinner_footer": "প্রতি 15 মিনিটে আপডেট · 25 সবশে হাল দেখাচ্ছে · অফিসিয়াল PUBG API থেকে পরিসংখ্যান",
         
         # Mastery Report
         "mastery_report": "অস্ত্র এবং বেঁচে বাঁচ মাস্টারি",
@@ -1335,10 +1335,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Vitórias recentes (últimas 50 partidas por jogador, todos os modos)",
+        "recent_squad_wins": "Vitórias recentes (últimas 50 partidas por jogador, todos os modos, 25 mais recentes)",
         "no_wins_yet": "Ainda não há vitórias hoje!",
         "total_wins_today": "Vitórias totais",
-        "chicken_dinner_footer": "Atualizações a cada 15 minutos · Estatísticas da API oficial do PUBG",
+        "chicken_dinner_footer": "Atualizações a cada 15 minutos · Mostrando 25 mais recentes · Estatísticas da API oficial do PUBG",
         
         # Mastery Report
         "mastery_report": "Maestria de armas e sobrevivência",
@@ -1505,10 +1505,10 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "Chicken Dinner",
-        "recent_squad_wins": "Kemenangan terbaru (50 pertandingan terakhir per pemain, semua mode)",
+        "recent_squad_wins": "Kemenangan terbaru (50 pertandingan terakhir per pemain, semua mode, 25 terbaru)",
         "no_wins_yet": "Belum ada kemenangan hari ini!",
         "total_wins_today": "Total kemenangan",
-        "chicken_dinner_footer": "Pembaruan setiap 15 menit · Statistik dari API PUBG resmi",
+        "chicken_dinner_footer": "Pembaruan setiap 15 menit · Menampilkan 25 terbaru · Statistik dari API PUBG resmi",
         
         # Mastery Report
         "mastery_report": "Penguasaan senjata dan bertahan hidup",
@@ -1675,7 +1675,7 @@ TRANSLATIONS = {
         
         # Chicken Dinner Report
         "chicken_dinner": "چکن ڈنر",
-        "recent_squad_wins": "حالیہ جیت (فی کھلاڑی پچھلے 50 میچ, تمام موڈ)",
+        "recent_squad_wins": "حالیہ جیت (فی کھلاڑی پچھلے 50 میچ, تمام موڈ, 25 سب سے)",
         "no_wins_yet": "آج تک کوئی جیت نہیں!",
         "total_wins_today": "کل جیت",
         "chicken_dinner_footer": "ہر 15 منٹ میں اپ ڈیٹ · آفیشیل PUBG API سے اعدادوشمار",
