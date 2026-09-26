@@ -460,7 +460,6 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
-    await _record_status_event(f"Removed from server: {guild.name}")
     await send_audit_log(
         guild.id,
         "Bot Left Server",
