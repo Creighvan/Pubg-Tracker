@@ -649,11 +649,13 @@ async def auto_chicken_dinner():
             # Get all wins for the display
             all_winners = []
             for win in wins:
+                win_match_id = win.get("match_id")
                 for player in win.get("players", []):
                     all_winners.append((player["name"], {
                         "winPlace": player["winPlace"],
                             "kills": player["kills"],
-                            "match_id": match_id
+                            "match_id": win_match_id,
+                            "created_at": win.get("created_at")
                         }))
             
             if not all_winners:
