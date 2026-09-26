@@ -85,7 +85,7 @@ from discord.ext import commands, tasks
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
-from modules.utils import normalize_player_name, get_current_pubg_day
+from modules.utils import normalize_player_name
 from storage import DatabaseCorruptionError
 
 logger = logging.getLogger(__name__)
@@ -2171,27 +2171,14 @@ async def chickendinner(interaction: discord.Interaction):
 
     await interaction.response.defer()
     try:
-        wins, _ = await pubg.get_squad_wins(guild_cfg["players"], matches_to_check=20)
+        wins, _ = await pubg.get_squad_wins(guild_cfg["players"], matches_to_check=50)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ Could not check the PUBG API right now: {e}")
         return
 
-    # Filter wins to only include those since the 02:00 UTC daily reset
-    utc = timezone.utc
-    now_utc = datetime.now(utc)
-    reset_time_utc = get_current_pubg_day(now_utc)
-    
-    filtered_wins = []
-    for win in wins:
-        match_time = win.get("created_at")
-        if match_time:
-            match_date = datetime.fromisoformat(match_time)
-            if match_date >= reset_time_utc:
-                filtered_wins.append(win)
-
     # Convert squad wins to the format expected by the embed
     winners = []
-    for win in filtered_wins:
+    for win in wins:
         for player in win.get("players", []):
             winners.append((player["name"], {
                 "winPlace": player["winPlace"],
@@ -2203,8 +2190,8 @@ async def chickendinner(interaction: discord.Interaction):
     total_wins = guild_cfg.get("chicken_dinner_total_wins", 0)
     
     # If total_wins is 0 but we have recent wins, initialize the tally (count matches, not players)
-    if total_wins == 0 and filtered_wins:
-        total_wins = len(filtered_wins)
+    if total_wins == 0 and wins:
+        total_wins = len(wins)
         def modifier(guild_cfg):
             guild_cfg["chicken_dinner_total_wins"] = total_wins
         await storage.modify_guild(interaction.guild_id, modifier)
