@@ -319,9 +319,12 @@ async def auto_highlights():
     human/bot kill split) every 24 hours at exactly 02:00 UTC.
     Edits existing message instead of posting new ones.
     """
+    print("[auto_highlights] Starting highlights loop")
     while True:
         # Wait until 02:00 UTC
+        print("[auto_highlights] Waiting until 02:00 UTC")
         await _wait_until_time(2, 0)
+        print(f"[auto_highlights] Reached 02:00 UTC, processing guilds")
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -396,7 +399,13 @@ async def auto_highlights():
 async def run_auto_highlights():
     """Wrapper to start auto_highlights as a background task."""
     await _get_bot().wait_until_ready()
-    await auto_highlights()
+    print("[auto_highlights] Starting highlights background task")
+    try:
+        await auto_highlights()
+    except Exception as e:
+        print(f"[auto_highlights] Fatal error in highlights task: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 @tasks.loop(minutes=15)
