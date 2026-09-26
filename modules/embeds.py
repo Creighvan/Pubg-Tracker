@@ -830,8 +830,8 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
         else:
             match_lines.append(f"◆ **{players_str}** won a Chicken Dinner together!")
     
-    # Show all wins (no limit to avoid hiding wins)
-    # match_lines = match_lines[:10]  # REMOVED - show all wins
+    # Limit to most recent 25 wins to avoid embed overflow (Discord field limit is 1024 chars)
+    match_lines = match_lines[:25]
     
     # Add the matches as a single field
     embed.add_field(
