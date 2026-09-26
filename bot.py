@@ -1745,6 +1745,31 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
     await interaction.followup.send(embed=embed)
 
 
+@bot.tree.command(description="Show daily-reset fun-title awards + top 10 + human/bot kills, right now")
+async def dailyhighlights(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    if not guild_cfg["players"]:
+        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        return
+    await interaction.response.defer()
+    try:
+        result = await asyncio.wait_for(fetch_highlights_report(interaction.guild_id, interaction.guild.name), timeout=180)
+    except asyncio.TimeoutError:
+        await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
+        return
+    except PubgApiError as e:
+        await send_error_response(interaction, e, context="PUBG API error")
+        return
+    except Exception as e:
+        await send_error_response(interaction, e, context="Error generating report")
+        return
+    if result is None:
+        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        return
+    embed, players = result
+    await interaction.followup.send(embed=embed)
+
+
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
