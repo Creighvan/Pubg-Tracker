@@ -634,7 +634,7 @@ async def auto_chicken_dinner():
 
         try:
             async with get_scheduler_lock():
-                wins, _ = await _get_pubg().get_squad_wins(guild_cfg["players"], matches_to_check=5)
+                wins, _ = await _get_pubg().get_squad_wins(guild_cfg["players"], matches_to_check=20)
         except PubgApiError as e:
             print(f"[auto_chicken_dinner] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_chicken_dinner report failed for guild {guild_id}: {e}"[:200])
