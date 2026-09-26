@@ -617,6 +617,7 @@ async def auto_chicken_dinner():
         updated_matches = dict(posted_matches)
         new_wins = []
         new_match_ids = set()  # Track unique match IDs for tally (count matches, not players)
+        new_match_count = 0  # Count of truly new matches
         
         # Process ALL wins (not just new ones) - show everything in the checked range
         for win in wins:
@@ -625,6 +626,8 @@ async def auto_chicken_dinner():
                 continue
             
             # Track this match as posted
+            if match_id not in posted_matches:
+                new_match_count += 1
             updated_matches[match_id] = match_id
             new_match_ids.add(match_id)
             
