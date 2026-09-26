@@ -1761,13 +1761,22 @@ async def dailyhighlights(interaction: discord.Interaction):
         await send_error_response(interaction, e, context="PUBG API error")
         return
     except Exception as e:
+        print(f"[dailyhighlights] Error: {e}")
+        import traceback
+        traceback.print_exc()
         await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
         await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
         return
     embed, players = result
-    await interaction.followup.send(embed=embed)
+    try:
+        await interaction.followup.send(embed=embed)
+    except Exception as e:
+        print(f"[dailyhighlights] Error sending embed: {e}")
+        import traceback
+        traceback.print_exc()
+        await interaction.followup.send("⚠️ Error displaying report. The report may be too large. Try reducing the player count.")
 
 
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
