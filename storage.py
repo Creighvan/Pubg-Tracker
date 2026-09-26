@@ -106,6 +106,55 @@ _DEFAULT_GUILD = {
 _CORRUPTION_DETECTED = False
 
 
+def _validate_schema(data: dict) -> bool:
+    """Validate that the loaded data has the expected structure."""
+    if not isinstance(data, dict):
+        logger.critical("Database root is not a dictionary")
+        return False
+    
+    for guild_id, guild_data in data.items():
+        if not isinstance(guild_data, dict):
+            logger.critical(f"Guild {guild_id} data is not a dictionary")
+            return False
+        
+        # Validate expected fields exist and have correct types
+        if "players" in guild_data and not isinstance(guild_data["players"], list):
+            logger.critical(f"Guild {guild_id} 'players' field is not a list")
+            return False
+        
+        if "discord_links" in guild_data and not isinstance(guild_data["discord_links"], dict):
+            logger.critical(f"Guild {guild_id} 'discord_links' field is not a dictionary")
+            return False
+        
+        if "protected_players" in guild_data and not isinstance(guild_data["protected_players"], list):
+            logger.critical(f"Guild {guild_id} 'protected_players' field is not a list")
+            return False
+        
+        # Validate numeric counters
+        for field in ["chicken_dinner_total_wins"]:
+            if field in guild_data and guild_data[field] is not None:
+                if not isinstance(guild_data[field], (int, float)):
+                    logger.critical(f"Guild {guild_id} '{field}' field is not numeric")
+                    return False
+        
+        # Validate timestamp fields
+        for field in ["last_post_at", "last_activity_posted_at", "ranked_posted_at", 
+                      "clan_posted_at", "survival_posted_at", "donation_posted_at",
+                      "last_feedback_prompt_at"]:
+            if field in guild_data and guild_data[field] is not None:
+                if not isinstance(guild_data[field], str):
+                    logger.critical(f"Guild {guild_id} '{field}' field is not a string")
+                    return False
+                # Try to parse as ISO timestamp
+                try:
+                    datetime.fromisoformat(guild_data[field])
+                except ValueError:
+                    logger.critical(f"Guild {guild_id} '{field}' field is not a valid ISO timestamp")
+                    return False
+    
+    return True
+
+
 def _load() -> dict:
     global _CORRUPTION_DETECTED
     if _CORRUPTION_DETECTED:
@@ -115,7 +164,7 @@ def _load() -> dict:
         return {}
     with open(DATA_PATH, "r", encoding="utf-8") as f:
         try:
-            return json.load(f)
+            data = json.load(f)
         except json.JSONDecodeError as e:
             # Log the corruption and preserve the damaged file
             logger.critical(f"Database corruption detected in {DATA_PATH}: {e}")
@@ -128,6 +177,18 @@ def _load() -> dict:
             _CORRUPTION_DETECTED = True
             # Return empty dict to allow bot to continue, but the corrupted file is preserved
             return {}
+    
+    # Validate schema
+    if not _validate_schema(data):
+        logger.critical("Database schema validation failed")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        corrupt_path = f"{DATA_PATH}.schema-corrupt-{timestamp}"
+        shutil.copy2(DATA_PATH, corrupt_path)
+        logger.critical(f"File with invalid schema preserved as {corrupt_path}")
+        _CORRUPTION_DETECTED = True
+        return {}
+    
+    return data
 
 
 def reset_corruption_state():

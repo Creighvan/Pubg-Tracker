@@ -515,8 +515,14 @@ async def addplayers(interaction: discord.Interaction, names: str):
 
     try:
         added, duplicates = await storage.add_players(interaction.guild_id, candidates)
-
-        lines = [f"✅ Added **{len(added)}** player(s) to the roster."]
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        
+        count = len(added)
+        unit_key = "player" if count == 1 else "players"
+        unit = translations.get_translation(lang, unit_key)
+        
+        lines = [f"✅ Added **{count}** {unit} to the roster."]
         if added:
             lines.append(", ".join(added))
         if duplicates:
@@ -595,17 +601,12 @@ async def removeprotected(interaction: discord.Interaction, name: str):
 @bot.tree.command(description="List all protected players (immune to inactivity removal)")
 async def listprotected(interaction: discord.Interaction):
     protected = await storage.get_protected_players(interaction.guild_id)
-    # Clean the list first
-    removed = await storage.clean_protected_players(interaction.guild_id)
-    protected = await storage.get_protected_players(interaction.guild_id)
     
     if not protected:
         await interaction.response.send_message("No protected players. Use `/addprotected` to add players who should be immune to inactivity removal.")
         return
     
     message = f"**Protected players ({len(protected)}):**\n" + ", ".join(protected)
-    if removed > 0:
-        message += f"\n\n🧹 Cleaned up {removed} duplicate/empty entries."
     message += "\n\n🛡️ These players won't be flagged for removal due to inactivity."
     await interaction.response.send_message(message)
 
@@ -654,7 +655,14 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
     added = result["added"]
     duplicates = result["duplicates"]
     
-    message = f"✅ Added **{len(added)}** protected player(s):\n" + ", ".join(added)
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
+    count = len(added)
+    unit_key = "player" if count == 1 else "players"
+    unit = translations.get_translation(lang, unit_key)
+    
+    message = f"✅ Added **{count}** protected {unit}:\n" + ", ".join(added)
     if duplicates:
         message += f"\n⚠️ Skipped {len(duplicates)} already protected: " + ", ".join(duplicates)
     await interaction.response.send_message(message)
@@ -822,7 +830,9 @@ class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical 
                     await channel.send(f"🚨 New cheat report submitted by {reporter_name} against **{player_name}**")
                     
         except Exception as e:
-            await interaction.followup.send(f"Error submitting report: {e}")
+            error_id = generate_error_id()
+            logger.error(f"[{error_id}] Error submitting cheat report: {e}", exc_info=e)
+            await interaction.followup.send(f"❌ Error submitting report. Error reference: {error_id}")
 
 
 @bot.tree.command(description="Report suspicious statistics for manual review")
@@ -1780,9 +1790,17 @@ async def survivalstats(interaction: discord.Interaction):
     # roughly 15 seconds per player. That blows past Discord's 15-minute
     # slash-command reply window on rosters of ~60+, so acknowledge
     # instantly and post the finished report straight to the channel.
-    est_minutes = (len(guild_cfg["players"]) * 15 + 59) // 60
+    lang = guild_cfg.get("language", "en")
+    player_count = len(guild_cfg["players"])
+    player_unit_key = "player" if player_count == 1 else "players"
+    player_unit = translations.get_translation(lang, player_unit_key)
+    
+    est_minutes = (player_count * 15 + 59) // 60
+    minute_unit_key = "minute" if est_minutes == 1 else "minutes"
+    minute_unit = translations.get_translation(lang, minute_unit_key)
+    
     await interaction.response.send_message(
-        f"⏳ Working on it — with {len(guild_cfg['players'])} player(s) this takes about {est_minutes} minute(s) "
+        f"⏳ Working on it — with {player_count} {player_unit} this takes about {est_minutes} {minute_unit} "
         f"(PUBG's request limit paces the lookups). The report will appear in this channel when it's ready; "
         f"you don't need to keep waiting here."
     )
@@ -1888,9 +1906,17 @@ async def masterystats(interaction: discord.Interaction):
     # Same 15-seconds-per-player pacing as /survivalstats (2 PUBG calls per
     # player) — reply instantly and post to the channel so large rosters
     # aren't cut off by Discord's 15-minute command reply window.
-    est_minutes = (len(guild_cfg["players"]) * 15 + 59) // 60
+    lang = guild_cfg.get("language", "en")
+    player_count = len(guild_cfg["players"])
+    player_unit_key = "player" if player_count == 1 else "players"
+    player_unit = translations.get_translation(lang, player_unit_key)
+    
+    est_minutes = (player_count * 15 + 59) // 60
+    minute_unit_key = "minute" if est_minutes == 1 else "minutes"
+    minute_unit = translations.get_translation(lang, minute_unit_key)
+    
     await interaction.response.send_message(
-        f"⏳ Working on it — with {len(guild_cfg['players'])} player(s) this takes about {est_minutes} minute(s). "
+        f"⏳ Working on it — with {player_count} {player_unit} this takes about {est_minutes} {minute_unit}. "
         f"The report will appear in this channel when it's ready."
     )
     channel = interaction.channel
@@ -2069,6 +2095,7 @@ async def unlinkme(interaction: discord.Interaction, pubg_name: str):
 
 
 @bot.tree.command(description="Show every PUBG-name-to-Discord link for this server")
+@app_commands.checks.has_permissions(manage_guild=True)
 async def links(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     discord_links = guild_cfg["discord_links"]

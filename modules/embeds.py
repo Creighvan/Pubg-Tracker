@@ -454,7 +454,10 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
 
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'daily_highlights')} ({get_translation(lang, 'fun_titles')})",
-        description=get_translation(lang, "highlights_description").format(count=len(active_players)),
+        description=get_translation(lang, "highlights_description").format(
+            count=len(active_players),
+            unit=get_translation(lang, "players" if len(active_players) != 1 else "player")
+        ),
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -465,7 +468,10 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
         if expired_count > 0:
             embed.add_field(
                 name=get_translation(lang, "no_recent_matches_available"),
-                value=get_translation(lang, "no_recent_matches_description").format(count=expired_count),
+                value=get_translation(lang, "no_recent_matches_description").format(
+                    count=expired_count,
+                    unit=get_translation(lang, "players" if expired_count != 1 else "player")
+                ),
                 inline=False
             )
         else:

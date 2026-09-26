@@ -296,9 +296,9 @@ async def before_auto_ranked():
 
 
 @tasks.loop(minutes=15)
-async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: str = "UTC"):
-    """Sleep until the specified time in the given timezone."""
-    tz = ZoneInfo(timezone_str)
+async def _wait_until_time(target_hour: int, target_minute: int):
+    """Sleep until the specified time in UTC."""
+    tz = ZoneInfo("UTC")
     while True:
         now = datetime.now(tz)
         target = datetime.now(tz).replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
@@ -308,7 +308,7 @@ async def _wait_until_time(target_hour: int, target_minute: int, timezone_str: s
             target += timedelta(days=1)
         
         sleep_seconds = (target - now).total_seconds()
-        print(f"[scheduler] Sleeping {sleep_seconds/3600:.1f} hours until {target_hour}:{target_minute:02d} {timezone_str}")
+        print(f"[scheduler] Sleeping {sleep_seconds/3600:.1f} hours until {target_hour}:{target_minute:02d} UTC")
         await asyncio.sleep(sleep_seconds)
         break
 
@@ -321,7 +321,7 @@ async def auto_highlights():
     """
     while True:
         # Wait until 02:00 UTC
-        await _wait_until_time(2, 0, "UTC")
+        await _wait_until_time(2, 0)
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -635,6 +635,7 @@ async def auto_chicken_dinner():
         posted_matches = guild_cfg.get("chicken_dinner_posted_matches", {})
         updated_matches = dict(posted_matches)
         new_wins = []
+        new_match_ids = set()  # Track unique match IDs for tally (count matches, not players)
         
         # Process squad wins from the new format
         for win in wins:
@@ -665,26 +666,30 @@ async def auto_chicken_dinner():
                 }))
             
             new_wins.extend(players_data)
+            new_match_ids.add(match_id)  # Track match ID for tally
             # Track this match as posted using match_id as key
             updated_matches[match_id] = match_id
 
         # Update running tally for current 24-hour period (count matches, not players)
         current_total = guild_cfg.get("chicken_dinner_total_wins", 0)
-        new_match_count = len(new_wins)
+        new_match_count = len(new_match_ids)  # Count unique matches, not players
         total_wins = current_total + new_match_count
 
         try:
             from modules.embeds import build_chicken_dinner_embed
             
-            # Get all squad wins for the display
+            # Get all squad wins for the display - use the same filtered matches as the tally
             all_winners = []
             for win in wins:
-                for player in win.get("players", []):
-                    all_winners.append((player["name"], {
-                        "winPlace": player["winPlace"],
-                        "kills": player["kills"],
-                        "match_id": win.get("match_id")
-                    }))
+                match_id = win.get("match_id")
+                # Only include matches that passed our filters (in new_match_ids)
+                if match_id in new_match_ids:
+                    for player in win.get("players", []):
+                        all_winners.append((player["name"], {
+                            "winPlace": player["winPlace"],
+                            "kills": player["kills"],
+                            "match_id": match_id
+                        }))
             
             if not all_winners:
                 # No recent wins, skip update
@@ -724,7 +729,7 @@ async def auto_chicken_dinner():
                     "Automated Event",
                     f"Chicken dinner report updated",
                     is_automated=True,
-                    details={"Event Type": "Chicken Dinner", "New Wins": len(new_wins), "Total Wins": total_wins},
+                    details={"Event Type": "Chicken Dinner", "New Wins": new_match_count, "Total Wins": total_wins},
                     report_embed=embed
                 )
         except Exception as e:
