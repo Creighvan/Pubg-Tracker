@@ -59,9 +59,7 @@ def _get_pubg():
 @tasks.loop(minutes=15)
 async def auto_digest():
     """
-    Every 15 minutes, checks whether each guild's digest is due — either
-    a fixed UTC hour (digest_hour_utc) or the older interval-based
-    behavior (post_interval_hours), depending on what's configured.
+    Posts the clan digest report every 15 minutes for live updates.
     """
     now = datetime.now(timezone.utc)
     for guild_id in await storage.all_guild_ids():
@@ -70,8 +68,6 @@ async def auto_digest():
             continue
         channel_id = guild_cfg.get("post_channel_id")
         if channel_id is None:
-            continue
-        if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
 
         guild = _get_bot().get_guild(guild_id)
@@ -84,12 +80,6 @@ async def auto_digest():
             if result:
                 embed, players = result
                 await channel.send(embed=embed)
-                
-                # Mark as posted after successful send
-                guild_cfg["last_post_at"] = now.isoformat()
-                def modifier(g):
-                    g["last_post_at"] = guild_cfg["last_post_at"]
-                await storage.modify_guild(guild_id, modifier)
                 
                 await send_audit_log(
                     guild_id,
@@ -191,16 +181,11 @@ async def before_auto_last_active():
 @tasks.loop(minutes=15)
 async def auto_ranked():
     """
-    Updates the ranked standings report daily at 04:30 UTC.
+    Updates the ranked standings report every 15 minutes for live updates.
     Edits a single message in place instead of posting new messages.
-    Uses a posted_at timestamp to ensure it runs once per day even if
-    the bot is offline during the 04:30 UTC window.
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    reset_time_utc = now_utc.replace(hour=4, minute=30, second=0, microsecond=0)
-    if now_utc < reset_time_utc:
-        reset_time_utc -= timedelta(days=1)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -209,17 +194,6 @@ async def auto_ranked():
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             continue
-        
-        # Check if we've already posted since the most recent 04:30 UTC reset
-        posted_at = guild_cfg.get("ranked_posted_at")
-        if posted_at:
-            posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
-            if posted_date >= reset_time_utc:
-                continue  # Already posted since the most recent reset
-        
-        # Only run during or after the 04:30 UTC window
-        if now_utc.hour < 4 or (now_utc.hour == 4 and now_utc.minute < 30):
-            continue  # Not yet 04:30 UTC
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
@@ -246,18 +220,14 @@ async def auto_ranked():
                     new_message = await channel.send(embed=embed)
                     guild_cfg["ranked_message_id"] = new_message.id
                 
-                # Mark as posted today and save atomically
-                guild_cfg["ranked_posted_at"] = now_utc.isoformat()
-                
                 def modifier(g):
                     g["ranked_message_id"] = guild_cfg["ranked_message_id"]
-                    g["ranked_posted_at"] = guild_cfg["ranked_posted_at"]
                 await storage.modify_guild(guild_id, modifier)
                 
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Ranked standings report updated at 04:30 UTC daily",
+                    f"Ranked standings report updated",
                     is_automated=True,
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
