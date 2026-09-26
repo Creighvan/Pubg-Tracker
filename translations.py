@@ -77,6 +77,14 @@ TRANSLATIONS = {
         "day": "day",
         "days": "days",
         "no_recent_matches": "No recent matches found",
+        "player": "player",
+        "players": "players",
+        "minute": "minute",
+        "minutes": "minutes",
+        "match": "match",
+        "matches": "matches",
+        "match": "match",
+        "matches": "matches",
         
         # Clan Report
         "clan_report": "Clan Report",
@@ -114,16 +122,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "Daily Highlights",
         "fun_titles": "Fun Titles",
-        "highlights_description": "Based on {count} player(s) who played since daily reset (02:00 UTC).",
+        "highlights_description": "Based on {count} {unit} who played since daily reset (02:00 UTC).",
         "no_recent_matches_available": "No recent matches available",
-        "no_recent_matches_description": "PUBG match telemetry is only available for the last 14 days. {count} player(s) have older matches that can't be analyzed.",
+        "no_recent_matches_description": "PUBG match telemetry is only available for the last 14 days. {count} {unit} have older matches that can't be analyzed.",
         "no_matches_played": "No matches played",
         "no_matches_description": "Nobody on the roster played in this window.",
         "top_10": "Top 10",
         "kills_best_match": "kills (best match)",
         "dmg_best_match": "dmg (best match)",
         "human_bot_split": "human / {count} bot",
-        "matches_count": "match(es)",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "Updates daily at 02:00 UTC (live-updating, not reposted) · Stats from the official PUBG API · daily highlights, last 24 hours",
         
         # Chicken Dinner Report
@@ -241,6 +249,14 @@ TRANSLATIONS = {
         "day": "天",
         "days": "天",
         "no_recent_matches": "未找到最近的比赛",
+        "player": "玩家",
+        "players": "玩家",
+        "minute": "分钟",
+        "minutes": "分钟",
+        "match": "比赛",
+        "matches": "比赛",
+        "match": "比赛",
+        "matches": "比赛",
         
         # Clan Report
         "clan_report": "公会报告",
@@ -278,16 +294,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "每日亮点",
         "fun_titles": "趣味称号",
-        "highlights_description": "基于{count}名自每日重置（UTC凌晨2点）以来玩的玩家。",
+        "highlights_description": "基于{count} {unit}自每日重置（UTC凌晨2点）以来玩的玩家。",
         "no_recent_matches_available": "无最近比赛可用",
-        "no_recent_matches_description": "PUBG比赛遥测数据仅可用14天。{count}名玩家有无法分析的旧比赛。",
+        "no_recent_matches_description": "PUBG比赛遥测数据仅可用14天。{count} {unit}有无法分析的旧比赛。",
         "no_matches_played": "无比赛",
         "no_matches_description": "名册上没人在这个窗口内玩过。",
         "top_10": "前10名",
         "kills_best_match": "击杀（最佳比赛）",
         "dmg_best_match": "伤害（最佳比赛）",
         "human_bot_split": "人类 / {count} 机器人",
-        "matches_count": "比赛",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "每天UTC凌晨2点更新（实时更新，不重新发布） · 来自官方PUBG API的统计数据 · 每日亮点，过去24小时",
         
         # Chicken Dinner Report
@@ -405,6 +421,12 @@ TRANSLATIONS = {
         "day": "día",
         "days": "días",
         "no_recent_matches": "No se encontraron partidas recientes",
+        "player": "jugador",
+        "players": "jugadores",
+        "minute": "minuto",
+        "minutes": "minutos",
+        "match": "partida",
+        "matches": "partidas",
         
         # Clan Report
         "clan_report": "Informe del clan",
@@ -479,16 +501,16 @@ TRANSLATIONS = {
         # Command responses
         "daily_highlights": "Resaltados diarios",
         "fun_titles": "Títulos divertidos",
-        "highlights_description": "Basado en {count} jugador(es) que jugaron desde el restablecimiento diario (02:00 UTC).",
+        "highlights_description": "Basado en {count} {unit} que jugaron desde el restablecimiento diario (02:00 UTC).",
         "no_recent_matches_available": "No hay partidas recientes disponibles",
-        "no_recent_matches_description": "La telemetría de partidas de PUBG solo está disponible durante los últimos 14 días. {count} jugador(es) tienen partidas más antiguas que no se pueden analizar.",
+        "no_recent_matches_description": "La telemetría de partidas de PUBG solo está disponible durante los últimos 14 días. {count} {unit} tienen partidas más antiguas que no se pueden analizar.",
         "no_matches_played": "Sin partidas jugadas",
         "no_matches_description": "Nadie en la lista jugó en esta ventana.",
         "top_10": "Top 10",
         "kills_best_match": "bajas (mejor partida)",
         "dmg_best_match": "daño (mejor partida)",
         "human_bot_split": "humano / {count} bot",
-        "matches_count": "partida(s)",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado) · Estadísticas de la API oficial de PUBG · resaltados diarios, últimas 24 horas",
         
         # Chicken Dinner Report
@@ -576,6 +598,12 @@ TRANSLATIONS = {
         "day": "दिन",
         "days": "दिन",
         "no_recent_matches": "हाल के मैच नहीं मिले",
+        "player": "खिलाड़ी",
+        "players": "खिलाड़ी",
+        "minute": "मिनट",
+        "minutes": "मिनट",
+        "match": "मैच",
+        "matches": "मैच",
         
         # Clan Report
         "clan_report": "क्लान रिपोर्ट",
@@ -613,16 +641,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "दैनिक हाइलाइट्स",
         "fun_titles": "मज़ेदार खिताब",
-        "highlights_description": "दैनिक रीसेट (UTC रात 2 बजे) के बाद खेलने वाले {count} खिलाड़ी(यों) के आधार पर।",
+        "highlights_description": "दैनिक रीसेट (UTC रात 2 बजे) के बाद खेलने वाले {count} {unit} के आधार पर",
         "no_recent_matches_available": "कोई हाल के मैच उपलब्ध नहीं",
-        "no_recent_matches_description": "PUBG मैच टेलीमेट्री केवल पिछले 14 दिनों के लिए उपलब्ध है। {count} खिलाड़ी(यों) के पास पुराने मैच हैं जिनका विश्लेषण नहीं किया जा सकता।",
+        "no_recent_matches_description": "PUBG मैच टेलीमेट्री केवल पिछले 14 दिनों के लिए उपलब्ध है। {count} {unit} के पास पुराने मैच हैं जिनका विश्लेषण नहीं किया जा सकता।",
         "no_matches_played": "कोई मैच नहीं खेला",
         "no_matches_description": "रोस्टर पर किसी ने भी इस विंडो में नहीं खेला।",
         "top_10": "शीर्ष 10",
         "kills_best_match": "किल (सर्वश्रेष्ठ मैच)",
         "dmg_best_match": "नुकसान (सर्वश्रेष्ठ मैच)",
         "human_bot_split": "मानव / {count} बॉट",
-        "matches_count": "मैच",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं) · आधिकारिक PUBG API से आँकड़े · दैनिक हाइलाइट्स, पिछले 24 घंटे",
         
         # Chicken Dinner Report
@@ -740,6 +768,12 @@ TRANSLATIONS = {
         "day": "يوم",
         "days": "أيام",
         "no_recent_matches": "لم يتم العثور على مباريات حديثة",
+        "player": "لاعب",
+        "players": "لاعبون",
+        "minute": "دقيقة",
+        "minutes": "دقائق",
+        "match": "مباراة",
+        "matches": "مباريات",
         
         # Clan Report
         "clan_report": "تقرير العشيرة",
@@ -777,16 +811,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "أبرز اليومية",
         "fun_titles": "عناوين ممتعة",
-        "highlights_description": "بناءً على {count} لاعب(ون) لعبوا منذ إعادة التعيين اليومي (02:00 UTC).",
+        "highlights_description": "بناءً على {count} {unit} لعبوا منذ إعادة التعيين اليومي (02:00 UTC).",
         "no_recent_matches_available": "لا توجد مباريات حديثة متاحة",
-        "no_recent_matches_description": "تكون بيانات تتبع مباريات PUBG متاحة فقط لآخر 14 يومًا. {count} لاعب(ون) لديهم مباريات أقدم لا يمكن تحليلها.",
+        "no_recent_matches_description": "تكون بيانات تتبع مباريات PUBG متاحة فقط لآخر 14 يومًا. {count} {unit} لديهم مباريات أقدم لا يمكن تحليلها.",
         "no_matches_played": "لم يتم لعب أي مباريات",
         "no_matches_description": "لم يلعب أحد في القائمة في هذه النافذة.",
         "top_10": "أفضل 10",
         "kills_best_match": "قتل (أفضل مباراة)",
         "dmg_best_match": "ضرر (أفضل مباراة)",
         "human_bot_split": "إنسان / {count} بوت",
-        "matches_count": "مباراة(ات)",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر) · إحصائيات من واجهة برمجة تطبيقات PUBG الرسمية · أبرز اليومية، آخر 24 ساعة",
         
         # Chicken Dinner Report
@@ -904,6 +938,12 @@ TRANSLATIONS = {
         "day": "jour",
         "days": "jours",
         "no_recent_matches": "Aucune partie récente trouvée",
+        "player": "joueur",
+        "players": "joueurs",
+        "minute": "minute",
+        "minutes": "minutes",
+        "match": "partie",
+        "matches": "parties",
         
         # Clan Report
         "clan_report": "Rapport de clan",
@@ -941,16 +981,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "Faits marquants quotidiens",
         "fun_titles": "Titres amusants",
-        "highlights_description": "Basé sur {count} joueur(s) ayant joué depuis la réinitialisation quotidienne (02:00 UTC).",
+        "highlights_description": "Basé sur {count} {unit} ayant joué depuis la réinitialisation quotidienne (02:00 UTC).",
         "no_recent_matches_available": "Aucune partie récente disponible",
-        "no_recent_matches_description": "La télémétrie des parties PUBG n'est disponible que pendant les 14 derniers jours. {count} joueur(s) ont des parties plus anciennes qui ne peuvent pas être analysées.",
+        "no_recent_matches_description": "La télémétrie des parties PUBG n'est disponible que pendant les 14 derniers jours. {count} {unit} ont des parties plus anciennes qui ne peuvent pas être analysées.",
         "no_matches_played": "Aucune partie jouée",
         "no_matches_description": "Personne sur la liste n'a joué dans cette fenêtre.",
         "top_10": "Top 10",
         "kills_best_match": "éliminations (meilleure partie)",
         "dmg_best_match": "dégâts (meilleure partie)",
         "human_bot_split": "humain / {count} bot",
-        "matches_count": "partie(s)",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié) · Statistiques de l'API PUBG officielle · faits marquants quotidiens, dernières 24 heures",
         
         # Chicken Dinner Report
@@ -1068,6 +1108,12 @@ TRANSLATIONS = {
         "day": "দিন",
         "days": "দিন",
         "no_recent_matches": "সাম্প্রতিক ম্যাচ পাওয়া যায়নি",
+        "player": "খেলোয়াড়",
+        "players": "খেলোয়াড়",
+        "minute": "মিনিট",
+        "minutes": "মিনিট",
+        "match": "ম্যাচ",
+        "matches": "ম্যাচ",
         
         # Clan Report
         "clan_report": "ক্লান রিপোর্ট",
@@ -1105,16 +1151,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "দৈনিক হাইলাইটস",
         "fun_titles": "মজার শিরোনাম",
-        "highlights_description": "দৈনিক রিসেট (UTC রাত 2 টা) থেকে খেলা {count} খেলোয়াড়ের উপর ভিত্তি করে।",
+        "highlights_description": "দৈনিক রিসেট (UTC রাত 2 টা) থেকে খেলা {count} {unit} খেলোয়াড়ের উপর ভিত্তি করে।",
         "no_recent_matches_available": "কোন সাম্প্রতিক ম্যাচ উপলব্ধ নেই",
-        "no_recent_matches_description": "PUBG ম্যাচ টেলিমেট্রি শুধুমাত্র গত 14 দিনের জন্য উপলব্ধ। {count} খেলোয়াড়ের পুরানো ম্যাচ আছে যা বিশ্লেষণ করা যায় না।",
+        "no_recent_matches_description": "PUBG ম্যাচ টেলিমেট্রি শুধুমাত্র গত 14 দিনের জন্য উপলব্ধ। {count} {unit} এর পুরানো ম্যাচ আছে যা বিশ্লেষণ করা যায় না।",
         "no_matches_played": "কোন ম্যাচ খেলা হয়নি",
         "no_matches_description": "রোস্টারে কেউ এই উইন্ডোতে খেলেনি।",
         "top_10": "শীর্ষ 10",
         "kills_best_match": "কিল (সেরা ম্যাচ)",
         "dmg_best_match": "ক্ষতি (সেরা ম্যাচ)",
         "human_bot_split": "মানব / {count} বট",
-        "matches_count": "ম্যাচ",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "দৈনিক UTC রাত 2 টা আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়) · অফিসিয়াল PUBG API থেকে পরিসংখ্যান · দৈনিক হাইলাইটস, গত 24 ঘন্টা",
         
         # Chicken Dinner Report
@@ -1232,6 +1278,12 @@ TRANSLATIONS = {
         "day": "dia",
         "days": "dias",
         "no_recent_matches": "Nenhuma partida recente encontrada",
+        "player": "jogador",
+        "players": "jogadores",
+        "minute": "minuto",
+        "minutes": "minutos",
+        "match": "partida",
+        "matches": "partidas",
         
         # Clan Report
         "clan_report": "Relatório do clã",
@@ -1269,16 +1321,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "Destaques diários",
         "fun_titles": "Títulos divertidos",
-        "highlights_description": "Com base em {count} jogador(es) que jogaram desde a redefinição diária (02:00 UTC).",
+        "highlights_description": "Com base em {count} {unit} que jogaram desde a redefinição diária (02:00 UTC).",
         "no_recent_matches_available": "Nenhuma partida recente disponível",
-        "no_recent_matches_description": "A telemetria de partidas do PUBG está disponível apenas nos últimos 14 dias. {count} jogador(es) têm partidas mais antigas que não podem ser analisadas.",
+        "no_recent_matches_description": "A telemetria de partidas do PUBG está disponível apenas nos últimos 14 dias. {count} {unit} têm partidas mais antigas que não podem ser analisadas.",
         "no_matches_played": "Nenhuma partida jogada",
         "no_matches_description": "Ninguém na lista jogou nesta janela.",
         "top_10": "Top 10",
         "kills_best_match": "abates (melhor partida)",
         "dmg_best_match": "dano (melhor partida)",
         "human_bot_split": "humano / {count} bot",
-        "matches_count": "partida(s)",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado) · Estatísticas da API oficial do PUBG · destaques diários, últimas 24 horas",
         
         # Chicken Dinner Report
@@ -1396,6 +1448,12 @@ TRANSLATIONS = {
         "day": "hari",
         "days": "hari",
         "no_recent_matches": "Tidak ada pertandingan terbaru ditemukan",
+        "player": "pemain",
+        "players": "pemain",
+        "minute": "menit",
+        "minutes": "menit",
+        "match": "pertandingan",
+        "matches": "pertandingan",
         
         # Clan Report
         "clan_report": "Laporan klan",
@@ -1433,16 +1491,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "Poin harian",
         "fun_titles": "Judul lucu",
-        "highlights_description": "Berdasarkan {count} pemain yang bermain sejak reset harian (02:00 UTC).",
+        "highlights_description": "Berdasarkan {count} {unit} yang bermain sejak reset harian (02:00 UTC).",
         "no_recent_matches_available": "Tidak ada pertandingan terbaru tersedia",
-        "no_recent_matches_description": "Telemetri pertandingan PUBG hanya tersedia selama 14 hari terakhir. {count} pemain memiliki pertandingan yang lebih lama yang tidak dapat dianalisis.",
+        "no_recent_matches_description": "Telemetri pertandingan PUBG hanya tersedia selama 14 hari terakhir. {count} {unit} memiliki pertandingan yang lebih lama yang tidak dapat dianalisis.",
         "no_matches_played": "Tidak ada pertandingan yang dimainkan",
         "no_matches_description": "Tidak ada orang di daftar yang bermain di jendela ini.",
         "top_10": "Top 10",
         "kills_best_match": "kill (pertandingan terbaik)",
         "dmg_best_match": "kerusakan (pertandingan terbaik)",
         "human_bot_split": "manusia / {count} bot",
-        "matches_count": "pertandingan",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang) · Statistik dari API PUBG resmi · poin harian, 24 jam terakhir",
         
         # Chicken Dinner Report
@@ -1560,6 +1618,12 @@ TRANSLATIONS = {
         "day": "دن",
         "days": "دن",
         "no_recent_matches": "حالیہ میچ نہیں ملا",
+        "player": "کھلاڑی",
+        "players": "کھلاڑی",
+        "minute": "منٹ",
+        "minutes": "منٹ",
+        "match": "میچ",
+        "matches": "میچ",
         
         # Clan Report
         "clan_report": "کلان رپورٹ",
@@ -1597,16 +1661,16 @@ TRANSLATIONS = {
         # Daily Highlights Report
         "daily_highlights": "روزانہ ہائی لائٹس",
         "fun_titles": "مذاق کے عناوین",
-        "highlights_description": "روزانہ ری سیٹ (UTC رات 2 بجے) کے بعد کھیلنے والے {count} کھلاڑیوں کے مبنی۔",
+        "highlights_description": "روزانہ ری سیٹ (UTC رات 2 بجے) کے بعد کھیلنے والے {count} {unit} کے مبنی۔",
         "no_recent_matches_available": "کوئی حالیہ میچ دستیاب نہیں",
-        "no_recent_matches_description": "PUBG میچ ٹیلی میٹری صرف پچھلے 14 دنوں کے لیے دستیاب ہے۔ {count} کھلاڑیوں کے پرانے میچ ہیں جن کا تجزیہ نہیں کیا جا سکتا۔",
+        "no_recent_matches_description": "PUBG میچ ٹیلی میٹری صرف پچھلے 14 دنوں کے لیے دستیاب ہے۔ {count} {unit} کے پرانے میچ ہیں جن کا تجزیہ نہیں کیا جا سکتا۔",
         "no_matches_played": "کوئی میچ نہیں کھیلا",
         "no_matches_description": "اسٹر پر اس ونڈو میں کسی نے نہیں کھیلا۔",
         "top_10": "پہلے 10",
         "kills_best_match": "کلز (بہترین میچ)",
         "dmg_best_match": "نقصان (بہترین میچ)",
         "human_bot_split": "انسان / {count} بوٹ",
-        "matches_count": "میچ",
+        "matches_count": "{count} {unit}",
         "highlights_footer": "روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں) · آفیشیل PUBG API سے اعدادوشمار · روزانہ ہائی لائٹس، گوزرے 24 گھنٹے",
         
         # Chicken Dinner Report

@@ -316,7 +316,7 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/sethighlightstime <0-23>` | Fixed UTC hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
 | `/linkme <pubg_name>` | Link your Discord account to a PUBG name (shows as a mention on `/leaderboardstats` results) |
-| `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (open to anyone) |
+| `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (requires Manage Server) |
 | `/unlinkme <pubg_name>` | Remove a Discord-to-PUBG-name link |
 | `/links` | Show every PUBG-name-to-Discord link currently set for this server |
 | `/chickendinner` | Check the roster's most recent matches for wins right now |
@@ -363,13 +363,12 @@ ping anyone by default. Linking affects one thing: on `/leaderboardstats`, a
 linked player's name is shown as a non-pinging `@mention` instead of the
 plain PUBG name.
 
-- `/linkme <pubg_name>` — link your own Discord account.
+- `/linkme <pubg_name>` — link your own Discord account (self-asserted; use `/linkplayer` for verified linking).
 - `/linkplayer <member> <pubg_name>` — link someone else's account for
-  them (open to anyone, e.g. a member who won't run the command
-  themselves).
+  them (requires Manage Server permission).
 - `/unlinkme <pubg_name>` — remove a link (your own, or — for a server
   manager — anyone's).
-- `/links` — list every current PUBG-name-to-Discord link for the server.
+- `/links` — list every current PUBG-name-to-Discord link for the server (requires Manage Server permission).
 - `/pingtoggle <on/off>` — enable or disable mention notifications for achievement awards in reports (default: on). Avatar links still work regardless of this setting.
 
 ### Fixed-time scheduling (UTC)

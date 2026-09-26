@@ -112,6 +112,7 @@ class PubgClient:
         # using the same PUBG key and avoids triggering burst protection.
         self._limiter = RateLimiter(max_calls=8, period_seconds=60)
         self._session: aiohttp.ClientSession | None = None
+        self._external_session: aiohttp.ClientSession | None = None  # Separate session for non-PUBG requests
         self._current_season_id: str | None = None  # cached for the process lifetime
         self._season_lock = asyncio.Lock()
         # Optional async callback(delay_seconds: float), set by the caller
@@ -132,9 +133,19 @@ class PubgClient:
             )
         return self._session
 
+    async def _get_external_session(self) -> aiohttp.ClientSession:
+        """Get a separate session for non-PUBG requests (no auth headers)."""
+        if self._external_session is None or self._external_session.closed:
+            self._external_session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=10),
+            )
+        return self._external_session
+
     async def close(self):
         if self._session and not self._session.closed:
             await self._session.close()
+        if self._external_session and not self._external_session.closed:
+            await self._external_session.close()
 
     async def _request(self, path: str, params: dict[str, Any] | None = None, rate_limited: bool = True) -> dict:
         session = await self._get_session()
@@ -960,7 +971,8 @@ class PubgClient:
         # Check Steam server status (PUBG runs on Steam)
         try:
             steam_url = "https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/"
-            async with self._session.get(steam_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+            external_session = await self._get_external_session()
+            async with external_session.get(steam_url, timeout=aiohttp.ClientTimeout(total=5)) as response:
                 if response.status == 200:
                     steam_data = await response.json()
                     result["steam_status"] = "up"
@@ -982,7 +994,8 @@ class PubgClient:
                 "Accept-Language": "en-US,en;q=0.9",
                 "Referer": "https://pubg.plus/"
             }
-            async with self._session.get(pubg_plus_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+            external_session = await self._get_external_session()
+            async with external_session.get(pubg_plus_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status == 200:
                     pubg_plus_data = await response.json()
                     if pubg_plus_data.get("code") == 0 and "data" in pubg_plus_data:

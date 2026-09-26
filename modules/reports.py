@@ -185,11 +185,13 @@ async def fetch_ranked_report(guild_id: int, guild_name: str, game_mode: str | N
         names_to_check = guild_cfg["players"]
     players, not_found = await _get_pubg().get_ranked_report(names_to_check, game_mode)
     if game_mode not in known_by_mode:
-        guild_cfg["ranked_known_players"] = dict(known_by_mode)
-        guild_cfg["ranked_known_players"][game_mode] = [
+        known_by_mode[game_mode] = [
             p["name"] for p in players if p.get("ranked", {}).get("currentTier") is not None
         ]
-        await storage.save_guild(guild_id, guild_cfg)
+        
+        def modifier(g):
+            g["ranked_known_players"] = known_by_mode
+        await storage.modify_guild(guild_id, modifier)
     embed = build_ranked_embed(guild_name, guild_cfg, players, not_found, game_mode)
     return embed, players
 

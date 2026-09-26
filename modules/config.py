@@ -236,10 +236,12 @@ async def _push_status_message(guild_id: int, guild_cfg: dict, channel_id: int) 
             await message.edit(embed=embed)
         else:
             new_message = await channel.send(embed=embed)
-            guild_cfg["status_message_id"] = new_message.id
+            message_id = new_message.id
             # Import storage here to avoid circular import
-            from storage import save_guild
-            await save_guild(guild_id, guild_cfg)
+            from storage import modify_guild
+            def modifier(g):
+                g["status_message_id"] = message_id
+            await modify_guild(guild_id, modifier)
     except discord.HTTPException as e:
         logger.error(f"[status] Could not update status message for guild {guild_id}: {e}", exc_info=e)
 
