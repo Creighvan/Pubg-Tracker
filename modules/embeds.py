@@ -450,11 +450,7 @@ def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict]
     lang = guild_cfg.get("language", "en")
 
     title = guild_cfg.get("clan_name") or guild_name
-    print(f"[embeds] build_highlights_embed: {len(players)} players received")
-    for p in players[:5]:  # Log first 5 players
-        print(f"[embeds] Player {p.get('name', 'unknown')}: daily matches = {p.get('daily', {}).get('matches', 'N/A')}")
     active_players = [p for p in players if p["daily"]["matches"] > 0]
-    print(f"[embeds] Active players (matches > 0): {len(active_players)}")
 
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'daily_highlights')} ({get_translation(lang, 'fun_titles')})",

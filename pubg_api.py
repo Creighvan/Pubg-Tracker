@@ -739,8 +739,6 @@ class PubgClient:
             p.pop("_expired_matches", None)
 
         await asyncio.gather(*(process_player(p) for p in found))
-        active_count = sum(1 for p in found if p["daily"]["matches"] > 0)
-        print(f"[pubg] Daily activity report: {len(found)} players processed, {active_count} with matches")
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
         return found, not_found
 
