@@ -561,7 +561,6 @@ class PubgClient:
         # Default is 24 hours from now, not the PUBG daily reset
         from datetime import datetime, timezone, timedelta
         cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
-        print(f"[pubg] Daily activity report cutoff: {cutoff.isoformat()} ({hours} hours ago)")
 
         found: list[dict] = []
         not_found: list[str] = []
@@ -674,7 +673,6 @@ class PubgClient:
                 except (ValueError, AttributeError) as e:
                     print(f"[pubg] Malformed timestamp for match {match_id}: {created_at} - {e}")
                     continue
-                print(f"[pubg] Player {p['name']}: match {match_id[:8]} at {created_dt.isoformat()}, cutoff {cutoff.isoformat()}, in_window: {created_dt >= cutoff}")
                 if created_dt < cutoff:
                     break  # newest-first assumption: nothing after this is in-window either
                 stats = details["participants"].get(p["id"])
@@ -741,9 +739,8 @@ class PubgClient:
             p.pop("_expired_matches", None)
 
         await asyncio.gather(*(process_player(p) for p in found))
-        print(f"[pubg] Daily activity report: {len(found)} players processed")
-        for p in found:
-            print(f"[pubg] Player {p['name']}: {p['daily']['matches']} matches, {p['daily']['kills']} kills")
+        active_count = sum(1 for p in found if p["daily"]["matches"] > 0)
+        print(f"[pubg] Daily activity report: {len(found)} players processed, {active_count} with matches")
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
         return found, not_found
 
