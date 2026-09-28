@@ -557,9 +557,10 @@ class PubgClient:
         winPlace achieved in a match where they got 0 kills, or None if
         every match had at least 1 kill. Sorted by kills, highest first.
         """
-        # Use centralized PUBG daily reset function (02:00 UTC)
-        from modules.utils import get_current_pubg_day
-        cutoff = get_current_pubg_day()
+        # Use rolling 24-hour window from the provided hours parameter
+        # Default is 24 hours from now, not the PUBG daily reset
+        from datetime import datetime, timezone, timedelta
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         found: list[dict] = []
         not_found: list[str] = []
