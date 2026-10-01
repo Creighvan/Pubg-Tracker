@@ -43,7 +43,7 @@ from modules.reports import (
     fetch_leaderboard_report,
 )
 from modules.embeds import build_report_status_embed, build_feedback_prompt_embed
-from modules.utils import _is_due, _is_weekly_due, _is_sunday_donation_due, get_current_pubg_day
+from modules.utils import _is_due, _is_weekly_due, _is_monthly_donation_due, get_current_pubg_day
 
 # Late-binding helpers to avoid stale imports at module load time
 # These re-read the values from config on each call to get the real instances
