@@ -534,25 +534,17 @@ async def before_auto_survival_mastery():
 @tasks.loop(minutes=15)
 async def auto_donations():
     """Post the optional donation link on the 1st of each month for servers that opt in."""
-    print(f"[auto_donations] Running at {datetime.now(timezone.utc)}")
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
-        print(f"[auto_donations] Checking guild {guild_id}: donation_enabled={guild_cfg.get('donation_enabled')}, channel_id={guild_cfg.get('donation_channel_id')}")
         if not guild_cfg.get("donation_enabled", True):
             continue
         channel_id = guild_cfg.get("donation_channel_id")
-        # TEMPORARY: Force post for guild 1497042184258715689 today
-        is_due = _is_monthly_donation_due(guild_cfg) or (guild_id == 1497042184258715689 and datetime.now(timezone.utc).day == 1)
-        print(f"[auto_donations] Guild {guild_id}: channel_id={channel_id}, is_due={is_due}")
-        if channel_id is None or not is_due:
+        if channel_id is None or not _is_monthly_donation_due(guild_cfg):
             continue
         channel = _get_bot().get_channel(channel_id)
-        print(f"[auto_donations] Got channel: {channel}")
         if channel is None:
-            print(f"[auto_donations] Channel {channel_id} not found for guild {guild_id}")
             continue
         try:
-            print(f"[auto_donations] Sending donation message to guild {guild_id}")
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
 
