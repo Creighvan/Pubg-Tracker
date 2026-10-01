@@ -546,9 +546,12 @@ async def auto_donations():
         if channel_id is None or not is_due:
             continue
         channel = _get_bot().get_channel(channel_id)
+        print(f"[auto_donations] Got channel: {channel}")
         if channel is None:
+            print(f"[auto_donations] Channel {channel_id} not found for guild {guild_id}")
             continue
         try:
+            print(f"[auto_donations] Sending donation message to guild {guild_id}")
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
 
