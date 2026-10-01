@@ -11,7 +11,7 @@ Functions:
     auto_highlights: Highlights report daily (after 02:00 UTC, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
-    auto_donations: Donation message weekly (Sunday)
+    auto_donations: Donation message monthly (1st of each month)
     auto_chicken_dinner: Chicken dinner congratulatory messages
     auto_feedback_prompt: Feedback collection weekly
 
@@ -533,13 +533,13 @@ async def before_auto_survival_mastery():
 
 @tasks.loop(minutes=15)
 async def auto_donations():
-    """Post the optional donation link on Sunday for servers that opt in."""
+    """Post the optional donation link on the 1st of each month for servers that opt in."""
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("donation_enabled", True):
             continue
         channel_id = guild_cfg.get("donation_channel_id")
-        if channel_id is None or not _is_sunday_donation_due(guild_cfg):
+        if channel_id is None or not _is_monthly_donation_due(guild_cfg):
             continue
         channel = _get_bot().get_channel(channel_id)
         if channel is None:
@@ -547,7 +547,7 @@ async def auto_donations():
         try:
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
-            
+
             def modifier(g):
                 g["donation_posted_at"] = guild_cfg["donation_posted_at"]
             await storage.modify_guild(guild_id, modifier)
