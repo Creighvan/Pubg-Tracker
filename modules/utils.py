@@ -140,21 +140,20 @@ def _is_weekly_due(
     return posted_utc.isocalendar()[:2] != now_utc.isocalendar()[:2]
 
 
-def _is_sunday_donation_due(guild_cfg: dict) -> bool:
-    """Whether this server's opt-in donation message is due this Sunday."""
+def _is_monthly_donation_due(guild_cfg: dict) -> bool:
+    """Whether this server's opt-in donation message is due on the 1st of each month."""
     now_utc = datetime.now(timezone.utc)
     target_minute = guild_cfg.get("donation_hour_utc", 12) * 60 + guild_cfg.get("donation_minute_utc", 0)
     now_minute = now_utc.hour * 60 + now_utc.minute
-    # Same retry rule as the other weekly reports: due any time after the
-    # target time on Sunday, so a failed attempt retries instead of the
-    # whole week being skipped.
-    if now_utc.weekday() != 6 or now_minute < target_minute:
+    # Due on the 1st of each month after the target time
+    if now_utc.day != 1 or now_minute < target_minute:
         return False
     posted_at = guild_cfg.get("donation_posted_at")
     if not posted_at:
         return True
     posted_utc = datetime.fromisoformat(posted_at).astimezone(timezone.utc)
-    return posted_utc.isocalendar()[:2] != now_utc.isocalendar()[:2]
+    # Check if posted in the current month
+    return posted_utc.month != now_utc.month or posted_utc.year != now_utc.year
 
 
 def _as_utc(iso_timestamp: str | None) -> datetime | None:

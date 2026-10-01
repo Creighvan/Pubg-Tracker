@@ -1193,8 +1193,8 @@ async def setdonationchannel(interaction: discord.Interaction):
     await storage.modify_guild(interaction.guild_id, modifier)
     guild_cfg = await storage.get_guild(interaction.guild_id)
     await interaction.response.send_message(
-        f"✅ The donation message will post in {interaction.channel.mention} every "
-        f"**Sunday at {guild_cfg['donation_hour_utc']:02d}:{guild_cfg['donation_minute_utc']:02d} UTC**. "
+        f"✅ The donation message will post in {interaction.channel.mention} on the "
+        f"**1st of each month at {guild_cfg['donation_hour_utc']:02d}:{guild_cfg['donation_minute_utc']:02d} UTC**. "
         "Use `/setdonationtime` to change the time."
     )
 
