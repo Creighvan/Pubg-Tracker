@@ -537,10 +537,13 @@ async def auto_donations():
     print(f"[auto_donations] Running at {datetime.now(timezone.utc)}")
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
+        print(f"[auto_donations] Checking guild {guild_id}: donation_enabled={guild_cfg.get('donation_enabled')}, channel_id={guild_cfg.get('donation_channel_id')}")
         if not guild_cfg.get("donation_enabled", True):
             continue
         channel_id = guild_cfg.get("donation_channel_id")
-        if channel_id is None or not _is_monthly_donation_due(guild_cfg):
+        is_due = _is_monthly_donation_due(guild_cfg)
+        print(f"[auto_donations] Guild {guild_id}: channel_id={channel_id}, is_due={is_due}")
+        if channel_id is None or not is_due:
             continue
         channel = _get_bot().get_channel(channel_id)
         if channel is None:
