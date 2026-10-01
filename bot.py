@@ -145,7 +145,7 @@ from modules.utils import (
     _safe_div,
     _is_due,
     _is_weekly_due,
-    _is_sunday_donation_due,
+    _is_monthly_donation_due,
     _as_utc,
     _format_utc_time,
     _next_daily_report,
