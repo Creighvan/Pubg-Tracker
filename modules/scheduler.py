@@ -534,6 +534,7 @@ async def before_auto_survival_mastery():
 @tasks.loop(minutes=15)
 async def auto_donations():
     """Post the optional donation link on the 1st of each month for servers that opt in."""
+    print(f"[auto_donations] Running at {datetime.now(timezone.utc)}")
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("donation_enabled", True):
@@ -554,6 +555,7 @@ async def auto_donations():
         if channel is None:
             continue
         try:
+            print(f"[auto_donations] Posting to guild {guild_id} in channel {channel.name}")
             await channel.send(DONATION_MESSAGE)
             guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
 
