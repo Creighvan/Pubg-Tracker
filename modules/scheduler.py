@@ -538,8 +538,9 @@ async def auto_donations():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("donation_enabled", True):
             continue
-        if not _is_monthly_donation_due(guild_cfg):
-            continue
+        # TEMPORARY: Post to all enabled servers regardless of date
+        # if not _is_monthly_donation_due(guild_cfg):
+        #     continue
         channel_id = guild_cfg.get("donation_channel_id")
         channel = _get_bot().get_channel(channel_id) if channel_id else None
         # If no donation channel configured, use the first text channel in the guild
