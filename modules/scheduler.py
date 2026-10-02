@@ -810,7 +810,7 @@ def start_all_scheduled_tasks(bot_instance):
     bot_instance.loop.create_task(run_auto_highlights())
     auto_clan_level.start()
     auto_survival_mastery.start()
-    auto_donations.start()
+    # auto_donations.start()  # DISABLED: Monthly donation posting
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
     # auto_api_status.start()  # DISABLED: API status feature removed
