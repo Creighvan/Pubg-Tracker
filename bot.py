@@ -572,9 +572,12 @@ async def removeplayer(interaction: discord.Interaction, name: str):
 @app_commands.describe(name="PUBG name to protect")
 async def addprotected(interaction: discord.Interaction, name: str):
     try:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        
         added = await storage.add_protected_player(interaction.guild_id, name)
         if added:
-            await interaction.response.send_message(f"🛡️ Added **{name}** to the protected list. They won't be flagged for removal due to inactivity.")
+            await interaction.response.send_message(translations.get_translation(lang, "protected_added").format(name=name))
             await send_audit_log(
                 interaction.guild_id,
                 "Protected Player Added",
@@ -592,9 +595,12 @@ async def addprotected(interaction: discord.Interaction, name: str):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to unprotect")
 async def removeprotected(interaction: discord.Interaction, name: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     removed = await storage.remove_protected_player(interaction.guild_id, name)
     if removed:
-        await interaction.response.send_message(f"🔓 Removed **{name}** from the protected list. They can now be flagged for inactivity removal.")
+        await interaction.response.send_message(translations.get_translation(lang, "protected_removed").format(name=name))
         await send_audit_log(
             interaction.guild_id,
             "Protected Player Removed",
@@ -603,18 +609,21 @@ async def removeprotected(interaction: discord.Interaction, name: str):
             details={"Player": name}
         )
     else:
-        await interaction.response.send_message(f"**{name}** wasn't on the protected list.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "protected_not_found").format(name=name), ephemeral=True)
 
 
 @bot.tree.command(description="List all protected players (immune to inactivity removal)")
 async def listprotected(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     protected = await storage.get_protected_players(interaction.guild_id)
     
     if not protected:
-        await interaction.response.send_message("No protected players. Use `/addprotected` to add players who should be immune to inactivity removal.")
+        await interaction.response.send_message(translations.get_translation(lang, "protected_empty"))
         return
     
-    message = f"**Protected players ({len(protected)}):**\n" + ", ".join(protected)
+    message = translations.get_translation(lang, "protected_list").format(count=len(protected)) + "\n" + ", ".join(protected)
     message += "\n\n🛡️ These players won't be flagged for removal due to inactivity."
     await interaction.response.send_message(message)
 
@@ -622,18 +631,24 @@ async def listprotected(interaction: discord.Interaction):
 @bot.tree.command(description="Clean up protected player list (remove duplicates and empty entries)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def cleanprotected(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     removed = await storage.clean_protected_players(interaction.guild_id)
     protected = await storage.get_protected_players(interaction.guild_id)
-    await interaction.response.send_message(f"🧹 Cleaned up {removed} duplicate/empty entries. Protected players: {len(protected)}")
+    await interaction.response.send_message(translations.get_translation(lang, "protected_cleaned").format(count=removed))
 
 
 @bot.tree.command(description="Clear and reset the entire protected player list")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def resetprotected(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["protected_players"] = []
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message("🗑️ Protected player list has been cleared. Use `/addprotected` to rebuild it.")
+    await interaction.response.send_message(translations.get_translation(lang, "protected_cleared"))
 
 
 @bot.tree.command(description="Bulk add protected players (one per line or comma-separated)")
@@ -670,7 +685,7 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
     unit_key = "player" if count == 1 else "players"
     unit = translations.get_translation(lang, unit_key)
     
-    message = f"✅ Added **{count}** protected {unit}:\n" + ", ".join(added)
+    message = translations.get_translation(lang, "protected_bulk_added").format(count=count) + ":\n" + ", ".join(added)
     if duplicates:
         message += f"\n⚠️ Skipped {len(duplicates)} already protected: " + ", ".join(duplicates)
     await interaction.response.send_message(message)
@@ -681,6 +696,9 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
 async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
     from datetime import datetime, timedelta, timezone
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
     
     def modifier(guild_cfg):
@@ -690,7 +708,7 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
         }
     
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Set **{name}** last played {days_ago} days ago. This will increment daily until they return to PUBG.")
+    await interaction.response.send_message(translations.get_translation(lang, "inactive_date_set").format(name=name, date=days_ago))
     await send_audit_log(
         interaction.guild_id,
         "Manual Inactive Date Set",
@@ -704,6 +722,9 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         if normalize_player_name(name) in guild_cfg.get("manual_inactive_dates", {}):
             del guild_cfg["manual_inactive_dates"][normalize_player_name(name)]
@@ -712,7 +733,7 @@ async def removeinactivedate(interaction: discord.Interaction, name: str):
     
     removed = await storage.modify_guild(interaction.guild_id, modifier)
     if removed:
-        await interaction.response.send_message(f"✅ Removed manual inactive date for **{name}**. Will use PUBG API data.")
+        await interaction.response.send_message(translations.get_translation(lang, "inactive_date_removed").format(name=name))
         await send_audit_log(
             interaction.guild_id,
             "Manual Inactive Date Removed",
@@ -721,18 +742,21 @@ async def removeinactivedate(interaction: discord.Interaction, name: str):
             details={"Player": name}
         )
     else:
-        await interaction.response.send_message(f"**{name}** doesn't have a manual inactive date set.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "inactive_date_none").format(name=name), ephemeral=True)
 
 
 @bot.tree.command(description="Reset auto-counting for a specific player (start counting from today)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def resetinactivedate(interaction: discord.Interaction, name: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     reset = await storage.reset_inactive_count(interaction.guild_id, name)
     if reset:
-        await interaction.response.send_message(f"✅ Reset auto-counting for **{name}**. Will start counting from 14 days from now.")
+        await interaction.response.send_message(translations.get_translation(lang, "inactive_count_reset").format(name=name))
     else:
-        await interaction.response.send_message(f"**{name}** doesn't have auto-counting active.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "inactive_count_not_active").format(name=name), ephemeral=True)
 
 
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
@@ -958,16 +982,22 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
     mode=[app_commands.Choice(name=m, value=m) for m in sorted(VALID_GAME_MODES)]
 )
 async def setgamemode(interaction: discord.Interaction, mode: app_commands.Choice[str]):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["game_mode"] = mode.value
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"Game mode set to **{mode.value}**.")
+    await interaction.response.send_message(translations.get_translation(lang, "mode_set").format(mode=mode.value))
 
 
 @bot.tree.command(description="Set the clan-level report from a current PUBG clan member")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name of a member of the clan")
 async def setclan(interaction: discord.Interaction, name: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     await interaction.response.defer(ephemeral=True)
     try:
         clan = await pubg.get_clan_for_player_name(name.strip())
@@ -976,8 +1006,7 @@ async def setclan(interaction: discord.Interaction, name: str):
         return
     if clan is None:
         await interaction.followup.send(
-            f"I couldn't find a clan for **{name.strip()}** on the **{PUBG_SHARD}** shard. "
-            "Use the exact PUBG name of a current clan member.",
+            translations.get_translation(lang, "clan_not_found").format(name=name.strip(), shard=PUBG_SHARD),
             ephemeral=True,
         )
         return
@@ -986,13 +1015,16 @@ async def setclan(interaction: discord.Interaction, name: str):
         guild_cfg["pubg_clan_name"] = clan["name"]
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(
-        f"✅ Clan-level reports will track **{clan['name']}** (`{clan['tag']}`), currently level **{clan['level']}**.",
+        translations.get_translation(lang, "clan_set").format(name=clan['name'], tag=clan['tag'], level=clan['level']),
         ephemeral=True,
     )
 
 
 @bot.tree.command(description="Show the current PUBG clan level and weekly progress")
 async def clanlevel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     await interaction.response.defer()
     try:
         result = await fetch_clan_level_report(interaction.guild_id)
@@ -1000,7 +1032,7 @@ async def clanlevel(interaction: discord.Interaction):
         await send_error_response(interaction, e, context="PUBG API error")
         return
     if result is None:
-        await interaction.followup.send("Set a clan first with `/setclan <current clan member>`.")
+        await interaction.followup.send(translations.get_translation(lang, "clan_not_set"))
         return
     embed, _ = result
     await interaction.followup.send(embed=embed)
@@ -1009,6 +1041,9 @@ async def clanlevel(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["clan_channel_id"] = interaction.channel_id
         guild_cfg["clan_level_enabled"] = True
@@ -1031,8 +1066,7 @@ async def setclanchannel(interaction: discord.Interaction):
             await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
-                f"✅ Clan level report posted in {interaction.channel.mention}. "
-                f"Choose the weekly time with `/setclantime`."
+                translations.get_translation(lang, "clan_channel_set").format(channel=interaction.channel.mention)
             )
             
             await send_audit_log(
@@ -1279,14 +1313,16 @@ WEEKDAY_CHOICES = [
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     minute_val = minute.value if minute else 0
     def modifier(guild_cfg):
         guild_cfg["digest_hour_utc"] = hour
         guild_cfg["digest_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Digest will now post once a day at **{hour:02d}:{minute_val:02d} UTC**. "
-        f"This overrides `/setinterval`."
+        translations.get_translation(lang, "digest_time_set").format(time=f"{hour:02d}:{minute_val:02d} UTC")
     )
 
 
@@ -1300,6 +1336,9 @@ async def setclantime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     minute_val = minute.value if minute else 0
     def modifier(guild_cfg):
         guild_cfg["clan_weekday_utc"] = day.value
@@ -1307,7 +1346,7 @@ async def setclantime(
         guild_cfg["clan_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Clan-level report will post every **{day.name} at {hour:02d}:{minute_val:02d} UTC**."
+        translations.get_translation(lang, "clan_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
     )
 
 
