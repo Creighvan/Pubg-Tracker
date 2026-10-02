@@ -538,10 +538,18 @@ async def auto_donations():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("donation_enabled", True):
             continue
-        channel_id = guild_cfg.get("donation_channel_id")
-        if channel_id is None or not _is_monthly_donation_due(guild_cfg):
+        if not _is_monthly_donation_due(guild_cfg):
             continue
-        channel = _get_bot().get_channel(channel_id)
+        channel_id = guild_cfg.get("donation_channel_id")
+        channel = _get_bot().get_channel(channel_id) if channel_id else None
+        # If no donation channel configured, use the first text channel in the guild
+        if channel is None:
+            guild = _get_bot().get_guild(guild_id)
+            if guild:
+                for ch in guild.text_channels:
+                    if ch.permissions_for(guild.me).send_messages:
+                        channel = ch
+                        break
         if channel is None:
             continue
         try:
