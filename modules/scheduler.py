@@ -11,7 +11,7 @@ Functions:
     auto_highlights: Highlights report daily (after 02:00 UTC, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
-    auto_donations: Donation message monthly (1st of each month)
+    auto_donations: Donation message monthly (1st of each month) - DISABLED
     auto_chicken_dinner: Chicken dinner congratulatory messages
     auto_feedback_prompt: Feedback collection weekly
 
