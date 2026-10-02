@@ -1129,8 +1129,7 @@ async def setlanguage(interaction: discord.Interaction, language: str):
     if success:
         language_name = LANGUAGE_NAMES[language]
         await interaction.response.send_message(
-            f"✅ Language set to **{language_name}** ({language}).\n"
-            f"Reports and messages will now appear in this language."
+            translations.get_translation(language, "language_set").format(language=language_name)
         )
     else:
         await interaction.response.send_message("❌ Failed to set language. Please try again.")
@@ -1138,6 +1137,9 @@ async def setlanguage(interaction: discord.Interaction, language: str):
 
 @bot.tree.command(description="Show the current language setting for this server")
 async def language(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     LANGUAGE_NAMES = {
         "en": "English",
         "zh": "Mandarin Chinese",
@@ -1155,8 +1157,8 @@ async def language(interaction: discord.Interaction):
     language_name = LANGUAGE_NAMES.get(current_lang, current_lang)
     
     await interaction.response.send_message(
-        f"🌐 Current language: **{language_name}** ({current_lang})\n"
-        f"Use `/setlanguage <code>` to change it.\n"
+        translations.get_translation(lang, "language_current").format(language=f"{language_name} ({current_lang})") +
+        "\nUse `/setlanguage <code>` to change it.\n"
         f"Available: {', '.join(LANGUAGE_NAMES.keys())}"
     )
 
@@ -1176,14 +1178,15 @@ async def setstatuschannel(interaction: discord.Interaction):
     call sites) — never a new message per event. The event log itself is
     in-memory and resets on restart; it's a live feed, not an audit trail.
     """
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["status_channel_id"] = interaction.channel_id
         guild_cfg["status_message_id"] = None  # force a fresh message in the new channel
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Bot status will be posted and kept up to date in {interaction.channel.mention}. "
-        "It only updates when something actually happens — connect/disconnect, a server join/leave, "
-        "a report failing, or a PUBG rate-limit hit — never on a fixed timer."
+        translations.get_translation(lang, "status_channel_set").format(channel=interaction.channel.mention)
     )
     await _refresh_all_status_messages(force=True)
 
@@ -1269,9 +1272,9 @@ async def setchannel(interaction: discord.Interaction):
     count = interval
     unit_key = "hour" if count == 1 else "hours"
     unit = translations.get_translation(lang, unit_key)
+    schedule = translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)
     await interaction.response.send_message(
-        f"✅ Digest will auto-post in {interaction.channel.mention} {translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)}. "
-        f"Use `/postnow` any time for an immediate one."
+        translations.get_translation(lang, "digest_channel_set").format(channel=interaction.channel.mention, schedule=schedule)
     )
 
 
@@ -1287,7 +1290,8 @@ async def setinterval(interaction: discord.Interaction, hours: app_commands.Rang
     count = hours
     unit_key = "hour" if count == 1 else "hours"
     unit = translations.get_translation(lang, unit_key)
-    await interaction.response.send_message(f"✅ {translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)}.")
+    schedule = translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)
+    await interaction.response.send_message(translations.get_translation(lang, "interval_set").format(schedule=schedule))
 
 
 QUARTER_HOUR_CHOICES = [
@@ -1359,14 +1363,16 @@ async def setdonationtime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     minute_val = minute.value if minute else 0
     def modifier(guild_cfg):
         guild_cfg["donation_hour_utc"] = hour
         guild_cfg["donation_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ The optional donation message will post every **Sunday at "
-        f"{hour:02d}:{minute_val:02d} UTC**."
+        translations.get_translation(lang, "donation_time_set").format(weekday="Sunday", time=f"{hour:02d}:{minute_val:02d} UTC")
     )
 
 
@@ -1440,6 +1446,9 @@ async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 02:00 UTC daily reset)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setactivitychannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["last_activity_channel_id"] = interaction.channel_id
         guild_cfg["activity_enabled"] = True
@@ -1460,8 +1469,7 @@ async def setactivitychannel(interaction: discord.Interaction):
             await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
-                f"✅ Last-active report posted in {interaction.channel.mention}. "
-                f"It will live-update at 02:00 UTC daily reset."
+                translations.get_translation(lang, "activity_channel_set").format(channel=interaction.channel.mention)
             )
             
             await send_audit_log(
@@ -1483,11 +1491,14 @@ async def setauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
         await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
         return
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["audit_log_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Audit logs for this server will now post in {interaction.channel.mention} instead of the central audit server."
+        translations.get_translation(lang, "auditchannel_set").format(channel=interaction.channel.mention)
     )
 
 
@@ -1496,11 +1507,14 @@ async def clearauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
         await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
         return
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["audit_log_channel_id"] = None
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        "✅ Custom audit channel removed. This server will now use the central audit server for logs."
+        translations.get_translation(lang, "auditchannel_cleared")
     )
 
 
@@ -1725,6 +1739,9 @@ async def updateranked(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["ranked_channel_id"] = interaction.channel_id
         guild_cfg["ranked_enabled"] = True
@@ -1745,8 +1762,8 @@ async def setrankedchannel(interaction: discord.Interaction):
             await storage.modify_guild(interaction.guild_id, modifier)
             
             await interaction.followup.send(
-                f"✅ Ranked report posted in {interaction.channel.mention}. "
-                f"It will update at 04:30 UTC daily."
+                translations.get_translation(lang, "ranked_channel_set").format(channel=interaction.channel.mention) +
+                " It will update at 04:30 UTC daily."
             )
             
             await send_audit_log(
@@ -1779,10 +1796,13 @@ async def setrankedchannel(interaction: discord.Interaction):
     ]
 )
 async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["ranked_queue"] = queue.value
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Daily ranked reports will now track **{queue.name}**.")
+    await interaction.response.send_message(translations.get_translation(lang, "ranked_queue_set").format(queue=queue.name))
     await send_audit_log(
         interaction.guild_id,
         "Queue Configured",
@@ -1841,6 +1861,9 @@ async def dailyhighlights(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     posted_at = datetime.now(timezone.utc).isoformat()
     def modifier(guild_cfg):
         guild_cfg["highlights_channel_id"] = interaction.channel_id
@@ -1848,8 +1871,7 @@ async def sethighlightschannel(interaction: discord.Interaction):
         guild_cfg["highlights_posted_at"] = posted_at
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Daily highlights will post in {interaction.channel.mention} every 24 hours. "
-        f"Use `/dailyhighlights` any time for an immediate one (it can take a minute — it reads match telemetry)."
+        translations.get_translation(lang, "highlights_channel_set").format(channel=interaction.channel.mention)
     )
     await send_audit_log(
         interaction.guild_id,
@@ -1865,12 +1887,17 @@ async def sethighlightschannel(interaction: discord.Interaction):
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
 @app_commands.choices(minute=QUARTER_HOUR_CHOICES)
 async def sethighlightstime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     minute_val = minute.value if minute else 0
     def modifier(guild_cfg):
         guild_cfg["highlights_hour_utc"] = hour
         guild_cfg["highlights_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Daily highlights will now post daily at **{hour:02d}:{minute_val:02d} UTC**.")
+    await interaction.response.send_message(
+        translations.get_translation(lang, "highlights_time_set").format(time=f"{hour:02d}:{minute_val:02d} UTC")
+    )
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
@@ -1920,6 +1947,9 @@ async def survivalstats(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setsurvivalchannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["survival_channel_id"] = interaction.channel_id
         guild_cfg["survival_enabled"] = True
@@ -1943,14 +1973,13 @@ async def setsurvivalchannel(interaction: discord.Interaction):
             weekday = guild_cfg.get("survival_weekday_utc")
             if weekday is None:
                 await interaction.followup.send(
-                    f"✅ Survival Mastery report posted in {interaction.channel.mention}. "
-                    "Use `/setsurvivaltime` to choose the weekly day and time."
+                    translations.get_translation(lang, "survival_channel_set").format(channel=interaction.channel.mention)
                 )
             else:
                 weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[weekday]
                 await interaction.followup.send(
-                    f"✅ Survival Mastery report posted in {interaction.channel.mention}. "
-                    f"Next update: every **{weekday_name} at {guild_cfg.get('survival_hour_utc', 12):02d}:{guild_cfg.get('survival_minute_utc', 0):02d} UTC**."
+                    translations.get_translation(lang, "survival_channel_set").format(channel=interaction.channel.mention) +
+                    f" Next update: every **{weekday_name} at {guild_cfg.get('survival_hour_utc', 12):02d}:{guild_cfg.get('survival_minute_utc', 0):02d} UTC**."
                 )
             
             await send_audit_log(
@@ -1978,6 +2007,9 @@ async def setsurvivaltime(
     hour: app_commands.Range[int, 0, 23],
     minute: app_commands.Choice[int] = None,
 ):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     minute_val = minute.value if minute else 0
     def modifier(guild_cfg):
         guild_cfg["survival_weekday_utc"] = day.value
@@ -1986,7 +2018,7 @@ async def setsurvivaltime(
         guild_cfg["survival_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Survival Mastery report will post every **{day.name} at {hour:02d}:{minute_val:02d} UTC**."
+        translations.get_translation(lang, "survival_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
     )
 
 
@@ -2256,13 +2288,15 @@ async def chickendinner(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for automatic Chicken Dinner win alerts (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     def modifier(guild_cfg):
         guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
         guild_cfg["chicken_dinner_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        f"✅ Chicken Dinner win alerts will post in {interaction.channel.mention}. "
-        "The bot checks match history every 15 minutes and posts wins from the last 50 matches per player in all game modes."
+        translations.get_translation(lang, "chicken_dinner_channel_set").format(channel=interaction.channel.mention)
     )
 
 
