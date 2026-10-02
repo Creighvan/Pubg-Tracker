@@ -485,9 +485,12 @@ async def on_guild_remove(guild: discord.Guild):
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
 async def addplayer(interaction: discord.Interaction, name: str):
     try:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        
         added = await storage.add_player(interaction.guild_id, name)
         if added:
-            await interaction.response.send_message(f"✅ Added **{name}** to the roster.")
+            await interaction.response.send_message(translations.get_translation(lang, "player_added_success").format(name=name))
             await send_audit_log(
                 interaction.guild_id,
                 "Player Added",
@@ -498,7 +501,7 @@ async def addplayer(interaction: discord.Interaction, name: str):
             # Refresh last active report if configured
             await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
         else:
-            await interaction.response.send_message(f"**{name}** is already on the roster.", ephemeral=True)
+            await interaction.response.send_message(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
@@ -510,7 +513,9 @@ async def addplayers(interaction: discord.Interaction, names: str):
     raw = names.replace("\n", ",").split(",")
     candidates = [n.strip() for n in raw if n.strip()]
     if not candidates:
-        await interaction.response.send_message("Didn't find any names in that — separate them with commas or new lines.", ephemeral=True)
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.response.send_message(translations.get_translation(lang, "no_names_found"), ephemeral=True)
         return
 
     try:
@@ -522,11 +527,11 @@ async def addplayers(interaction: discord.Interaction, names: str):
         unit_key = "player" if count == 1 else "players"
         unit = translations.get_translation(lang, unit_key)
         
-        lines = [f"✅ Added **{count}** {unit} to the roster."]
+        lines = [translations.get_translation(lang, "added_players_count").format(count=count)]
         if added:
             lines.append(", ".join(added))
         if duplicates:
-            lines.append(f"⚠️ Skipped {len(duplicates)} already on the roster: " + ", ".join(duplicates))
+            lines.append(translations.get_translation(lang, "skipped_duplicates").format(count=len(duplicates)) + ", ".join(duplicates))
         await interaction.response.send_message("\n".join(lines))
         
         # Refresh last active report if configured
@@ -541,9 +546,12 @@ async def addplayers(interaction: discord.Interaction, names: str):
 @app_commands.describe(name="PUBG name to remove")
 async def removeplayer(interaction: discord.Interaction, name: str):
     try:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        
         removed = await storage.remove_player(interaction.guild_id, name)
         if removed:
-            await interaction.response.send_message(f"🗑️ Removed **{name}** from the roster.")
+            await interaction.response.send_message(translations.get_translation(lang, "player_removed_success").format(name=name))
             await send_audit_log(
                 interaction.guild_id,
             "Player Removed",
@@ -554,7 +562,7 @@ async def removeplayer(interaction: discord.Interaction, name: str):
             # Refresh last active report if configured
             await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
         else:
-            await interaction.response.send_message(f"**{name}** wasn't on the roster.", ephemeral=True)
+            await interaction.response.send_message(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
@@ -730,12 +738,13 @@ async def resetinactivedate(interaction: discord.Interaction, name: str):
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
 async def roster(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
     players = guild_cfg["players"]
     if not players:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     await interaction.response.send_message(
-        f"**Tracked roster ({len(players)}):**\n" + ", ".join(players)
+        translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
     )
 
 
@@ -1181,7 +1190,18 @@ async def reporttoggle(
 
 @bot.tree.command(description="Show the optional donation link for PUBG Tracker")
 async def donate(interaction: discord.Interaction):
-    await interaction.response.send_message(DONATION_MESSAGE)
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
+    message = (
+        f"{translations.get_translation(lang, 'donation_title')}\n\n"
+        f"{translations.get_translation(lang, 'donation_description')}\n\n"
+        f"{translations.get_translation(lang, 'donation_support')}\n"
+        f"• Ko-Fi: {DONATION_URL}\n"
+        f"• Buy Me a Coffee: {BUY_ME_A_COFFEE_URL}\n\n"
+        "Thank you for considering supporting PUBG Tracker! 🙏"
+    )
+    await interaction.response.send_message(message)
 
 
 @bot.tree.command(description="Enable the weekly Sunday donation post in this channel")
