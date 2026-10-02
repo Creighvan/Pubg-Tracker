@@ -1102,6 +1102,9 @@ async def help(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
 async def setlanguage(interaction: discord.Interaction, language: str):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    current_lang = guild_cfg.get("language", "en")
+    
     # Valid language codes
     VALID_LANGUAGES = {"en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur"}
     LANGUAGE_NAMES = {
@@ -1129,7 +1132,7 @@ async def setlanguage(interaction: discord.Interaction, language: str):
     if success:
         language_name = LANGUAGE_NAMES[language]
         await interaction.response.send_message(
-            translations.get_translation(language, "language_set").format(language=language_name)
+            translations.get_translation(current_lang, "language_set").format(language=language_name)
         )
     else:
         await interaction.response.send_message("❌ Failed to set language. Please try again.")
