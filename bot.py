@@ -910,6 +910,9 @@ def _detect_statistical_anomalies(stats: dict) -> list[str]:
 
 @bot.tree.command(description="Post aggregated clan stats right now")
 async def clanstats(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     await interaction.response.defer()
     try:
         result = await fetch_clan_report(interaction.guild_id, interaction.guild.name)
@@ -920,7 +923,7 @@ async def clanstats(interaction: discord.Interaction):
         await send_error_response(interaction, e, context="Error generating clan report")
         return
     if result is None:
-        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
         return
     embed, players = result
     await interaction.followup.send(embed=embed)
@@ -951,8 +954,10 @@ async def postnow(interaction: discord.Interaction):
 async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Choice[str] = None):
     stat_key = sort_by.value if sort_by else "kills"
     guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     await interaction.response.defer()
     try:
@@ -1090,10 +1095,12 @@ async def setclanchannel(interaction: discord.Interaction):
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
 async def help(interaction: discord.Interaction):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     await interaction.response.send_message(
-        "**Need help with PUBG Tracker?**\n"
-        "Use `/` to browse the Bot's commands, or join the official support server for "
-        "setup help, bug reports, feature requests, and Bot updates:\n"
+        translations.get_translation(lang, "help_title") + "\n" +
+        translations.get_translation(lang, "help_description") + "\n" +
         f"{SUPPORT_SERVER_URL}"
     )
 
@@ -1217,15 +1224,21 @@ async def reporttoggle(
     report: app_commands.Choice[str],
     enabled: app_commands.Choice[str],
 ):
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
     is_enabled = enabled.value == "on"
     def modifier(guild_cfg):
         guild_cfg[report.value] = is_enabled
     await storage.modify_guild(interaction.guild_id, modifier)
-    state = "enabled" if is_enabled else "disabled"
-    await interaction.response.send_message(
-        f"✅ **{report.name}** scheduled reports are now **{state}**. "
-        "Its saved channel and schedule have not been changed. Use `/reportstatus` to review all schedules."
-    )
+    if is_enabled:
+        await interaction.response.send_message(
+            translations.get_translation(lang, "toggle_report_on").format(report=report.name)
+        )
+    else:
+        await interaction.response.send_message(
+            translations.get_translation(lang, "toggle_report_off").format(report=report.name)
+        )
 
 
 @bot.tree.command(description="Show the optional donation link for PUBG Tracker")
@@ -1383,7 +1396,7 @@ async def setdonationtime(
 async def lastactive(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     await interaction.response.defer()
     try:
@@ -1398,7 +1411,7 @@ async def lastactive(interaction: discord.Interaction):
         await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
-        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
         return
     embed, players = result
     await interaction.followup.send(embed=embed)
@@ -1573,7 +1586,7 @@ async def showauditconfig(interaction: discord.Interaction):
 async def _run_ranked_command(interaction: discord.Interaction, game_mode: str, queue_label: str):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     # Discord only allows a slash command to reply for 15 minutes. The first
     # full roster scan is one ranked API call per player (paced at 8/min by
@@ -1778,7 +1791,7 @@ async def setrankedchannel(interaction: discord.Interaction):
                 report_embed=embed
             )
         else:
-            await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+            await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
     except PubgApiError as e:
         await send_error_response(interaction, e, context="PUBG API error")
     except Exception as e:
@@ -1831,7 +1844,7 @@ async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.C
 async def dailyhighlights(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     await interaction.response.defer()
     try:
@@ -1849,7 +1862,7 @@ async def dailyhighlights(interaction: discord.Interaction):
         await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
-        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
         return
     embed, players = result
     try:
@@ -1907,7 +1920,7 @@ async def sethighlightstime(interaction: discord.Interaction, hour: app_commands
 async def survivalstats(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     # Survival mastery is 2 PUBG API calls per player, paced at 8/min —
     # roughly 15 seconds per player. That blows past Discord's 15-minute
@@ -1923,9 +1936,7 @@ async def survivalstats(interaction: discord.Interaction):
     minute_unit = translations.get_translation(lang, minute_unit_key)
     
     await interaction.response.send_message(
-        f"⏳ Working on it — with {player_count} {player_unit} this takes about {est_minutes} {minute_unit} "
-        f"(PUBG's request limit paces the lookups). The report will appear in this channel when it's ready; "
-        f"you don't need to keep waiting here."
+        translations.get_translation(lang, "working_on_it").format(count=player_count, unit=player_unit, time=est_minutes, time_unit=minute_unit)
     )
     channel = interaction.channel
     try:
@@ -1993,7 +2004,7 @@ async def setsurvivalchannel(interaction: discord.Interaction):
                 details={"Channel": interaction.channel_id}
             )
         else:
-            await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+            await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
     except PubgApiError as e:
         await send_error_response(interaction, e, context="PUBG API error")
     except Exception as e:
@@ -2029,7 +2040,7 @@ async def setsurvivaltime(
 async def masterystats(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     # Same 15-seconds-per-player pacing as /survivalstats (2 PUBG calls per
     # player) — reply instantly and post to the channel so large rosters
@@ -2044,8 +2055,7 @@ async def masterystats(interaction: discord.Interaction):
     minute_unit = translations.get_translation(lang, minute_unit_key)
     
     await interaction.response.send_message(
-        f"⏳ Working on it — with {player_count} {player_unit} this takes about {est_minutes} {minute_unit}. "
-        f"The report will appear in this channel when it's ready."
+        translations.get_translation(lang, "working_on_it_large").format(count=player_count, unit=player_unit, time=est_minutes, time_unit=minute_unit)
     )
     channel = interaction.channel
     try:
@@ -2072,7 +2082,7 @@ async def masterystats(interaction: discord.Interaction):
 async def leaderboardstats(interaction: discord.Interaction, pages: app_commands.Range[int, 1, 10] = 4):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
     await interaction.response.defer()
     try:
@@ -2084,7 +2094,7 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
         await send_error_response(interaction, e, context="Error generating report")
         return
     if result is None:
-        await interaction.followup.send("No players tracked yet. Add some with `/addplayer`.")
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
         return
     embed, found = result
     await interaction.followup.send(embed=embed)
