@@ -592,6 +592,7 @@ async def auto_chicken_dinner():
     Counts wins in all game modes (squad, duo, solo).
     Displays the 25 most recent wins to avoid Discord embed character limits.
     """
+    print(f"[auto_chicken_dinner] Running at {datetime.now(timezone.utc)}")
     utc = timezone.utc
     now_utc = datetime.now(utc)
     
@@ -715,7 +716,9 @@ async def auto_chicken_dinner():
 
 @auto_chicken_dinner.before_loop
 async def before_auto_chicken_dinner():
+    print("[auto_chicken_dinner] before_loop: waiting for bot to be ready")
     await _get_bot().wait_until_ready()
+    print("[auto_chicken_dinner] before_loop: bot is ready, starting loop")
 
 
 @tasks.loop(minutes=30)
