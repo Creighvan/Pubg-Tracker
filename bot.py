@@ -1130,7 +1130,7 @@ async def setlanguage(interaction: discord.Interaction, language: str):
     language = language.lower()
     if language not in VALID_LANGUAGES:
         await interaction.response.send_message(
-            f"❌ Invalid language code. Valid options: {', '.join(VALID_LANGUAGES)}\n"
+            f"❌ {translations.get_translation(current_lang, 'invalid_language').format(languages=', '.join(VALID_LANGUAGES))}\n"
             f"Example: English (en), Spanish (es), Chinese (zh)"
         )
         return
@@ -1139,10 +1139,10 @@ async def setlanguage(interaction: discord.Interaction, language: str):
     if success:
         language_name = LANGUAGE_NAMES[language]
         await interaction.response.send_message(
-            translations.get_translation(current_lang, "language_set").format(language=language_name)
+            translations.get_translation(language, "language_set").format(language=language_name)
         )
     else:
-        await interaction.response.send_message("❌ Failed to set language. Please try again.")
+        await interaction.response.send_message(f"❌ {translations.get_translation(current_lang, 'language_set_failed')}")
 
 
 @bot.tree.command(description="Show the current language setting for this server")
@@ -1505,7 +1505,9 @@ async def setactivitychannel(interaction: discord.Interaction):
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
 async def setauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
-        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
         return
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
@@ -1521,7 +1523,9 @@ async def setauditchannel(interaction: discord.Interaction):
 @bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
 async def clearauditchannel(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
-        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
         return
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
@@ -1537,7 +1541,9 @@ async def clearauditchannel(interaction: discord.Interaction):
 @bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
 async def showauditconfig(interaction: discord.Interaction):
     if interaction.user.id not in ADMIN_USER_IDS:
-        await interaction.response.send_message("This command is only available to bot administrators.", ephemeral=True)
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
         return
     guild_cfg = await storage.get_guild(interaction.guild_id)
     custom_channel_id = guild_cfg.get("audit_log_channel_id")
@@ -1952,7 +1958,9 @@ async def survivalstats(interaction: discord.Interaction):
         await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
         return
     if result is None:
-        await channel.send("No players tracked yet. Add some with `/addplayer`.")
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await channel.send(translations.get_translation(lang, "no_players_tracked_short"))
         return
     embeds, files = result
     await channel.send(embeds=embeds, files=files)
@@ -2071,7 +2079,7 @@ async def masterystats(interaction: discord.Interaction):
         await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
         return
     if result is None:
-        await channel.send("No players tracked yet. Add some with `/addplayer`.")
+        await channel.send(translations.get_translation(lang, "no_players_tracked_short"))
         return
     embed, players = result
     await channel.send(embed=embed)
@@ -2269,8 +2277,9 @@ async def links(interaction: discord.Interaction):
 @bot.tree.command(description="Check the roster's recent match history for wins in all game modes")
 async def chickendinner(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
     if not guild_cfg["players"]:
-        await interaction.response.send_message("No players tracked yet — use `/addplayer` first.")
+        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked_short"))
         return
 
     await interaction.response.defer()
@@ -2509,9 +2518,12 @@ async def askfeedback(
         await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
         return
 
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+
     target_channel = channel or interaction.channel
     if not isinstance(target_channel, discord.TextChannel):
-        await interaction.response.send_message("Please specify a valid text channel.", ephemeral=True)
+        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'valid_text_channel')}", ephemeral=True)
         return
 
     embed = build_feedback_prompt_embed()

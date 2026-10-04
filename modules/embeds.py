@@ -41,14 +41,22 @@ import translations
 # They will be available when the module is loaded in the main bot context
 
 
+def _get_weekday_name(lang: str, weekday_index: int) -> str:
+    """Get translated weekday name for given language."""
+    weekday_keys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+    return translations.get_translation(lang, weekday_keys[weekday_index])
+
+
 def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     """Summarize every automatic report configured for one Discord server."""
     # Import scheduler helpers dynamically to avoid circular imports
     from modules.utils import _next_interval_report, _next_daily_report, _next_weekly_report
 
+    lang = guild_cfg.get("language", "en")
+
     embed = discord.Embed(
-        title="📅 Scheduled Report Status",
-        description="Only configured reports are scheduled. All times are UTC.",
+        title=translations.get_translation(lang, "report_status_title"),
+        description=translations.get_translation(lang, "report_status_description"),
         color=discord.Color.blurple(),
     )
 
@@ -56,19 +64,18 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     digest_channel = guild_cfg.get("post_channel_id")
     if digest_channel and guild_cfg.get("digest_enabled", True):
         hour = guild_cfg.get("digest_hour_utc")
-        lang = guild_cfg.get("language", "en")
         if hour is None:
             interval = guild_cfg.get("post_interval_hours", 6)
             count = interval
             unit_key = "hour" if count == 1 else "hours"
-            unit = get_translation(lang, unit_key)
-            schedule = get_translation(lang, "every_hours").format(count=count, unit=unit)
+            unit = translations.get_translation(lang, unit_key)
+            schedule = translations.get_translation(lang, "every_hours").format(count=count, unit=unit)
             next_time = _next_interval_report(interval, guild_cfg.get("last_post_at"))
         else:
             minute = guild_cfg.get("digest_minute_utc", 0)
-            schedule = f"Daily at {hour:02d}:{minute:02d} UTC"
+            schedule = translations.get_translation(lang, "daily_at").format(hour=hour, minute=minute)
             next_time = _next_daily_report(hour, minute, guild_cfg.get("last_post_at"))
-        embed.add_field(name="📊 Clan Digest", value=f"{_channel_mention(digest_channel)}\n{schedule}\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="📊 Clan Digest", value=f"{_channel_mention(digest_channel)}\n{schedule}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
 
     elif digest_channel:
         disabled_reports.append("Clan Digest")
@@ -89,30 +96,30 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             hour = guild_cfg.get(hour_key)
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
-                schedule = f"Daily at {hour:02d}:{minute:02d} UTC (updates in place)"
+                schedule = translations.get_translation(lang, "updates_in_place_schedule").format(hour=hour, minute=minute)
                 next_time = f"{hour:02d}:{minute:02d} UTC"
-                embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
+                embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
                 continue
         hour = guild_cfg.get(hour_key)
         if hour is None:
-            schedule = f"Every {interval} hours"
+            schedule = translations.get_translation(lang, "every_hours_schedule").format(interval=interval)
             next_time = _next_interval_report(interval, guild_cfg.get(posted_key))
         else:
             minute = guild_cfg.get(minute_key, 0)
-            schedule = f"Daily at {hour:02d}:{minute:02d} UTC"
+            schedule = translations.get_translation(lang, "daily_at").format(hour=hour, minute=minute)
             next_time = _next_daily_report(hour, minute, guild_cfg.get(posted_key))
         if queue:
             schedule += f" · {RANKED_MODE_LABELS.get(queue, queue.title())} {'FPP' if queue.endswith('-fpp') else 'TPP'}"
-        embed.add_field(name=name, value=f"{_channel_mention(channel_id)}\n{schedule}\n**Next:** {next_time}", inline=False)
+        embed.add_field(name=name, value=f"{_channel_mention(channel_id)}\n{schedule}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
 
     clan_channel = guild_cfg.get("clan_channel_id")
     clan_weekday = guild_cfg.get("clan_weekday_utc")
     if clan_channel and clan_weekday is not None and guild_cfg.get("clan_level_enabled", True):
         hour = guild_cfg.get("clan_hour_utc", 0)
         minute = guild_cfg.get("clan_minute_utc", 0)
-        weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[clan_weekday]
+        weekday_name = _get_weekday_name(lang, clan_weekday)
         next_time = _next_weekly_report(clan_weekday, hour, minute, guild_cfg.get("clan_posted_at"))
-        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} UTC (updates in place)\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🛡️ Clan Level", value=f"{_channel_mention(clan_channel)}\n{translations.get_translation(lang, 'every_weekday_at_format').format(weekday=weekday_name, hour=hour, minute=minute)} ({translations.get_translation(lang, 'updates_in_place')})\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
     elif clan_channel and clan_weekday is not None:
         disabled_reports.append("Clan Level")
 
@@ -121,9 +128,9 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     if survival_channel and survival_weekday is not None and guild_cfg.get("survival_enabled", True):
         hour = guild_cfg.get("survival_hour_utc", 12)
         minute = guild_cfg.get("survival_minute_utc", 0)
-        weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[survival_weekday]
+        weekday_name = _get_weekday_name(lang, survival_weekday)
         next_time = _next_weekly_report(survival_weekday, hour, minute, guild_cfg.get("survival_posted_at"))
-        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\nEvery {weekday_name} at {hour:02d}:{minute:02d} UTC (deletes & reposts with images)\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="🎖️ Survival Mastery", value=f"{_channel_mention(survival_channel)}\n{translations.get_translation(lang, 'every_weekday_at_format').format(weekday=weekday_name, hour=hour, minute=minute)} ({translations.get_translation(lang, 'deletes_reposts_images')})\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
     elif survival_channel and survival_weekday is not None:
         disabled_reports.append("Survival Mastery")
 
@@ -131,17 +138,18 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     if donation_channel and guild_cfg.get("donation_enabled", True):
         hour = guild_cfg.get("donation_hour_utc", 12)
         minute = guild_cfg.get("donation_minute_utc", 0)
+        sunday_name = _get_weekday_name(lang, 6)
         next_time = _next_weekly_report(6, hour, minute, guild_cfg.get("donation_posted_at"))
-        embed.add_field(name="☕ Donation Message", value=f"{_channel_mention(donation_channel)}\nEvery Sunday at {hour:02d}:{minute:02d} UTC\n**Next:** {next_time}", inline=False)
+        embed.add_field(name="☕ Donation Message", value=f"{_channel_mention(donation_channel)}\n{translations.get_translation(lang, 'every_sunday_at').format(hour=hour, minute=minute)}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
     elif donation_channel:
         disabled_reports.append("Donation Message")
 
     if disabled_reports:
-        embed.add_field(name="⛔ Disabled", value=", ".join(disabled_reports), inline=False)
+        embed.add_field(name="⛔ Disabled", value=f", ".join(disabled_reports), inline=False)
 
     if not embed.fields:
-        embed.description = "No automatic reports are configured yet. Use the `/set...channel` and `/set...time` commands to schedule one."
-    embed.set_footer(text="Scheduler checks every 15 minutes; a report can post shortly after its shown time.")
+        embed.description = translations.get_translation(lang, "no_reports_configured")
+    embed.set_footer(text=translations.get_translation(lang, "scheduler_footer"))
     return embed
 
 
@@ -625,6 +633,7 @@ def build_survival_mastery_embeds(
     guild_cfg: dict, guild_name: str, players: list[dict], not_found: list[str]
 ) -> tuple[list[discord.Embed], list[discord.File]]:
     title = guild_cfg.get("clan_name") or guild_name
+    lang = guild_cfg.get("language", "en")
     grouped = {tier: [] for tier in range(5, 0, -1)}
     unknown = []
     for player in players:
@@ -660,7 +669,7 @@ def build_survival_mastery_embeds(
         # A missing icon file must not abort the whole report — post without
         # the thumbnail instead.
         embed = discord.Embed(
-            title=f"{title} — Survival Mastery {SURVIVAL_TIER_NAMES[tier]}",
+            title=f"{title} — {translations.get_translation(lang, 'survival_mastery_report')} {SURVIVAL_TIER_NAMES[tier]}",
             description=f"**{len(tier_players)} player(s)** · Highest Survival Level first",
             color=discord.Color.blurple(),
             timestamp=datetime.now(timezone.utc),
@@ -684,7 +693,7 @@ def build_survival_mastery_embeds(
 
     if unknown:
         embed = discord.Embed(
-            title=f"{title} — Survival Mastery (Tier unavailable)",
+            title=f"{title} — {translations.get_translation(lang, 'survival_tier_unavailable')}",
             color=discord.Color.dark_grey(),
             timestamp=datetime.now(timezone.utc),
         )
@@ -695,7 +704,7 @@ def build_survival_mastery_embeds(
 
     if not_found:
         embed = discord.Embed(
-            title=f"{title} — Survival Mastery (Not Found)",
+            title=f"{title} — {translations.get_translation(lang, 'survival_not_found')}",
             color=discord.Color.dark_grey(),
         )
         embed.description = ", ".join(not_found[:25]) + (" ..." if len(not_found) > 25 else "")
@@ -709,8 +718,9 @@ def build_leaderboard_embed(
     mentions_enabled: bool = True
 ) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name
+    lang = guild_cfg.get("language", "en")
     embed = discord.Embed(
-        title=f"{title} — Official Leaderboard ({queue.upper()} TPP)",
+        title=f"{title} — {translations.get_translation(lang, 'official_leaderboard')} ({queue.upper()} TPP)",
         description=(
             f"Checked the top {checked:,} ranked players ({pages} page(s)). "
             f"This is the official ladder — most players won't appear unless they're highly ranked."
@@ -746,7 +756,7 @@ def build_leaderboard_embed(
 def build_feedback_prompt_embed() -> discord.Embed:
     from modules.config import SUPPORT_SERVER_URL
     embed = discord.Embed(
-        title="👋 How is PUBG Tracker working for your clan?",
+        title=f"👋 {translations.get_translation('en', 'feedback_prompt_title')}",
         description=(
             "We want to make sure the bot is giving your clan the best experience possible!\n\n"
             "• **How are the stats, digests, and reports working for you?**\n"
@@ -784,7 +794,7 @@ def build_chicken_dinner_embed(winners: list[tuple[str, dict]], is_automated: bo
     
     if not winners:
         return discord.Embed(
-            title="🥈 No Chicken Dinners",
+            title=f"🥈 {get_translation(lang, 'no_chicken_dinners')}",
             description=get_translation(lang, "no_wins_yet"),
             color=discord.Color.light_gray(),
             timestamp=datetime.now(timezone.utc),
