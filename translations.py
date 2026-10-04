@@ -247,6 +247,36 @@ TRANSLATIONS = {
         "protected_empty": "No protected players set.",
         "protected_cleared": "✅ Protected player list cleared.",
         "protected_cleaned": "✅ Cleaned up {count} duplicate and empty entries from protected list.",
+
+        # Additional error/admin messages
+        "invalid_language": "Invalid language code. Valid options: {languages}",
+        "language_set_failed": "Failed to set language. Please try again.",
+        "admin_only_command": "This command is only available to bot administrators.",
+        "valid_text_channel": "Please specify a valid text channel.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Scheduled Report Status",
+        "report_status_description": "Only configured reports are scheduled. All times are UTC.",
+        "no_reports_configured": "No automatic reports are configured yet. Use the `/set...channel` and `/set...time` commands to schedule one.",
+        "scheduler_footer": "Scheduler checks every 15 minutes; a report can post shortly after its shown time.",
+        "disabled_reports": "Disabled",
+        "next_run_label": "Next:",
+
+        # Schedule format strings
+        "daily_at": "Daily at {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "Every {interval} hours",
+        "every_weekday_at_format": "Every {weekday} at {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "updates in place",
+        "deletes_reposts_images": "deletes & reposts with images",
+        "updates_in_place_schedule": "Daily at {hour:02d}:{minute:02d} UTC (updates in place)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Survival Mastery (Tier unavailable)",
+        "survival_not_found": "Survival Mastery (Not Found)",
+        "official_leaderboard": "Official Leaderboard",
+        "feedback_prompt_title": "How is PUBG Tracker working for your clan?",
+        "no_chicken_dinners": "No Chicken Dinners",
+        "no_players_tracked_short": "No players tracked yet. Add some with `/addplayer`.",
         "protected_bulk_added": "✅ Added {count} protected players.",
         "inactive_date_set": "✅ Set manual inactive date for **{name}** to {date}. Will use this instead of PUBG API data.",
         "inactive_date_not_found": "**{name}** doesn't have a manual inactive date set.",
@@ -262,9 +292,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ Last active report will post in {channel}. Updates daily at 02:00 UTC (live-updating, not reposted).",
         "chicken_dinner_channel_set": "✅ Chicken Dinner win alerts will post in {channel}. The bot checks match history every 15 minutes and posts wins from the last 50 matches per player in all game modes.",
         "status_channel_set": "✅ Bot status will be posted and kept up to date in {channel}. It only updates when something actually happens — connect/disconnect, a server join/leave, a report failing, or a PUBG API rate-limit hit.",
-        "auditchannel_set": "✅ Audit logs will be sent to {channel}.",
-        "auditchannel_cleared": "✅ Custom audit channel removed. Audit logs will go to the default location.",
-        "auditchannel_shown": "✅ Audit logging configuration shown below.",
+        "audit_channel_set": "✅ Audit logs will be sent to {channel}.",
+        "audit_channel_cleared": "✅ Custom audit channel removed. Audit logs will go to the default location.",
+        "audit_config_shown": "✅ Audit logging configuration shown below.",
         "ranked_time_set": "✅ Ranked reports will post daily at **{time}**.",
         "highlights_time_set": "✅ Daily Highlights will post daily at **{time}**.",
         "survival_time_set": "✅ Survival Mastery reports will post every **{weekday}** at **{time}**.",
@@ -483,6 +513,11 @@ TRANSLATIONS = {
         "clan_channel_set": "✅ 每周公会级报告将发布在 {channel}。使用 `/setclantime` 选择每周时间。",
         "help_title": "**需要 PUBG Tracker 的帮助吗？**",
         "help_description": "使用 `/` 浏览 Bot 的命令，或加入官方支持服务器获取设置帮助、错误报告、功能请求和 Bot 更新：",
+        "audit_channel_set": "✅ 审计日志将发送到 {channel}。",
+        "audit_channel_cleared": "✅ 自定义审计频道已移除。审计日志将发送到默认位置。",
+        "audit_config_shown": "✅ 审计日志配置显示如下。",
+        "game_mode_set": "游戏模式设置为 **{mode}**。",
+        "no_names_input": "未找到任何名称 — 用逗号或换行符分隔。",
         "status_channel_set": "✅ Bot 状态将发布并在 {channel} 中保持更新。它只在实际发生事情时更新 — 连接/断开、服务器加入/离开、报告失败或 PUBG API 速率限制命中。",
         "working_on_it": "⏳ 正在处理 — 有 {count} {unit} 这大约需要 {time} {time_unit}。报告准备好后会出现在此频道中；您无需在此等待。",
         "working_on_it_large": "⏳ 正在处理 — 有 {count} {unit} 这大约需要 {time} {time_unit}。报告准备好后会出现在此频道中。",
@@ -519,9 +554,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ 最后活跃报告将在 {channel} 发布。每天UTC凌晨2点更新（实时更新，不重新发布）。",
         "chicken_dinner_channel_set": "✅ Chicken Dinner 胜利警报将在 {channel} 发布。Bot每15分钟检查一次比赛历史，并在所有游戏模式中发布每位玩家最近50场比赛的胜利。",
         "status_channel_set": "✅ Bot状态将在 {channel} 发布并保持更新。仅在实际发生事件时更新——连接/断开、服务器加入/离开、报告失败或PUBG API速率限制命中。",
-        "auditchannel_set": "✅ 审计日志将发送到 {channel}。",
-        "auditchannel_cleared": "✅ 自定义审计频道已移除。审计日志将发送到默认位置。",
-        "auditchannel_shown": "✅ 审计日志配置显示如下。",
+        "audit_channel_set": "✅ 审计日志将发送到 {channel}。",
+        "audit_channel_cleared": "✅ 自定义审计频道已移除。审计日志将发送到默认位置。",
+        "audit_config_shown": "✅ 审计日志配置显示如下。",
         "ranked_time_set": "✅ 排位报告将在 **{time}** 每天发布。",
         "highlights_time_set": "✅ 每日亮点将在 **{time}** 每天发布。",
         "survival_time_set": "✅ 生存精通报告将在每 **{weekday}** 的 **{time}** 发布。",
@@ -536,6 +571,33 @@ TRANSLATIONS = {
         "working_on_it": "⏳ 正在处理——有 {count} {unit} 这大约需要 {time} {time_unit}。报告准备好后会出现在此频道中；您无需在此等待。",
         "working_on_it_large": "⏳ 正在处理——有 {count} {unit} 这大约需要 {time} {time_unit}。报告准备好后会出现在此频道中。",
         "no_players_tracked": "尚未跟踪玩家。使用 `/addplayer` 添加。",
+
+        # Additional error/admin messages
+        "language_set_failed": "设置语言失败。请重试。",
+        "admin_only_command": "此命令仅对机器人管理员可用。",
+        "valid_text_channel": "请指定有效的文本频道。",
+
+        # Report Status Embed
+        "report_status_title": "📅 预定报告状态",
+        "scheduler_footer": "调度器每15分钟检查一次；报告可能会在显示时间后不久发布。",
+        "disabled_reports": "已禁用",
+        "next_run_label": "下次：",
+
+        # Schedule format strings
+        "daily_at": "每日 {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "每 {interval} 小时",
+        "every_weekday_at_format": "每 {weekday} {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "就地更新",
+        "deletes_reposts_images": "删除并重新发布图片",
+        "updates_in_place_schedule": "每日 {hour:02d}:{minute:02d} UTC（就地更新）",
+
+        # Embed titles
+        "survival_tier_unavailable": "生存精通（等级不可用）",
+        "survival_not_found": "生存精通（未找到）",
+        "official_leaderboard": "官方排行榜",
+        "feedback_prompt_title": "PUBG Tracker 对您的公会如何运作？",
+        "no_chicken_dinners": "没有 Chicken Dinners",
+        "no_players_tracked_short": "尚未跟踪玩家。使用 `/addplayer` 添加。",
     },
     
     "es": {
@@ -781,9 +843,11 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ El informe de última actividad se publicará en {channel}. Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado).",
         "chicken_dinner_channel_set": "✅ Las alertas de victoria Chicken Dinner se publicarán en {channel}. El bot verifica el historial de partidos cada 15 minutos y publica victorias de los últimos 50 partidos por jugador en todos los modos de juego.",
         "status_channel_set": "✅ El estado del Bot se publicará y mantendrá actualizado en {channel}. Solo se actualiza cuando algo realmente sucede — conexión/desconexión, unión/salida del servidor, un informe fallido o un límite de tasa de la API de PUBG.",
-        "auditchannel_set": "✅ Los registros de auditoría se enviarán a {channel}.",
-        "auditchannel_cleared": "✅ Canal de auditoría personalizado eliminado. Los registros de auditoría irán a la ubicación predeterminada.",
-        "auditchannel_shown": "✅ Configuración de registro de auditoría mostrada a continuación.",
+        "audit_channel_set": "✅ Los registros de auditoría se enviarán a {channel}.",
+        "audit_channel_cleared": "✅ Canal de auditoría personalizado eliminado. Los registros de auditoría irán a la ubicación predeterminada.",
+        "audit_config_shown": "✅ Configuración de registro de auditoría mostrada a continuación.",
+        "game_mode_set": "Modo de juego establecido en **{mode}**.",
+        "no_names_input": "No se encontraron nombres — sepáralos con comas o nuevas líneas.",
         "ranked_time_set": "✅ Los informes clasificados se publicarán diariamente a las **{time}**.",
         "highlights_time_set": "✅ Los Puntos destacados diarios se publicarán diariamente a las **{time}**.",
         "survival_time_set": "✅ Los informes de Maestría de supervivencia se publicarán cada **{weekday}** a las **{time}**.",
@@ -798,6 +862,33 @@ TRANSLATIONS = {
         "working_on_it": "⏳ Trabajando en ello — con {count} {unit} esto toma aproximadamente {time} {time_unit}. El informe aparecerá en este canal cuando esté listo; no necesitas seguir esperando aquí.",
         "working_on_it_large": "⏳ Trabajando en ello — con {count} {unit} esto toma aproximadamente {time} {time_unit}. El informe aparecerá en este canal cuando esté listo.",
         "no_players_tracked": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Error al establecer el idioma. Inténtelo de nuevo.",
+        "admin_only_command": "Este comando solo está disponible para administradores del bot.",
+        "valid_text_channel": "Por favor especifique un canal de texto válido.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Estado del informe programado",
+        "scheduler_footer": "El programador verifica cada 15 minutos; un informe puede publicarse poco después de su hora mostrada.",
+        "disabled_reports": "Deshabilitado",
+        "next_run_label": "Siguiente:",
+
+        # Schedule format strings
+        "daily_at": "Diariamente a las {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "Cada {interval} horas",
+        "every_weekday_at_format": "Cada {weekday} a las {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "actualizaciones en vivo",
+        "deletes_reposts_images": "elimina y republica con imágenes",
+        "updates_in_place_schedule": "Diariamente a las {hour:02d}:{minute:02d} UTC (actualizaciones en vivo)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Maestría de supervivencia (Nivel no disponible)",
+        "survival_not_found": "Maestría de supervivencia (No encontrado)",
+        "official_leaderboard": "Tabla de clasificación oficial",
+        "feedback_prompt_title": "¿Cómo está funcionando PUBG Tracker para tu clan?",
+        "no_chicken_dinners": "Sin Chicken Dinners",
+        "no_players_tracked_short": "Aún no hay jugadores rastreados. Agregue algunos con `/addplayer`.",
     },
     
     "hi": {
@@ -1036,9 +1127,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ अंतिम सक्रिय रिपोर्ट {channel} में पोस्ट होगी। दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं)।",
         "chicken_dinner_channel_set": "✅ Chicken Dinner जीत अलर्ट {channel} में पोस्ट होंगे। बॉट हर 15 मिनट में मैच इतिहास की जांच करता है और सभी गेम मोड में प्रति खिलाड़ी पिछले 50 मैचों से जीत पोस्ट करता है।",
         "status_channel_set": "✅ बॉट स्थिति {channel} में पोस्ट की जाएगी और अपडेट रखी जाएगी। यह केवल तब अपडेट होता है जब वास्तव में कुछ होता है — कनेक्ट/डिस्कनेक्ट, सर्वर जॉइन/लीव, रिपोर्ट विफल होना या PUBG API दर-सीमा हिट।",
-        "auditchannel_set": "✅ ऑडिट लॉग {channel} में भेजे जाएंगे।",
-        "auditchannel_cleared": "✅ कस्टम ऑडिट चैनल हटा दिया गया। ऑडिट लॉग डिफ़ॉल्ट स्थान पर जाएंगे।",
-        "auditchannel_shown": "✅ ऑडिट लॉगिंग कॉन्फ़िगरेशन नीचे दिखाया गया है।",
+        "audit_channel_set": "✅ ऑडिट लॉग {channel} में भेजे जाएंगे।",
+        "audit_channel_cleared": "✅ कस्टम ऑडिट चैनल हटा दिया गया। ऑडिट लॉग डिफ़ॉल्ट स्थान पर जाएंगे।",
+        "audit_config_shown": "✅ ऑडिट लॉगिंग कॉन्फ़िगरेशन नीचे दिखाया गया है।",
         "ranked_time_set": "✅ रैंक्ड रिपोर्ट **{time}** पर दैनिक रूप से पोस्ट होंगी।",
         "highlights_time_set": "✅ दैनिक हाइलाइट्स **{time}** पर दैनिक रूप से पोस्ट होंगी।",
         "survival_time_set": "✅ सर्वाइवल मास्टरी रिपोर्ट हर **{weekday}** को **{time}** पर पोस्ट होंगी।",
@@ -1053,6 +1144,38 @@ TRANSLATIONS = {
         "working_on_it": "⏳ इस पर काम कर रहा हूं — {count} {unit} के साथ इसमें लगभग {time} {time_unit} लगते हैं। रिपोर्ट तैयार होने पर इस चैनल में दिखाई देगी; आपको यहां इंतजार करने की आवश्यकता नहीं है।",
         "working_on_it_large": "⏳ इस पर काम कर रहा हूं — {count} {unit} के साथ इसमें लगभग {time} {time_unit} लगते हैं। रिपोर्ट तैयार होने पर इस चैनल में दिखाई देगी।",
         "no_players_tracked": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
+        "audit_channel_set": "✅ ऑडिट लॉग {channel} में भेजे जाएंगे।",
+        "audit_channel_cleared": "✅ कस्टम ऑडिट चैनल हटा दिया गया। ऑडिट लॉग डिफ़ॉल्ट स्थान पर जाएंगे।",
+        "audit_config_shown": "✅ ऑडिट लॉगिंग कॉन्फ़िगरेशन नीचे दिखाया गया है।",
+        "game_mode_set": "गेम मोड **{mode}** पर सेट किया गया।",
+        "no_names_input": "उसमें कोई नाम नहीं मिला — उन्हें अल्पविराम या नई पंक्तियों से अलग करें।",
+
+        # Additional error/admin messages
+        "language_set_failed": "भाषा सेट करने में विफल। कृपया पुनः प्रयास करें।",
+        "admin_only_command": "यह कमांड केवल बॉट व्यवस्थापकों के लिए उपलब्ध है।",
+        "valid_text_channel": "कृपया एक मान्य टेक्स्ट चैनल निर्दिष्ट करें।",
+
+        # Report Status Embed
+        "report_status_title": "📅 निर्धारित रिपोर्ट स्थिति",
+        "scheduler_footer": "शेड्यूलर हर 15 मिनट में जांचता है; रिपोर्ट दिखाए गए समय के बाद जल्द ही पोस्ट हो सकती है।",
+        "disabled_reports": "अक्षम",
+        "next_run_label": "अगला:",
+
+        # Schedule format strings
+        "daily_at": "दैनिक {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "हर {interval} घंटे",
+        "every_weekday_at_format": "हर {weekday} {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "लाइव अपडेट",
+        "deletes_reposts_images": "हटाता है और छवियों के साथ पुनः पोस्ट करता है",
+        "updates_in_place_schedule": "दैनिक {hour:02d}:{minute:02d} UTC (लाइव अपडेट)",
+
+        # Embed titles
+        "survival_tier_unavailable": "सर्वाइवल मास्टरी (स्तर उपलब्ध नहीं)",
+        "survival_not_found": "सर्वाइवल मास्टरी (नहीं मिला)",
+        "official_leaderboard": "आधिकारिक लीडरबोर्ड",
+        "feedback_prompt_title": "PUBG Tracker आपके क्लान के लिए कैसे काम कर रहा है?",
+        "no_chicken_dinners": "कोई Chicken Dinners नहीं",
+        "no_players_tracked_short": "अभी तक कोई खिलाड़ी ट्रैक नहीं किया गया। `/addplayer` के साथ कुछ जोड़ें।",
     },
     
     "ar": {
@@ -1291,9 +1414,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ سيتم نشر تقرير آخر نشاط في {channel}. تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر).",
         "chicken_dinner_channel_set": "✅ سيتم نشر تنبيهات انتصار Chicken Dinner في {channel}. يتحقق البوت من سجل المباريات كل 15 دقيقة وينشر الانتصارات من آخر 50 مباراة لكل لاعب في جميع أوضاع اللعبة.",
         "status_channel_set": "✅ سيتم نشر حالة البوت والحفاظ عليها محدثة في {channel}. يتم التحديث فقط عند حدوث شيء فعليًا — اتصال/انقطاع، انضمام/مغادرة الخادم، فشل تقرير، أو ضرب حد معدل واجهة برمجة تطبيقات PUBG.",
-        "auditchannel_set": "✅ سيتم إرسال سجلات التدقيق إلى {channel}.",
-        "auditchannel_cleared": "✅ تمت إزالة قناة التدقيق المخصصة. ستذهب سجلات التدقيق إلى الموقع الافتراضي.",
-        "auditchannel_shown": "✅ تم عرض تكوين تسجيل التدقيق أدناه.",
+        "audit_channel_set": "✅ سيتم إرسال سجلات التدقيق إلى {channel}.",
+        "audit_channel_cleared": "✅ تمت إزالة قناة التدقيق المخصصة. ستذهب سجلات التدقيق إلى الموقع الافتراضي.",
+        "audit_config_shown": "✅ تم عرض تكوين تسجيل التدقيق أدناه.",
         "ranked_time_set": "✅ سيتم نشر التقارير المصنفة يوميًا في **{time}**.",
         "highlights_time_set": "✅ سيتم نشر أبرز اليومية يوميًا في **{time}**.",
         "survival_time_set": "✅ سيتم نشر تقارير إتقان البقاء كل **{weekday}** في **{time}**.",
@@ -1308,6 +1431,38 @@ TRANSLATIONS = {
         "working_on_it": "⏳ أعمل عليه — مع {count} {unit} يستغرق هذا حوالي {time} {time_unit}. سيظهر التقرير في هذه القناة عندما يكون جاهزًا؛ لا تحتاج إلى الاستمرار في الانتظار هنا.",
         "working_on_it_large": "⏳ أعمل عليه — مع {count} {unit} يستغرق هذا حوالي {time} {time_unit}. سيظهر التقرير في هذه القناة عندما يكون جاهزًا.",
         "no_players_tracked": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
+        "audit_channel_set": "✅ سيتم إرسال سجلات التدقيق إلى {channel}.",
+        "audit_channel_cleared": "✅ تمت إزالة قناة التدقيق المخصصة. ستذهب سجلات التدقيق إلى الموقع الافتراضي.",
+        "audit_config_shown": "✅ تم عرض تكوين تسجيل التدقيق أدناه.",
+        "game_mode_set": "تم تعيين وضع اللعبة إلى **{mode}**.",
+        "no_names_input": "لم أجد أي أسماء في ذلك — افصلها بفواصل أو أسطر جديدة.",
+
+        # Additional error/admin messages
+        "language_set_failed": "فشل في تعيين اللغة. يرجى المحاولة مرة أخرى.",
+        "admin_only_command": "هذا الأمر متاح فقط لمسؤولي البوت.",
+        "valid_text_channel": "يرجى تحديد قناة نصية صالحة.",
+
+        # Report Status Embed
+        "report_status_title": "📅 حالة التقرير المجدول",
+        "scheduler_footer": "يتحقق المجدول كل 15 دقيقة؛ يمكن نشر التقرير بعد وقت عرضه بقليل.",
+        "disabled_reports": "معطل",
+        "next_run_label": "التالي:",
+
+        # Schedule format strings
+        "daily_at": "يوميًا في {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "كل {interval} ساعة",
+        "every_weekday_at_format": "كل {weekday} في {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "تحديث مباشر",
+        "deletes_reposts_images": "حذف وإعادة نشر مع الصور",
+        "updates_in_place_schedule": "يوميًا في {hour:02d}:{minute:02d} UTC (تحديث مباشر)",
+
+        # Embed titles
+        "survival_tier_unavailable": "إتقان البقاء (المستوى غير متاح)",
+        "survival_not_found": "إتقان البقاء (غير موجود)",
+        "official_leaderboard": "المجدول الرسمي",
+        "feedback_prompt_title": "كيف يعمل PUBG Tracker لعشيرتك؟",
+        "no_chicken_dinners": "لا توجد Chicken Dinners",
+        "no_players_tracked_short": "لم يتم تتبع أي لاعبين بعد. أضف بعضًا باستخدام `/addplayer`.",
     },
     
     "fr": {
@@ -1546,9 +1701,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ Le rapport de dernière activité sera publié dans {channel}. Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié).",
         "chicken_dinner_channel_set": "✅ Les alertes de victoire Chicken Dinner seront publiées dans {channel}. Le bot vérifie l'historique des matchs toutes les 15 minutes et publie les victoires des 50 derniers matchs par joueur dans tous les modes de jeu.",
         "status_channel_set": "✅ Le statut du Bot sera publié et maintenu à jour dans {channel}. Il ne se met à jour que lorsque quelque chose se produit réellement — connexion/déconnexion, join/départ de serveur, un échec de rapport, ou une atteinte de limite de taux de l'API PUBG.",
-        "auditchannel_set": "✅ Les journaux d'audit seront envoyés à {channel}.",
-        "auditchannel_cleared": "✅ Canal d'audit personnalisé supprimé. Les journaux d'audit iront à l'emplacement par défaut.",
-        "auditchannel_shown": "✅ Configuration de journalisation d'audit affichée ci-dessous.",
+        "audit_channel_set": "✅ Les journaux d'audit seront envoyés à {channel}.",
+        "audit_channel_cleared": "✅ Canal d'audit personnalisé supprimé. Les journaux d'audit iront à l'emplacement par défaut.",
+        "audit_config_shown": "✅ Configuration de journalisation d'audit affichée ci-dessous.",
         "ranked_time_set": "✅ Les rapports classés seront publiés quotidiennement à **{time}**.",
         "highlights_time_set": "✅ Les Faits marquants quotidiens seront publiés quotidiennement à **{time}**.",
         "survival_time_set": "✅ Les rapports de Maîtrise de survie seront publiés chaque **{weekday}** à **{time}**.",
@@ -1563,6 +1718,38 @@ TRANSLATIONS = {
         "working_on_it": "⏳ Je travaille dessus — avec {count} {unit} cela prend environ {time} {time_unit}. Le rapport apparaîtra dans ce canal lorsqu'il sera prêt; vous n'avez pas besoin d'attendre ici.",
         "working_on_it_large": "⏳ Je travaille dessus — avec {count} {unit} cela prend environ {time} {time_unit}. Le rapport apparaîtra dans ce canal lorsqu'il sera prêt.",
         "no_players_tracked": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
+        "audit_channel_set": "✅ Les journaux d'audit seront envoyés à {channel}.",
+        "audit_channel_cleared": "✅ Canal d'audit personnalisé supprimé. Les journaux d'audit iront à l'emplacement par défaut.",
+        "audit_config_shown": "✅ Configuration de journalisation d'audit affichée ci-dessous.",
+        "game_mode_set": "Mode de jeu défini sur **{mode}**.",
+        "no_names_input": "Je n'ai trouvé aucun nom là-dedans — séparez-les par des virgules ou des nouvelles lignes.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Échec de la définition de la langue. Veuillez réessayer.",
+        "admin_only_command": "Cette commande n'est disponible que pour les administrateurs du bot.",
+        "valid_text_channel": "Veuillez spécifier un canal texte valide.",
+
+        # Report Status Embed
+        "report_status_title": "📅 État du rapport programmé",
+        "scheduler_footer": "Le planificateur vérifie toutes les 15 minutes; un rapport peut être publié peu après son heure affichée.",
+        "disabled_reports": "Désactivé",
+        "next_run_label": "Prochain:",
+
+        # Schedule format strings
+        "daily_at": "Quotidien à {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "Toutes les {interval} heures",
+        "every_weekday_at_format": "Chaque {weekday} à {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "mises à jour en direct",
+        "deletes_reposts_images": "supprime et republique avec des images",
+        "updates_in_place_schedule": "Quotidien à {hour:02d}:{minute:02d} UTC (mises à jour en direct)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Maîtrise de survie (Niveau non disponible)",
+        "survival_not_found": "Maîtrise de survie (Non trouvé)",
+        "official_leaderboard": "Classement officiel",
+        "feedback_prompt_title": "Comment PUBG Tracker fonctionne-t-il pour votre clan ?",
+        "no_chicken_dinners": "Pas de Chicken Dinners",
+        "no_players_tracked_short": "Aucun joueur suivi pour le moment. Ajoutez-en avec `/addplayer`.",
     },
     
     "bn": {
@@ -1801,9 +1988,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ শেষ সক্রিয় রিপোর্ট {channel} এ পোস্ট হবে। দৈনিক UTC রাত 2 টায় আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়)।",
         "chicken_dinner_channel_set": "✅ Chicken Dinner জয় অ্যালার্ট {channel} এ পোস্ট হবে। বট প্রতি 15 মিনিটে ম্যাচ ইতিহাস চেক করে এবং সব গেম মোডে প্রতি খেলোয়াড়ের শেষ 50 ম্যাচ থেকে জয় পোস্ট করে।",
         "status_channel_set": "✅ বট স্ট্যাটাস {channel} এ পোস্ট করা হবে এবং আপডেট রাখা হবে। এটি শুধুমাত্র তখনই আপডেট হয় যখন আসলে কিছু ঘটে — সংযোগ/বিচ্ছিন্ন, সার্ভার যোগদান/ত্যাগ, একটি রিপোর্ট ব্যর্থ হওয়া, বা PUBG API রেট-লিমিট হিট।",
-        "auditchannel_set": "✅ অডিট লগ {channel} এ পাঠানো হবে।",
-        "auditchannel_cleared": "✅ কাস্টম অডিট চ্যানেল সরানো হয়েছে। অডিট লগ ডিফল্ট অবস্থানে যাবে।",
-        "auditchannel_shown": "✅ অডিট লগিং কনফিগারেশন নিচে দেখানো হয়েছে।",
+        "audit_channel_set": "✅ অডিট লগ {channel} এ পাঠানো হবে।",
+        "audit_channel_cleared": "✅ কাস্টম অডিট চ্যানেল সরানো হয়েছে। অডিট লগ ডিফল্ট অবস্থানে যাবে।",
+        "audit_config_shown": "✅ অডিট লগিং কনফিগারেশন নিচে দেখানো হয়েছে।",
         "ranked_time_set": "✅ র‍্যাংকড রিপোর্ট **{time}** এ দৈনিক পোস্ট হবে।",
         "highlights_time_set": "✅ দৈনিক হাইলাইটস **{time}** এ দৈনিক পোস্ট হবে।",
         "survival_time_set": "✅ সারভাইভাল মাস্টারি রিপোর্ট প্রতি **{weekday}** **{time}** এ পোস্ট হবে।",
@@ -1818,6 +2005,35 @@ TRANSLATIONS = {
         "working_on_it": "⏳ এটিতে কাজ করছি — {count} {unit} সহ এটি প্রায় {time} {time_unit} সময় নেয়। রিপোর্ট প্রস্তুত হলে এই চ্যানেলে দেখাবে; আপনাকে এখানে অপেক্ষা করতে হবে না।",
         "working_on_it_large": "⏳ এটিতে কাজ করছি — {count} {unit} সহ এটি প্রায় {time} {time_unit} সময় নেয়। রিপোর্ট প্রস্তুত হলে এই চ্যানেলে দেখাবে।",
         "no_players_tracked": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
+
+        # Additional error/admin messages
+        "language_set_failed": "ভাষা সেট করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।",
+        "admin_only_command": "এই কমান্ড শুধুমাত্র বট প্রশাসকদের জন্যে উপলব্ধ।",
+        "valid_text_channel": "অনুগ্রহ করে একটি বৈধ টেক্সট চ্যানেল নির্দিষ্ট করুন।",
+        "game_mode_set": "গেম মোড **{mode}** সেট করা হয়েছে।",
+        "no_names_input": "সেখানে কোন নাম পাওয়া যায়নি — কমা বা নতুন লাইন দিয়ে আলাদা করুন।",
+
+        # Report Status Embed
+        "report_status_title": "📅 নির্ধারিত রিপোর্ট স্থিতি",
+        "scheduler_footer": "শিডিউলার প্রতি 15 মিনিটে চেক করে; রিপোর্ট দেখানো সময়ের পরে অল্পক্ষণিক পোস্ট হতে পারে।",
+        "disabled_reports": "অক্ষম",
+        "next_run_label": "পরবর্তী:",
+
+        # Schedule format strings
+        "daily_at": "দৈনিক {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "প্রতি {interval} ঘন্টা",
+        "every_weekday_at_format": "প্রতি {weekday} {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "লাইভ আপডেট",
+        "deletes_reposts_images": "মুছে এবং ছবি সহ পুনঃপোস্ট করে",
+        "updates_in_place_schedule": "দৈনিক {hour:02d}:{minute:02d} UTC (লাইভ আপডেট)",
+
+        # Embed titles
+        "survival_tier_unavailable": "বেঁচে বাঁচ মাস্টারি (স্তর উপলব্ধ নেই)",
+        "survival_not_found": "বেঁচে বাঁচ মাস্টারি (পাওয়া যায়নি)",
+        "official_leaderboard": "অফিসিয়াল লিডারবোর্ড",
+        "feedback_prompt_title": "PUBG Tracker আপনার ক্লানের জন্য কীভাবে কাজ করছে?",
+        "no_chicken_dinners": "কোন Chicken Dinners নেই",
+        "no_players_tracked_short": "এখনও কোনো খেলোয়াড় ট্র্যাক করা হয়নি। `/addplayer` দিয়ে কিছু যোগ করুন।",
     },
     
     "pt": {
@@ -2056,9 +2272,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ Relatório de última atividade será postado em {channel}. Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado).",
         "chicken_dinner_channel_set": "✅ Alertas de vitória Chicken Dinner serão postados em {channel}. O bot verifica o histórico de partidas a cada 15 minutos e postas vitórias das últimas 50 partidas por jogador em todos os modos de jogo.",
         "status_channel_set": "✅ O status do Bot será postado e mantido atualizado em {channel}. Só atualiza quando algo realmente acontece — conexão/desconexão, entrada/saída do servidor, uma falha de relatório, ou um limite de taxa da API PUBG atingido.",
-        "auditchannel_set": "✅ Logs de auditoria serão enviados para {channel}.",
-        "auditchannel_cleared": "✅ Canal de auditoria personalizado removido. Logs de auditoria irão para o local padrão.",
-        "auditchannel_shown": "✅ Configuração de log de auditoria mostrada abaixo.",
+        "audit_channel_set": "✅ Logs de auditoria serão enviados para {channel}.",
+        "audit_channel_cleared": "✅ Canal de auditoria personalizado removido. Logs de auditoria irão para o local padrão.",
+        "audit_config_shown": "✅ Configuração de log de auditoria mostrada abaixo.",
         "ranked_time_set": "✅ Relatórios classificados serão postados diariamente às **{time}**.",
         "highlights_time_set": "✅ Destaques diários serão postados diariamente às **{time}**.",
         "survival_time_set": "✅ Relatórios de Maestria de sobrevivência serão postados toda **{weekday}** às **{time}**.",
@@ -2073,6 +2289,64 @@ TRANSLATIONS = {
         "working_on_it": "⏳ Trabalhando nisso — com {count} {unit} isso leva cerca de {time} {time_unit}. O relatório aparecerá neste canal quando estiver pronto; você não precisa continuar esperando aqui.",
         "working_on_it_large": "⏳ Trabalhando nisso — com {count} {unit} isso leva cerca de {time} {time_unit}. O relatório aparecerá neste canal quando estiver pronto.",
         "no_players_tracked": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
+        "audit_channel_set": "✅ Logs de auditoria serão enviados para {channel}.",
+        "audit_channel_cleared": "✅ Canal de auditoria personalizado removido. Logs de auditoria irão para o local padrão.",
+        "audit_config_shown": "✅ Configuração de log de auditoria mostrada abaixo.",
+        "game_mode_set": "Modo de jogo definido para **{mode}**.",
+        "no_names_input": "Não encontrei nenhum nome nisso — separe-os com vírgulas ou novas linhas.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Falha ao definir idioma. Tente novamente.",
+        "admin_only_command": "Este comando está disponível apenas para administradores do bot.",
+        "valid_text_channel": "Por favor, especifique um canal de texto válido.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Status do relatório agendado",
+        "scheduler_footer": "O agendador verifica a cada 15 minutos; um relatório pode ser publicado logo após seu horário exibido.",
+        "disabled_reports": "Desabilitado",
+        "next_run_label": "Próximo:",
+
+        # Schedule format strings
+        "daily_at": "Diariamente às {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "A cada {interval} horas",
+        "every_weekday_at_format": "Toda {weekday} às {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "atualizações ao vivo",
+        "deletes_reposts_images": "exclui e republica com imagens",
+        "updates_in_place_schedule": "Diariamente às {hour:02d}:{minute:02d} UTC (atualizações ao vivo)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Maestria de sobrevivência (Nível indisponível)",
+        "survival_not_found": "Maestria de sobrevivência (Não encontrado)",
+        "official_leaderboard": "Classificação oficial",
+        "feedback_prompt_title": "Como o PUBG Tracker está funcionando para seu clã?",
+        "no_chicken_dinners": "Sem Chicken Dinners",
+        "no_players_tracked_short": "Ainda não há jogadores rastreados. Adicione alguns com `/addplayer`.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Falha ao definir idioma. Tente novamente.",
+        "admin_only_command": "Este comando está disponível apenas para administradores do bot.",
+        "valid_text_channel": "Por favor, especifique um canal de texto válido.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Status do relatório agendado",
+        "scheduler_footer": "O agendador verifica a cada 15 minutos; um relatório pode ser publicado logo após seu horário exibido.",
+        "disabled_reports": "Desabilitado",
+        "next_run_label": "Próximo:",
+
+        # Schedule format strings
+        "daily_at": "Diariamente às {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "A cada {interval} horas",
+        "every_weekday_at_format": "Toda {weekday} às {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "atualizações ao vivo",
+        "deletes_reposts_images": "exclui e republica com imagens",
+        "updates_in_place_schedule": "Diariamente às {hour:02d}:{minute:02d} UTC (atualizações ao vivo)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Maestria de sobrevivência (Nível indisponível)",
+        "survival_not_found": "Maestria de sobrevivência (Não encontrado)",
+        "official_leaderboard": "Classificação oficial",
+        "feedback_prompt_title": "Como o PUBG Tracker está funcionando para seu clã?",
+        "no_chicken_dinners": "Sem Chicken Dinners",
     },
     
     "id": {
@@ -2311,9 +2585,6 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ Laporan aktivitas terakhir akan diposting di {channel}. Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang).",
         "chicken_dinner_channel_set": "✅ Peringatan kemenangan Chicken Dinner akan diposting di {channel}. Bot memeriksa riwayat pertandingan setiap 15 menit dan memposting kemenangan dari 50 pertandingan terakhir per pemain di semua mode permainan.",
         "status_channel_set": "✅ Status Bot akan diposting dan diperbarui di {channel}. Hanya diperbarui ketika sesuatu benar-benar terjadi — koneksi/memutus, bergabung/keluar server, laporan gagal, atau hit batas rate API PUBG.",
-        "auditchannel_set": "✅ Log audit akan dikirim ke {channel}.",
-        "auditchannel_cleared": "✅ Channel audit kustom dihapus. Log audit akan pergi ke lokasi default.",
-        "auditchannel_shown": "✅ Konfigurasi log audit ditampilkan di bawah.",
         "ranked_time_set": "✅ Laporan peringkat akan diposting setiap hari pada **{time}**.",
         "highlights_time_set": "✅ Poin harian akan diposting setiap hari pada **{time}**.",
         "survival_time_set": "✅ Laporan Penguasaan bertahan hidup akan diposting setiap **{weekday}** pada **{time}**.",
@@ -2328,6 +2599,64 @@ TRANSLATIONS = {
         "working_on_it": "⏳ Mengerjakannya — dengan {count} {unit} ini memakan waktu sekitar {time} {time_unit}. Laporan akan muncul di saluran ini saat siap; Anda tidak perlu terus menunggu di sini.",
         "working_on_it_large": "⏳ Mengerjakannya — dengan {count} {unit} ini memakan waktu sekitar {time} {time_unit}. Laporan akan muncul di saluran ini saat siap.",
         "no_players_tracked": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
+        "audit_channel_set": "✅ Log audit akan dikirim ke {channel}.",
+        "audit_channel_cleared": "✅ Channel audit kustom dihapus. Log audit akan pergi ke lokasi default.",
+        "audit_config_shown": "✅ Konfigurasi log audit ditampilkan di bawah.",
+        "game_mode_set": "Mode permainan diatur ke **{mode}**.",
+        "no_names_input": "Saya tidak menemukan nama apa pun di sana — pisahkan dengan koma atau baris baru.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Gagal mengatur bahasa. Silakan coba lagi.",
+        "admin_only_command": "Perintah ini hanya tersedia untuk administrator bot.",
+        "valid_text_channel": "Silakan tentukan saluran teks yang valid.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Status laporan terjadwal",
+        "scheduler_footer": "Penjadwal memeriksa setiap 15 menit; laporan dapat diposting tak lama setelah waktu yang ditampilkan.",
+        "disabled_reports": "Dinonaktifkan",
+        "next_run_label": "Berikutnya:",
+
+        # Schedule format strings
+        "daily_at": "Harian pada {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "Setiap {interval} jam",
+        "every_weekday_at_format": "Setiap {weekday} pada {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "pembaruan langsung",
+        "deletes_reposts_images": "menghapus dan memposting ulang dengan gambar",
+        "updates_in_place_schedule": "Harian pada {hour:02d}:{minute:02d} UTC (pembaruan langsung)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Penguasaan bertahan hidup (Tingkat tidak tersedia)",
+        "survival_not_found": "Penguasaan bertahan hidup (Tidak ditemukan)",
+        "official_leaderboard": "Papan peringkat resmi",
+        "feedback_prompt_title": "Bagaimana PUBG Tracker bekerja untuk klan Anda?",
+        "no_chicken_dinners": "Tidak ada Chicken Dinners",
+        "no_players_tracked_short": "Belum ada pemain yang dilacak. Tambahkan beberapa dengan `/addplayer`.",
+
+        # Additional error/admin messages
+        "language_set_failed": "Gagal mengatur bahasa. Silakan coba lagi.",
+        "admin_only_command": "Perintah ini hanya tersedia untuk administrator bot.",
+        "valid_text_channel": "Silakan tentukan saluran teks yang valid.",
+
+        # Report Status Embed
+        "report_status_title": "📅 Status laporan terjadwal",
+        "scheduler_footer": "Penjadwal memeriksa setiap 15 menit; laporan dapat diposting tak lama setelah waktu yang ditampilkan.",
+        "disabled_reports": "Dinonaktifkan",
+        "next_run_label": "Berikutnya:",
+
+        # Schedule format strings
+        "daily_at": "Harian pada {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "Setiap {interval} jam",
+        "every_weekday_at_format": "Setiap {weekday} pada {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "pembaruan langsung",
+        "deletes_reposts_images": "menghapus dan memposting ulang dengan gambar",
+        "updates_in_place_schedule": "Harian pada {hour:02d}:{minute:02d} UTC (pembaruan langsung)",
+
+        # Embed titles
+        "survival_tier_unavailable": "Penguasaan bertahan hidup (Tingkat tidak tersedia)",
+        "survival_not_found": "Penguasaan bertahan hidup (Tidak ditemukan)",
+        "official_leaderboard": "Papan peringkat resmi",
+        "feedback_prompt_title": "Bagaimana PUBG Tracker bekerja untuk klan Anda?",
+        "no_chicken_dinners": "Tidak ada Chicken Dinners",
     },
     
     "ur": {
@@ -2566,9 +2895,9 @@ TRANSLATIONS = {
         "activity_channel_set": "✅ آخری فعال رپورٹ {channel} میں پوسٹ ہوگی۔ روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں)۔",
         "chicken_dinner_channel_set": "✅ چکن ڈنر جیت الرٹس {channel} میں پوسٹ ہوں گے۔ بوٹ ہر 15 منٹ میں میچ ہسٹری چیک کرتا ہے اور تمام گیم موڈز میں فی کھلاڑی پچھلے 50 میچز سے جیت پوسٹ کرتا ہے۔",
         "status_channel_set": "✅ بوٹ کی حیثیت {channel} میں پوسٹ کی جائے گی اور اپ ڈیٹ رکھی جائے گی۔ یہ صرف تب اپ ڈیٹ ہوتا ہے جب واقعی میں کچھ ہوتا ہے — کنیکٹ/ڈسکنیکٹ، سرور جوئن/لیو، ایک رپورٹ ناکام، یا PUBG API ریٹ لیمیٹ ہٹ۔",
-        "auditchannel_set": "✅ آڈٹ لاگز {channel} میں بھیجے جائیں گے۔",
-        "auditchannel_cleared": "✅ کسٹم آڈٹ چینل ہٹا دیا گیا۔ آڈٹ لاگز ڈیفالٹ مقام پر جائیں گے۔",
-        "auditchannel_shown": "✅ آڈٹ لاگنگ کنفیگریشن نیچے دکھایا گیا ہے۔",
+        "audit_channel_set": "✅ آڈٹ لاگز {channel} میں بھیجے جائیں گے۔",
+        "audit_channel_cleared": "✅ کسٹم آڈٹ چینل ہٹا دیا گیا۔ آڈٹ لاگز ڈیفالٹ مقام پر جائیں گے۔",
+        "audit_config_shown": "✅ آڈٹ لاگنگ کنفیگریشن نیچے دکھایا گیا ہے۔",
         "ranked_time_set": "✅ رینکڈ رپورٹس **{time}** پر روزانہ پوسٹ ہوں گے۔",
         "highlights_time_set": "✅ روزانہ ہائی لائٹس **{time}** پر روزانہ پوسٹ ہوں گے۔",
         "survival_time_set": "✅ بقا کی مہارت رپورٹس ہر **{weekday}** کو **{time}** پر پوسٹ ہوں گے۔",
@@ -2583,6 +2912,52 @@ TRANSLATIONS = {
         "working_on_it": "⏳ اس پر کام کر رہا ہوں — {count} {unit} کے ساتھ اس میں تقریباً {time} {time_unit} لگتے ہیں۔ رپورٹ تیار ہونے پر اس چینل میں نظر آئے گی؛ آپ کو یہاں انتظار کرنے کی ضرورت نہیں ہے۔",
         "working_on_it_large": "⏳ اس پر کام کر رہا ہوں — {count} {unit} کے ساتھ اس میں تقریباً {time} {time_unit} لگتے ہیں۔ رپورٹ تیار ہونے پر اس چینل میں نظر آئے گی۔",
         "no_players_tracked": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
+
+        # Additional error/admin messages
+        "language_set_failed": "زبان سیٹ کرنے میں ناکام۔ دوبارہ کوشش کریں۔",
+        "admin_only_command": "یہ کمانڈ صرف بوٹ ایڈمنسٹریٹرز کے لیے دستیاب ہے۔",
+        "valid_text_channel": "براہ کرم ایک درست ٹیکسٹ چینل کی وضاحت کریں۔",
+        "game_mode_set": "گیم موڈ **{mode}** پر سیٹ کیا گیا۔",
+        "no_names_input": "میں نے وہاں کوئی نام نہیں پایا — انہیں کوموں یا نئی لائنوں سے الگ کریں۔",
+
+        # Report Status Embed
+        "report_status_title": "📅 شیڈول شدہ رپورٹ کی حیثیت",
+        "scheduler_footer": "شیڈولر ہر 15 منٹ میں چیک کرتا ہے؛ رپورٹ دکھائے گئے وقت کے بعد جلد ہی پوسٹ ہو سکتی ہے۔",
+        "disabled_reports": "غیر فعال",
+        "next_run_label": "اگلا:",
+
+        # Schedule format strings
+        "daily_at": "روزانہ {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "ہر {interval} گھنٹے",
+        "every_weekday_at_format": "ہر {weekday} {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "لائیو اپ ڈیٹ",
+        "deletes_reposts_images": "حذف کرتا ہے اور تصاویر کے ساتھ دوبارہ پوسٹ کرتا ہے",
+        "updates_in_place_schedule": "روزانہ {hour:02d}:{minute:02d} UTC (لائیو اپ ڈیٹ)",
+
+        # Embed titles
+        "survival_tier_unavailable": "بقا کی مہارت (لیول دستیاب نہیں)",
+        "survival_not_found": "بقا کی مہارت (نہیں ملا)",
+        "official_leaderboard": "آفیشیل لیڈر بورڈ",
+        "feedback_prompt_title": "PUBG Tracker آپ کے کلان کے لیے کیسے کام کر رہا ہے؟",
+        "no_chicken_dinners": "کوئی Chicken Dinners نہیں",
+        "no_players_tracked_short": "ابھی تک کوئی کھلاڑی ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ کچھ شامل کریں۔",
+        "disabled_reports": "غیر فعال",
+        "next_run_label": "اگلا:",
+
+        # Schedule format strings
+        "daily_at": "روزانہ {hour:02d}:{minute:02d} UTC",
+        "every_hours_schedule": "ہر {interval} گھنٹے",
+        "every_weekday_at_format": "ہر {weekday} {hour:02d}:{minute:02d} UTC",
+        "updates_in_place": "لائیو اپ ڈیٹ",
+        "deletes_reposts_images": "حذف کرتا ہے اور تصاویر کے ساتھ دوبارہ پوسٹ کرتا ہے",
+        "updates_in_place_schedule": "روزانہ {hour:02d}:{minute:02d} UTC (لائیو اپ ڈیٹ)",
+
+        # Embed titles
+        "survival_tier_unavailable": "بقا کی مہارت (سطح دستیاب نہیں)",
+        "survival_not_found": "بقا کی مہارت (نہیں ملا)",
+        "official_leaderboard": "سرکاری لیڈر بورڈ",
+        "feedback_prompt_title": "PUBG Tracker آپ کے کلان کے لیے کیسے کام کر رہا ہے؟",
+        "no_chicken_dinners": "کوئی چکن ڈنرز نہیں",
     },
 }
 
