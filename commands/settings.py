@@ -153,34 +153,64 @@ async def setstatuschannel_impl(interaction):
 
 async def setauditchannel_impl(interaction, admin_ids):
     """Implementation of setauditchannel command."""
-    lang = guild_cfg.get("language", "en")
-    if interaction.user.id not in admin_ids:
-        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
+    await interaction.response.defer()
+
+    # Check if user is admin (whitelisted or bot owner)
+    is_admin = interaction.user.id in admin_ids
+    if not is_admin and bot:
+        try:
+            app_info = await bot.application_info()
+            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
+            if not is_owner and hasattr(app_info, "team") and app_info.team:
+                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
+            is_admin = is_owner
+        except Exception:
+            pass
+
+    if not is_admin:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
-    
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     def modifier(guild_cfg):
         guild_cfg["audit_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "audit_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "audit_channel_set"))
 
 
 async def clearauditchannel_impl(interaction, admin_ids):
     """Implementation of clearauditchannel command."""
-    lang = guild_cfg.get("language", "en")
-    if interaction.user.id not in admin_ids:
-        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
+    await interaction.response.defer()
+
+    # Check if user is admin (whitelisted or bot owner)
+    is_admin = interaction.user.id in admin_ids
+    if not is_admin and bot:
+        try:
+            app_info = await bot.application_info()
+            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
+            if not is_owner and hasattr(app_info, "team") and app_info.team:
+                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
+            is_admin = is_owner
+        except Exception:
+            pass
+
+    if not is_admin:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
-    
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     def modifier(guild_cfg):
         guild_cfg["audit_channel_id"] = None
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "audit_channel_cleared"))
+    await interaction.followup.send(translations.get_translation(lang, "audit_channel_cleared"))
 
 
 async def showauditconfig_impl(interaction, admin_ids):
