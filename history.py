@@ -582,16 +582,27 @@ async def get_teammate_pairs(
     """
     Get all teammate pairs and their match history for chemistry analytics.
 
+    DISTINCTION PRESERVED:
+    - shared_matches: Both players appeared in the same match
+    - usable_shared_matches: Both have valid team data
+    - same_team_matches: Confirmed teammates (same match + same team_id)
+    This preserves the unknown vs zero distinction from the integrity audit.
+
     Returns:
         Dict where key is "player1_player2" (sorted alphabetically) and value is:
         {
-            "matches": int,
+            "shared_matches": int,        # Both appeared in match
+            "usable_shared_matches": int,  # Both have team data
+            "same_team_matches": int,      # Confirmed teammates
             "wins": int,
             "top10": int,
             "combined_kills": int,
             "combined_damage": float,
             "avg_placement": float,
             "win_rate": float,
+            "player_a_kills": int,
+            "player_b_kills": int,
+            "last_played": str,  # ISO timestamp
         }
     """
     participants = await get_clan_participants(guild_id, days=days, tracked_only=True)
@@ -604,7 +615,7 @@ async def get_teammate_pairs(
             matches[match_id] = []
         matches[match_id].append(p)
 
-    # Find teammate pairs
+    # Find all pairs (shared matches) and track team confirmation
     pairs: dict[str, dict] = {}
 
     for match_id, match_participants in matches.items():
@@ -617,52 +628,77 @@ async def get_teammate_pairs(
                     teams[team_id] = []
                 teams[team_id].append(p)
 
-        # For each team, generate all pairs
-        for team_id, team_players in teams.items():
-            # Sort players by name for consistent pairing
-            team_players.sort(key=lambda x: x.get("player_name", ""))
+        # Generate all pairs (all participants in match, regardless of team)
+        # This tracks shared_matches first
+        for i in range(len(match_participants)):
+            for j in range(i + 1, len(match_participants)):
+                p1 = match_participants[i]
+                p2 = match_participants[j]
 
-            # Generate all pairs
-            for i in range(len(team_players)):
-                for j in range(i + 1, len(team_players)):
-                    p1 = team_players[i]
-                    p2 = team_players[j]
+                # Create pair key (sorted alphabetically)
+                names = sorted([p1.get("player_name", ""), p2.get("player_name", "")])
+                pair_key = f"{names[0]}_{names[1]}"
 
-                    # Create pair key (sorted alphabetically)
-                    names = sorted([p1.get("player_name", ""), p2.get("player_name", "")])
-                    pair_key = f"{names[0]}_{names[1]}"
+                if pair_key not in pairs:
+                    pairs[pair_key] = {
+                        "shared_matches": 0,
+                        "usable_shared_matches": 0,
+                        "same_team_matches": 0,
+                        "wins": 0,
+                        "top10": 0,
+                        "combined_kills": 0,
+                        "combined_damage": 0.0,
+                        "placements": [],
+                        "player_a_kills": 0,
+                        "player_b_kills": 0,
+                        "last_played": None,
+                    }
 
-                    if pair_key not in pairs:
-                        pairs[pair_key] = {
-                            "matches": 0,
-                            "wins": 0,
-                            "top10": 0,
-                            "combined_kills": 0,
-                            "combined_damage": 0.0,
-                            "placements": [],
-                        }
+                # Always count as shared match
+                pairs[pair_key]["shared_matches"] += 1
 
-                    # Update stats
-                    pairs[pair_key]["matches"] += 1
-                    pairs[pair_key]["combined_kills"] += p1.get("kills", 0) + p2.get("kills", 0)
-                    pairs[pair_key]["combined_damage"] += p1.get("damage", 0) + p2.get("damage", 0)
+                # Check if both have team data (usable)
+                if p1.get("team_id") and p2.get("team_id"):
+                    pairs[pair_key]["usable_shared_matches"] += 1
 
-                    placement = p1.get("placement", 0)  # Both have same placement
-                    pairs[pair_key]["placements"].append(placement)
+                    # Check if same team (confirmed teammates)
+                    if p1.get("team_id") == p2.get("team_id"):
+                        pairs[pair_key]["same_team_matches"] += 1
+                        pairs[pair_key]["combined_kills"] += p1.get("kills", 0) + p2.get("kills", 0)
+                        pairs[pair_key]["combined_damage"] += p1.get("damage", 0) + p2.get("damage", 0)
 
-                    if placement == 1:
-                        pairs[pair_key]["wins"] += 1
-                    if placement <= 10:
-                        pairs[pair_key]["top10"] += 1
+                        placement = p1.get("placement", 0)
+                        pairs[pair_key]["placements"].append(placement)
 
-    # Calculate derived stats
+                        if placement == 1:
+                            pairs[pair_key]["wins"] += 1
+                        if placement <= 10:
+                            pairs[pair_key]["top10"] += 1
+
+                        # Track individual kills per player
+                        pairs[pair_key]["player_a_kills"] += p1.get("kills", 0)
+                        pairs[pair_key]["player_b_kills"] += p2.get("kills", 0)
+
+                        # Update last played time
+                        created_at = p1.get("created_at")
+                        if created_at:
+                            if pairs[pair_key]["last_played"] is None or created_at > pairs[pair_key]["last_played"]:
+                                pairs[pair_key]["last_played"] = created_at
+
+    # Calculate derived stats (only from confirmed same_team_matches)
     for pair_key, stats in pairs.items():
-        if stats["matches"] >= min_matches:
-            stats["win_rate"] = (stats["wins"] / stats["matches"] * 100) if stats["matches"] > 0 else 0
+        same_team_matches = stats["same_team_matches"]
+        
+        if same_team_matches >= min_matches:
+            stats["win_rate"] = (stats["wins"] / same_team_matches * 100) if same_team_matches > 0 else 0
             stats["avg_placement"] = (sum(stats["placements"]) / len(stats["placements"])) if stats["placements"] else 0
+            stats["avg_combined_kills"] = (stats["combined_kills"] / same_team_matches) if same_team_matches > 0 else 0
+            stats["avg_combined_damage"] = (stats["combined_damage"] / same_team_matches) if same_team_matches > 0 else 0
         else:
             stats["win_rate"] = 0
             stats["avg_placement"] = 0
+            stats["avg_combined_kills"] = 0
+            stats["avg_combined_damage"] = 0
 
     return pairs
 
