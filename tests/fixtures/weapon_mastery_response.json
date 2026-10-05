@@ -1,0 +1,34 @@
+{
+  "data": {
+    "type": "weaponMastery",
+    "id": "player-weapon-mastery-id",
+    "attributes": {
+      "weaponSummaries": {
+        "AKM": {
+          "OfficialStatsTotal": {
+            "Level": 5,
+            "XP": 15000,
+            "Kills": 1250,
+            "HeadShotKills": 450
+          }
+        },
+        "M416": {
+          "StatsTotal": {
+            "level": 3,
+            "xp": 8000,
+            "kills": 800,
+            "headshotKills": 200
+          }
+        },
+        "AWM": {
+          "CompetitiveStatsTotal": {
+            "Level": 4,
+            "XP": 12000,
+            "Kills": 950,
+            "HeadShotKills": 380
+          }
+        }
+      }
+    }
+  }
+}
