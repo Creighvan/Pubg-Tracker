@@ -286,6 +286,11 @@ TRANSLATIONS = {
         "next_run": "下次运行",
         "due_now": "现在到期（调度器每15分钟检查一次）",
         "scheduler_note": "调度器每15分钟检查一次；报告可能在显示时间后不久发布。",
+        "no_permission": "您没有权限使用此命令。",
+        "unknown_deleted": "未知（已删除）",
+        "custom_audit_channel": "自定义审计频道：",
+        "using_central_audit": "使用中央审计服务器（默认）",
+        "next": "下",
         
         # Report titles
         "clan_digest": "公会摘要",
@@ -544,6 +549,11 @@ TRANSLATIONS = {
         "next_run": "Próxima ejecución",
         "due_now": "Vence ahora (el programador verifica cada 15 minutos)",
         "scheduler_note": "El programador verifica cada 15 minutos; un informe puede publicarse poco después de su hora mostrada.",
+        "no_permission": "No tiene permiso para usar este comando.",
+        "unknown_deleted": "Desconocido (eliminado)",
+        "custom_audit_channel": "Canal de auditoría personalizado:",
+        "using_central_audit": "Usando servidor de auditoría central (predeterminado)",
+        "next": "Siguiente",
         
         # Report titles
         "clan_digest": "Resumen del clan",
@@ -804,6 +814,11 @@ TRANSLATIONS = {
         "next_run": "अगला रन",
         "due_now": "अभी देय (शेड्यूलर हर 15 मिनट में जांचता है)",
         "scheduler_note": "शेड्यूलर हर 15 मिनट में जांचता है; रिपोर्ट दिखाए गए समय के बाद जल्द ही पोस्ट हो सकती है।",
+        "no_permission": "आपके पास इस कमांड का उपयोग करने की अनुमति नहीं है।",
+        "unknown_deleted": "अज्ञात (हटाया गया)",
+        "custom_audit_channel": "कस्टम ऑडिट चैनल:",
+        "using_central_audit": "केंद्रीय ऑडिट सर्वर का उपयोग कर रहा है (डिफ़ॉल्ट)",
+        "next": "अगला",
         
         # Report titles
         "clan_digest": "क्लान डाइजेस्ट",
@@ -1062,6 +1077,11 @@ TRANSLATIONS = {
         "next_run": "التشغيل التالي",
         "due_now": "مستحق الآن (يتحقق المجدول كل 15 دقيقة)",
         "scheduler_note": "يتحقق المجدول كل 15 دقيقة؛ يمكن نشر التقرير بعد وقت عرضه بقليل.",
+        "no_permission": "ليس لديك إذن لاستخدام هذا الأمر.",
+        "unknown_deleted": "غير معروف (محذوف)",
+        "custom_audit_channel": "قناة تدقيق مخصصة:",
+        "using_central_audit": "استخدام خادم تدقيق مركزي (افتراضي)",
+        "next": "التالي",
         
         # Report titles
         "clan_digest": "ملخص العشيرة",
@@ -1320,6 +1340,11 @@ TRANSLATIONS = {
         "next_run": "Prochaine exécution",
         "due_now": "Dû maintenant (le planificateur vérifie toutes les 15 minutes)",
         "scheduler_note": "Le planificateur vérifie toutes les 15 minutes; un rapport peut être publié peu après son heure affichée.",
+        "no_permission": "Vous n'avez pas la permission d'utiliser cette commande.",
+        "unknown_deleted": "Inconnu (supprimé)",
+        "custom_audit_channel": "Canal d'audit personnalisé:",
+        "using_central_audit": "Utilisation du serveur d'audit central (par défaut)",
+        "next": "Suivant",
         
         # Report titles
         "clan_digest": "Résumé du clan",
@@ -1578,6 +1603,11 @@ TRANSLATIONS = {
         "next_run": "পরবর্তী রান",
         "due_now": "এখন দেয় (সময়সূচী প্রতি 15 মিনিটে পরীক্ষা করে)",
         "scheduler_note": "সময়সূচী প্রতি 15 মিনিটে পরীক্ষা করে; একটি রিপোর্ট তার প্রদর্শিত সময়ের পরে শীঘ্রই পোস্ট হতে পারে।",
+        "no_permission": "আপনার এই কমান্ড ব্যবহার করার অনুমতি নেই।",
+        "unknown_deleted": "অজানা (মুছে ফেলা হয়েছে)",
+        "custom_audit_channel": "কাস্টম অডিট চ্যানেল:",
+        "using_central_audit": "কেন্দ্রীয় অডিট সার্ভার ব্যবহার করছে (ডিফল্ট)",
+        "next": "পরবর্তী",
         
         # Report titles
         "clan_digest": "ক্লান ডাইজেস্ট",
@@ -1836,6 +1866,11 @@ TRANSLATIONS = {
         "next_run": "Próxima execução",
         "due_now": "Vence agora (o agendador verifica a cada 15 minutos)",
         "scheduler_note": "O agendador verifica a cada 15 minutos; um relatório pode ser publicado logo após seu horário exibido.",
+        "no_permission": "Você não tem permissão para usar este comando.",
+        "unknown_deleted": "Desconhecido (excluído)",
+        "custom_audit_channel": "Canal de auditoria personalizado:",
+        "using_central_audit": "Usando servidor de auditoria central (padrão)",
+        "next": "Próximo",
         
         # Report titles
         "clan_digest": "Resumo do clã",
@@ -2102,6 +2137,11 @@ TRANSLATIONS = {
         "next_run": "Jalanan berikutnya",
         "due_now": "Jatuh tempo sekarang (penjadwal memeriksa setiap 15 menit)",
         "scheduler_note": "Penjadwal memeriksa setiap 15 menit; laporan dapat diposting tak lama setelah waktu yang ditampilkan.",
+        "no_permission": "Anda tidak memiliki izin untuk menggunakan perintah ini.",
+        "unknown_deleted": "Tidak diketahui (dihapus)",
+        "custom_audit_channel": "Channel audit kustom:",
+        "using_central_audit": "Menggunakan server audit pusat (default)",
+        "next": "Berikutnya",
         
         # Report titles
         "clan_digest": "Ringkasan klan",
@@ -2368,6 +2408,11 @@ TRANSLATIONS = {
         "next_run": "اگلا رن",
         "due_now": "ابھی نہیں (شیڈولر ہر 15 منٹ میں چیک کرتا ہے)",
         "scheduler_note": "شیڈولر ہر 15 منٹ میں چیک کرتا ہے؛ رپورٹ اپنے ظاہر کردہ وقت کے بعد جلدی پوسٹ ہو سکتی ہے۔",
+        "no_permission": "آپ کے پاس اس کمانڈ استعمال کرنے کی اجازت نہیں ہے۔",
+        "unknown_deleted": "نامعلوم (حذف شدہ)",
+        "custom_audit_channel": "کسٹم آڈٹ چینل:",
+        "using_central_audit": "مرکزی آڈٹ سرور استعمال کر رہا ہے (ڈیفالٹ)",
+        "next": "اگلا",
         
         # Report titles
         "clan_digest": "کلان ڈائجسٹ",

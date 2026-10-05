@@ -1,0 +1,11 @@
+{
+  "data": {
+    "type": "survivalMastery",
+    "id": "player-survival-mastery-id",
+    "attributes": {
+      "Level": 15,
+      "XP": 45000,
+      "tier": 5
+    }
+  }
+}
