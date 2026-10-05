@@ -795,7 +795,7 @@ async def clanlevel(interaction: discord.Interaction):
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
-    await setclanchannel_impl(interaction)
+    await setclanchannel_impl(interaction, send_audit_log)
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
 async def help(interaction: discord.Interaction):
