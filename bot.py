@@ -306,6 +306,9 @@ from commands.clan_intelligence import (
 from commands.achievements import (
     achievements_impl,
 )
+from commands.streaks import (
+    streaks_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -1171,6 +1174,12 @@ async def rosterhealth(interaction: discord.Interaction):
 @app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
 async def achievements(interaction: discord.Interaction, player: str = None):
     await achievements_impl(interaction, player)
+
+
+@bot.tree.command(description="Show current streaks for a player or all tracked players")
+@app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
+async def streaks(interaction: discord.Interaction, player: str = None):
+    await streaks_impl(interaction, player)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
