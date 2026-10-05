@@ -218,14 +218,14 @@ _DEFAULT_HISTORY = {
 
 
 def _load_history() -> dict:
-    """Load history data from disk."""
+    """Load history data from disk (internal, assumes lock held)."""
     try:
         with open(HISTORY_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
-            logger.info(f"Loaded history from {HISTORY_PATH}")
+            logger.debug(f"Loaded history from {HISTORY_PATH}")
             return data
     except FileNotFoundError:
-        logger.info(f"History file not found, creating new one: {HISTORY_PATH}")
+        logger.debug(f"History file not found, creating new one: {HISTORY_PATH}")
         return {}
     except json.JSONDecodeError as e:
         logger.error(f"History file corrupted, starting fresh: {e}")
@@ -233,10 +233,12 @@ def _load_history() -> dict:
 
 
 def _save_history(data: dict) -> None:
-    """Save history data to disk."""
+    """Save history data to disk atomically (internal, assumes lock held)."""
     try:
-        with open(HISTORY_PATH, "w", encoding="utf-8") as f:
+        tmp_path = HISTORY_PATH + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
+        os.replace(tmp_path, HISTORY_PATH)
         logger.debug(f"Saved history to {HISTORY_PATH}")
     except Exception as e:
         logger.error(f"Failed to save history: {e}")
@@ -244,17 +246,18 @@ def _save_history(data: dict) -> None:
 
 async def get_guild_history(guild_id: int) -> dict:
     """Get history data for a specific guild."""
-    data = _load_history()
-    guild_id_str = str(guild_id)
-    if guild_id_str not in data:
-        data[guild_id_str] = {
-            "daily_snapshots": {},
-            "match_history": [],
-            "achievements": {},
-            "streaks": {},
-        }
-        _save_history(data)
-    return data[guild_id_str]
+    async with _lock:
+        data = _load_history()
+        guild_id_str = str(guild_id)
+        if guild_id_str not in data:
+            data[guild_id_str] = {
+                "daily_snapshots": {},
+                "match_history": [],
+                "achievements": {},
+                "streaks": {},
+            }
+            _save_history(data)
+        return data[guild_id_str]
 
 
 async def record_daily_snapshot(
