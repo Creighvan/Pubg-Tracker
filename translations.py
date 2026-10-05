@@ -88,6 +88,10 @@ TRANSLATIONS = {
         "no_achievements": "No achievements earned yet.",
         "earned_achievement": "Earned:",
         "achievement_notification": "🏆 {player} earned achievement: {achievement}!",
+        "streaks_title": "Streaks",
+        "no_streak_data": "No streak data yet.",
+        "day_streak": "Day Streak",
+        "streak_description": "consecutive days",
         
         # Last Active Report
         "last_active_report": "Last Active Report",
@@ -368,6 +372,10 @@ TRANSLATIONS = {
         "no_achievements": "尚未获得任何成就。",
         "earned_achievement": "获得：",
         "achievement_notification": "🏆 {player} 获得成就：{achievement}！",
+        "streaks_title": "连胜",
+        "no_streak_data": "尚无连胜数据。",
+        "day_streak": "日连胜",
+        "streak_description": "连续天",
         
         # Last Active Report
         "last_active_report": "最后活跃报告",
@@ -650,6 +658,10 @@ TRANSLATIONS = {
         "no_achievements": "Aún no se han ganado logros.",
         "earned_achievement": "Ganado:",
         "achievement_notification": "🏆 {player} ganó logro: {achievement}!",
+        "streaks_title": "Rachas",
+        "no_streak_data": "Aún no hay datos de rachas.",
+        "day_streak": "Racha de Días",
+        "streak_description": "días consecutivos",
         
         # Last Active Report
         "last_active_report": "Informe de última actividad",
@@ -934,6 +946,10 @@ TRANSLATIONS = {
         "no_achievements": "अभी तक कोई उपलब्धि नहीं मिली है।",
         "earned_achievement": "प्राप्त:",
         "achievement_notification": "🏆 {player} ने उपलब्धि प्राप्त की: {achievement}!",
+        "streaks_title": "लगातार",
+        "no_streak_data": "अभी तक कोई लगातार डेटा नहीं है।",
+        "day_streak": "लगातार दिन",
+        "streak_description": "लगातार दिन",
         
         # Last Active Report
         "last_active_report": "अंतिम सक्रिय रिपोर्ट",
@@ -1216,6 +1232,10 @@ TRANSLATIONS = {
         "no_achievements": "لم يتم كسب أي إنجازات بعد.",
         "earned_achievement": "مكتسب:",
         "achievement_notification": "🏆 {player} كسب إنجاز: {achievement}!",
+        "streaks_title": "سلاسل",
+        "no_streak_data": "لا توجد بيانات سلاسل بعد.",
+        "day_streak": "سلسلة الأيام",
+        "streak_description": "أيام متتالية",
         
         # Last Active Report
         "last_active_report": "تقرير آخر نشاط",
@@ -1498,6 +1518,10 @@ TRANSLATIONS = {
         "no_achievements": "Aucune réalisation gagnée pour le moment.",
         "earned_achievement": "Gagné:",
         "achievement_notification": "🏆 {player} a gagné une réalisation: {achievement}!",
+        "streaks_title": "Séries",
+        "no_streak_data": "Aucune donnée de série pour le moment.",
+        "day_streak": "Série de Jours",
+        "streak_description": "jours consécutifs",
         
         # Last Active Report
         "last_active_report": "Rapport de dernière activité",
@@ -1780,6 +1804,10 @@ TRANSLATIONS = {
         "no_achievements": "এখনও কোনো অর্জন অর্জিত হয়নি।",
         "earned_achievement": "অর্জিত:",
         "achievement_notification": "🏆 {player} অর্জন অর্জিত করেছে: {achievement}!",
+        "streaks_title": "স্ট্রিক",
+        "no_streak_data": "এখনও কোনো স্ট্রিক ডেটা নেই।",
+        "day_streak": "দিনের স্ট্রিক",
+        "streak_description": "টানা দিন",
         
         # Last Active Report
         "last_active_report": "শেষ সক্রিয় রিপোর্ট",
@@ -2062,6 +2090,10 @@ TRANSLATIONS = {
         "no_achievements": "Nenhuma conquista ainda ganada.",
         "earned_achievement": "Ganho:",
         "achievement_notification": "🏆 {player} ganhou conquista: {achievement}!",
+        "streaks_title": "Sequências",
+        "no_streak_data": "Ainda não há dados de sequências.",
+        "day_streak": "Sequência de Dias",
+        "streak_description": "dias consecutivos",
         
         # Last Active Report
         "last_active_report": "Relatório de última atividade",
@@ -2352,6 +2384,10 @@ TRANSLATIONS = {
         "no_achievements": "Belum ada pencapaian yang diraih.",
         "earned_achievement": "Diraih:",
         "achievement_notification": "🏆 {player} meraih pencapaian: {achievement}!",
+        "streaks_title": "Streak",
+        "no_streak_data": "Belum ada data streak.",
+        "day_streak": "Streak Hari",
+        "streak_description": "hari berturut-turut",
         
         # Last Active Report
         "last_active_report": "Laporan aktivitas terakhir",
@@ -2642,6 +2678,10 @@ TRANSLATIONS = {
         "no_achievements": "ابھی تک کوئی کارنامہ حاصل نہیں ہوا۔",
         "earned_achievement": "حاصل:",
         "achievement_notification": "🏆 {player} نے کارنامہ حاصل کیا: {achievement}!",
+        "streaks_title": "سلسلے",
+        "no_streak_data": "ابھی تک کوئی سلسلہ ڈیٹا نہیں ہے۔",
+        "day_streak": "سلسلہ دن",
+        "streak_description": "لگاتار دن",
         
         # Last Active Report
         "last_active_report": "آخری فعال رپورٹ",

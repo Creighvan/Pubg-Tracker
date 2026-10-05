@@ -30,6 +30,7 @@ from pubg_api import PubgApiError, PubgClient
 import translations
 import history
 from commands.achievements import check_achievements, record_achievement, ACHIEVEMENTS
+from commands.streaks import update_streaks
 
 from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
 from storage import modify_guild
@@ -875,6 +876,12 @@ async def run_daily_snapshot():
 
                 await history.record_daily_snapshot(guild_id, today, player_stats)
                 print(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
+
+                # Update streaks after recording snapshot
+                for player in players:
+                    normalized = normalize_player_name(player)
+                    if normalized in player_stats:
+                        await update_streaks(guild_id, player, player_stats[normalized])
 
             except PubgApiError as e:
                 print(f"[auto_daily_snapshot] PUBG API error for guild {guild_id}: {e}")
