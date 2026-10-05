@@ -130,3 +130,35 @@ async def chemistry_impl(interaction: discord.Interaction, player1: str, player2
         embed.set_footer(text="Last played together: Unknown")
 
     await interaction.followup.send(embed=embed)
+
+
+async def bestsquad_impl(interaction: discord.Interaction):
+    """Show the best squad combination in the clan (placeholder)."""
+    await interaction.response.defer()
+
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+
+    players = guild_cfg.get("players", [])
+
+    if not players:
+        await interaction.followup.send(
+            translations.get_translation(lang, "no_players_tracked"),
+            ephemeral=True
+        )
+        return
+
+    # Placeholder - best squad requires more accumulated participant data
+    embed = discord.Embed(
+        title="🏆 Best Squad Combination",
+        description="Best squad analysis requires more accumulated participant data. This feature will be expanded after sufficient match history with team tracking is collected.",
+        color=discord.Color.purple()
+    )
+
+    embed.add_field(
+        name="Coming Soon",
+        value="Best squad analysis (most successful combinations, win rates, synergy metrics) will be available once sufficient match history is accumulated.",
+        inline=False
+    )
+
+    await interaction.followup.send(embed=embed)
