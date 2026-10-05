@@ -215,20 +215,8 @@ async def clearauditchannel_impl(interaction, admin_ids):
 
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
-    # Check whitelist first (synchronous, no async needed)
+    # Check whitelist only (no async checks to prevent timeout)
     is_admin = interaction.user.id in admin_ids
-
-    # Only do async owner check if not in whitelist
-    if not is_admin and bot:
-        try:
-            app_info = await bot.application_info()
-            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
-            if not is_owner and hasattr(app_info, "team") and app_info.team:
-                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
-            is_admin = is_owner
-        except Exception:
-            # If we can't verify owner status, fall back to whitelist only
-            pass
 
     if not is_admin:
         guild_cfg = await storage.get_guild(interaction.guild_id)
