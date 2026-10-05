@@ -851,23 +851,39 @@ async def run_daily_snapshot():
                 # Fetch lifetime stats for all players
                 found, not_found = await pubg.get_players_and_stats(players, game_mode=game_mode)
 
+                # Fetch season ID once per snapshot (not per player)
+                season_id = None
+                try:
+                    season_id = await pubg.get_current_season_id()
+                except Exception as e:
+                    print(f"[auto_daily_snapshot] Failed to fetch season ID: {e}")
+
                 # Fetch ranked stats for all players (sequential to avoid rate limit)
                 ranked_stats = {}
+                ranked_status = {}  # Track whether ranked data is ok, missing, or errored
                 for player in found:
                     player_id = player.get("id")
+                    normalized = normalize_player_name(player["name"])
                     if player_id:
                         try:
                             ranked = await pubg.get_player_ranked_stats(player_id, game_mode)
                             ranked_stats[player_id] = ranked
+                            ranked_status[normalized] = "ok"
                         except Exception as e:
                             print(f"[auto_daily_snapshot] Failed to fetch ranked stats for {player['name']}: {e}")
-                            ranked_stats[player_id] = {}
+                            ranked_stats[player_id] = None
+                            ranked_status[normalized] = "error"
+                    else:
+                        # No player ID - no ranked data
+                        ranked_stats[player_id] = None
+                        ranked_status[normalized] = "no_data"
 
                 for player in found:
                     normalized = normalize_player_name(player["name"])
                     stats = player.get("stats", {})
                     player_id = player.get("id")
-                    ranked = ranked_stats.get(player_id, {})
+                    ranked = ranked_stats.get(player_id)
+                    status = ranked_status.get(normalized, "no_data")
 
                     player_stats[normalized] = {
                         "matches": stats.get("matches", 0),
@@ -879,8 +895,11 @@ async def run_daily_snapshot():
                         "win_rate": round(stats.get("wins", 0) / max(stats.get("matches", 1), 1) * 100, 2),
                         "kd": round(stats.get("kills", 0) / max(stats.get("deaths", 1), 1), 2),
                         "avg_placement": stats.get("avgPlacement", 0),
-                        "ranked_points": ranked.get("currentTierPoint", 0),
-                        "ranked_tier": ranked.get("currentTier", ""),
+                        # Only store ranked data if it's valid (ok status)
+                        "ranked_points": ranked.get("currentTierPoint") if ranked and status == "ok" else None,
+                        "ranked_tier": ranked.get("currentTier") if ranked and status == "ok" else None,
+                        "season_id": season_id,
+                        "ranked_status": status,
                     }
 
                     # Check for new achievements

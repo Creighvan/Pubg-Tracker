@@ -77,20 +77,27 @@ async def season_impl(interaction: discord.Interaction):
                     "tier": ranked_tier
                 })
 
-            # Calculate rank progression
+            # Calculate rank progression using dedicated helper
             prev_data = daily_snapshots.get(prev_date, {}).get(normalized)
             if prev_data:
-                prev_points = prev_data.get("ranked_points", 0)
-                prev_tier = prev_data.get("ranked_tier", "")
-                point_change = ranked_points - prev_points
-
-                if point_change != 0:
+                progression = history.calculate_rank_progression(prev_data, latest_data)
+                if progression["status"] == "delta":
                     rank_progressions.append({
                         "name": player,
-                        "points": ranked_points,
-                        "tier": ranked_tier,
-                        "change": point_change,
-                        "prev_tier": prev_tier
+                        "points": progression["current_points"],
+                        "tier": progression["current_tier"],
+                        "change": progression["point_change"],
+                        "prev_tier": progression["previous_tier"],
+                    })
+                elif progression["status"] == "season_reset":
+                    # Mark season reset for display
+                    rank_progressions.append({
+                        "name": player,
+                        "points": progression["current_points"],
+                        "tier": progression["current_tier"],
+                        "change": 0,
+                        "prev_tier": progression["previous_tier"],
+                        "is_season_reset": True,
                     })
 
     avg_kd = total_kills / max(total_deaths, 1)
@@ -136,10 +143,15 @@ async def season_impl(interaction: discord.Interaction):
 
     progression_field = ""
     if most_improved:
-        change_emoji = "📈" if most_improved["change"] > 0 else "📉"
-        progression_field = f"**Most Improved:** {most_improved['name']}\n"
-        progression_field += f"{change_emoji} {most_improved['change']:+,} RP\n"
-        progression_field += f"Current: {most_improved['tier']}"
+        if most_improved.get("is_season_reset"):
+            progression_field = f"**Season Reset:** {most_improved['name']}\n"
+            progression_field += f"Previous: {most_improved['prev_tier']}\n"
+            progression_field += f"Current: {most_improved['tier']}"
+        else:
+            change_emoji = "📈" if most_improved["change"] > 0 else "📉"
+            progression_field = f"**Most Improved:** {most_improved['name']}\n"
+            progression_field += f"{change_emoji} {most_improved['change']:+,} RP\n"
+            progression_field += f"Current: {most_improved['tier']}"
     else:
         progression_field = "No rank progression data yet (need 7+ days of snapshots)"
 
