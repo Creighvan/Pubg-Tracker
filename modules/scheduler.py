@@ -761,6 +761,8 @@ def start_all_scheduled_tasks(bot_instance):
     auto_feedback_prompt.start()
     # Start daily backup task
     bot_instance.loop.create_task(run_daily_backup())
+    # Start cache cleanup task
+    bot_instance.loop.create_task(run_cache_cleanup())
 
 
 async def run_daily_backup():
@@ -770,19 +772,37 @@ async def run_daily_backup():
     """
     await _get_bot().wait_until_ready()
     utc = timezone.utc
-    
+
     while True:
         now = datetime.now(utc)
         # Calculate time until next 03:00 UTC
         next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
         if now >= next_run:
             next_run = next_run + timedelta(days=1)
-        
+
         sleep_seconds = (next_run - now).total_seconds()
         print(f"[daily_backup] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
         await asyncio.sleep(sleep_seconds)
-        
+
         # Create the backup
         print(f"[daily_backup] Creating daily backup at {datetime.now(utc)}")
         storage.create_daily_backup()
         print(f"[daily_backup] Daily backup complete")
+
+
+async def run_cache_cleanup():
+    """
+    Background task that periodically clears expired entries from the PUBG API response cache.
+    Runs every hour to prevent unbounded cache growth.
+    """
+    await _get_bot().wait_until_ready()
+    print("[cache_cleanup] Starting cache cleanup task")
+
+    while True:
+        await asyncio.sleep(3600)  # Run every hour
+        try:
+            pubg = _get_pubg()
+            await pubg._cache.clear_expired()
+            print("[cache_cleanup] Expired cache entries cleared")
+        except Exception as e:
+            print(f"[cache_cleanup] Error clearing cache: {e}")
