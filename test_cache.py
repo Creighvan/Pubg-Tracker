@@ -140,6 +140,81 @@ async def test_get_or_fetch():
     print("[OK] get_or_fetch works correctly")
 
 
+async def test_cache_metrics():
+    """Test that cache metrics are tracked correctly."""
+    cache = ResponseCache()
+
+    # Cache miss
+    result = await cache.get("nonexistent")
+    assert result is None
+    metrics = cache.get_metrics()
+    assert metrics["misses"] == 1
+    assert metrics["hits"] == 0
+
+    # Cache hit
+    await cache.set("test", "value", 30)
+    result = await cache.get("test")
+    assert result == "value"
+    metrics = cache.get_metrics()
+    assert metrics["hits"] == 1
+    assert metrics["misses"] == 1
+
+    # Reset metrics
+    cache.reset_metrics()
+    metrics = cache.get_metrics()
+    assert metrics["hits"] == 0
+    assert metrics["misses"] == 0
+    assert metrics["in_flight_dedupes"] == 0
+
+    print("[OK] Cache metrics work correctly")
+
+
+async def test_in_flight_deduplication_metrics():
+    """Test that in-flight deduplication is counted in metrics."""
+    cache = ResponseCache()
+    request_count = 0
+
+    async def slow_fetch():
+        nonlocal request_count
+        request_count += 1
+        await asyncio.sleep(0.05)
+        return {"data": "fetched_value"}
+
+    cache_key = "test:deduplication"
+    tasks = [
+        cache.get_or_fetch(cache_key, slow_fetch, ttl_minutes=30)
+        for _ in range(5)
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    metrics = cache.get_metrics()
+    assert metrics["in_flight_dedupes"] == 4, f"Expected 4 dedupes, got {metrics['in_flight_dedupes']}"
+    assert request_count == 1
+
+    print("[OK] In-flight deduplication metrics work correctly")
+
+
+async def test_hit_rate():
+    """Test cache hit rate calculation."""
+    cache = ResponseCache()
+
+    # No requests yet
+    assert cache.get_hit_rate() == 0.0
+
+    # 1 hit, 1 miss = 50%
+    await cache.set("test", "value", 30)
+    await cache.get("test")
+    await cache.get("nonexistent")
+    assert cache.get_hit_rate() == 50.0
+
+    # 2 hits, 1 miss = 66.67%
+    await cache.get("test")
+    assert abs(cache.get_hit_rate() - 66.67) < 0.1
+
+    print("[OK] Hit rate calculation works correctly")
+
+
 async def main():
     """Run all cache tests."""
     print("Testing PUBG API Response Cache")
@@ -151,6 +226,9 @@ async def main():
     await test_cache_concurrent_access()
     await test_in_flight_deduplication()
     await test_get_or_fetch()
+    await test_cache_metrics()
+    await test_in_flight_deduplication_metrics()
+    await test_hit_rate()
 
     print("=" * 40)
     print("[OK] All cache tests passed!")

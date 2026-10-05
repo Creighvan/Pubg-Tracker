@@ -35,12 +35,17 @@ class ResponseCache:
     TTL cache for PUBG API responses to avoid redundant requests.
     PUBG explicitly recommends caching player data for 20-30 minutes.
     Includes in-flight request deduplication to prevent cache stampedes.
+    Tracks metrics for cache performance monitoring.
     """
 
     def __init__(self):
         self._cache: dict[str, tuple[Any, datetime]] = {}
         self._in_flight: dict[str, asyncio.Task] = {}
         self._lock = asyncio.Lock()
+        # Metrics
+        self._hits = 0
+        self._misses = 0
+        self._in_flight_dedupes = 0
 
     def _make_key(self, prefix: str, *parts: Any) -> str:
         """Create a cache key from components."""
@@ -51,11 +56,14 @@ class ResponseCache:
         async with self._lock:
             entry = self._cache.get(key)
             if entry is None:
+                self._misses += 1
                 return None
             value, expires_at = entry
             if datetime.now(timezone.utc) >= expires_at:
                 del self._cache[key]
+                self._misses += 1
                 return None
+            self._hits += 1
             return value
 
     async def set(self, key: str, value: Any, ttl_minutes: int):
@@ -75,16 +83,19 @@ class ResponseCache:
             if entry is not None:
                 value, expires_at = entry
                 if datetime.now(timezone.utc) < expires_at:
+                    self._hits += 1
                     return value
                 else:
                     # Expired - remove it
                     del self._cache[key]
+                    self._misses += 1
 
             # Check for in-flight request
             task = self._in_flight.get(key)
             if task is not None:
                 # Another request is already fetching this
                 # Release lock before awaiting to avoid blocking other operations
+                self._in_flight_dedupes += 1
                 pass
             else:
                 # No in-flight request - create one
@@ -111,6 +122,28 @@ class ResponseCache:
             expired_keys = [k for k, (_, expires) in self._cache.items() if now >= expires]
             for k in expired_keys:
                 del self._cache[k]
+
+    def get_metrics(self) -> dict[str, int]:
+        """Return cache performance metrics."""
+        return {
+            "hits": self._hits,
+            "misses": self._misses,
+            "in_flight_dedupes": self._in_flight_dedupes,
+            "cache_size": len(self._cache),
+        }
+
+    def reset_metrics(self):
+        """Reset cache metrics counters."""
+        self._hits = 0
+        self._misses = 0
+        self._in_flight_dedupes = 0
+
+    def get_hit_rate(self) -> float:
+        """Calculate cache hit rate as percentage."""
+        total = self._hits + self._misses
+        if total == 0:
+            return 0.0
+        return (self._hits / total) * 100
 
 
 def _friendly_map_name(map_code: str) -> str:
@@ -294,6 +327,7 @@ class PubgClient:
 
         Note: Uses 5-minute cache TTL for player lookups to balance API
         reduction with real-time match discovery for Chicken Dinner/Daily Highlights.
+        Cache keys use normalized names for case-insensitive deduplication.
         """
         if not names:
             return []
@@ -301,7 +335,9 @@ class PubgClient:
             raise ValueError("PUBG API allows at most 10 player names per lookup call")
 
         # Use cache with in-flight request deduplication (5 minute TTL for real-time features)
-        cache_key = self._cache._make_key("players", self.shard, ",".join(sorted(names)))
+        # Normalize names for case-insensitive cache key matching
+        normalized_names = sorted(normalize_player_name(name) for name in names)
+        cache_key = self._cache._make_key("players", self.shard, ",".join(normalized_names))
 
         async def fetch_players():
             data = await self._request(
@@ -1005,41 +1041,49 @@ class PubgClient:
         (PUBG returns 500 per page).
 
         Returns list of {"rank": int, "player_id": str}.
-        """
-        data = await self._request(
-            f"/shards/{leaderboard_shard}/leaderboards/{season_id}/{game_mode}",
-            params={"page[number]": page},
-        )
-        try:
-            root = data.get("data") if isinstance(data, dict) else None
-            if not isinstance(root, dict):
-                raise TypeError(f"expected top-level 'data' to be an object, got {type(root).__name__}")
 
-            players_rel = (root.get("relationships") or {}).get("players")
-            player_refs = players_rel.get("data") if isinstance(players_rel, dict) else None
-            if not isinstance(player_refs, list):
-                raise TypeError(
-                    f"expected relationships.players.data to be a list, got {type(player_refs).__name__}"
+        Cached for 15 minutes since leaderboards are relatively static.
+        """
+        # Use cache with in-flight request deduplication (15 minute TTL)
+        cache_key = self._cache._make_key("leaderboard", leaderboard_shard, season_id, game_mode, page)
+
+        async def fetch_leaderboard():
+            data = await self._request(
+                f"/shards/{leaderboard_shard}/leaderboards/{season_id}/{game_mode}",
+                params={"page[number]": page},
+            )
+            try:
+                root = data.get("data") if isinstance(data, dict) else None
+                if not isinstance(root, dict):
+                    raise TypeError(f"expected top-level 'data' to be an object, got {type(root).__name__}")
+
+                players_rel = (root.get("relationships") or {}).get("players")
+                player_refs = players_rel.get("data") if isinstance(players_rel, dict) else None
+                if not isinstance(player_refs, list):
+                    raise TypeError(
+                        f"expected relationships.players.data to be a list, got {type(player_refs).__name__}"
+                    )
+
+                base_rank = page * 500
+                entries = []
+                for i, ref in enumerate(player_refs):
+                    if not isinstance(ref, dict):
+                        continue
+                    entries.append({"rank": base_rank + i + 1, "player_id": ref.get("id")})
+                return entries
+            except (AttributeError, TypeError, KeyError) as e:
+                # Surface the actual shape if this ever breaks again, rather
+                # than crashing opaquely.
+                try:
+                    preview = json.dumps(data, indent=2)[:600]
+                except (TypeError, ValueError):
+                    preview = repr(data)[:600]
+                raise PubgApiError(
+                    f"Leaderboard response didn't match the expected format "
+                    f"({type(e).__name__}: {e}). Raw response preview:\n{preview}"
                 )
 
-            base_rank = page * 500
-            entries = []
-            for i, ref in enumerate(player_refs):
-                if not isinstance(ref, dict):
-                    continue
-                entries.append({"rank": base_rank + i + 1, "player_id": ref.get("id")})
-            return entries
-        except (AttributeError, TypeError, KeyError) as e:
-            # Surface the actual shape if this ever breaks again, rather
-            # than crashing opaquely.
-            try:
-                preview = json.dumps(data, indent=2)[:600]
-            except (TypeError, ValueError):
-                preview = repr(data)[:600]
-            raise PubgApiError(
-                f"Leaderboard response didn't match the expected format "
-                f"({type(e).__name__}: {e}). Raw response preview:\n{preview}"
-            )
+        return await self._cache.get_or_fetch(cache_key, fetch_leaderboard, ttl_minutes=15)
 
     async def get_leaderboard_placements(
         self, names: list[str], season_id: str, game_mode: str = "squad",

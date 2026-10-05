@@ -152,8 +152,9 @@ async def setstatuschannel_impl(interaction):
 
 async def setauditchannel_impl(interaction, admin_ids):
     """Implementation of setauditchannel command."""
+    lang = guild_cfg.get("language", "en")
     if interaction.user.id not in admin_ids:
-        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
     
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -167,8 +168,9 @@ async def setauditchannel_impl(interaction, admin_ids):
 
 async def clearauditchannel_impl(interaction, admin_ids):
     """Implementation of clearauditchannel command."""
+    lang = guild_cfg.get("language", "en")
     if interaction.user.id not in admin_ids:
-        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
     
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -182,8 +184,9 @@ async def clearauditchannel_impl(interaction, admin_ids):
 
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
+    lang = guild_cfg.get("language", "en")
     if interaction.user.id not in admin_ids:
-        await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
+        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
     
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -192,12 +195,12 @@ async def showauditconfig_impl(interaction, admin_ids):
     audit_channel_id = guild_cfg.get("audit_channel_id")
     if audit_channel_id:
         channel = interaction.guild.get_channel(audit_channel_id)
-        channel_name = channel.mention if channel else "Unknown (deleted)"
+        channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
         await interaction.response.send_message(
-            f"Custom audit channel: {channel_name} (ID: {audit_channel_id})"
+            f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
         )
     else:
-        await interaction.response.send_message("Using central audit server (default)")
+        await interaction.response.send_message(translations.get_translation(lang, "using_central_audit"))
 
 
 async def setlanguage_impl(interaction, language):
@@ -278,12 +281,12 @@ async def reportstatus_impl(interaction):
     if guild_cfg.get("digest_enabled"):
         if guild_cfg.get("digest_hour_utc") is not None:
             next_run = _next_daily_report(guild_cfg.get("digest_hour_utc"), guild_cfg.get("digest_minute_utc", 0))
-            embed.add_field(name="Clan Digest", value=f"Enabled\nNext: {next_run}", inline=False)
+            embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
         else:
             next_run = _next_interval_report(guild_cfg.get("post_interval_hours", 6))
-            embed.add_field(name="Clan Digest", value=f"Enabled\nNext: {next_run}", inline=False)
+            embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
     else:
-        embed.add_field(name="Clan Digest", value="Disabled", inline=False)
+        embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=translations.get_translation(lang, "disabled"), inline=False)
     
     # Other reports...
     await interaction.response.send_message(embed=embed)
@@ -302,7 +305,7 @@ async def reporttoggle_impl(interaction, report):
         return not current
     
     new_state = await storage.modify_guild(interaction.guild_id, modifier)
-    status = "enabled" if new_state else "disabled"
+    status = translations.get_translation(lang, "enabled") if new_state else translations.get_translation(lang, "disabled")
     await interaction.response.send_message(f"{report.value} {status}")
 
 
