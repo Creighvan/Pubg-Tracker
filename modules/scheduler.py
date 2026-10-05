@@ -11,7 +11,6 @@ Functions:
     auto_highlights: Highlights report daily (after 02:00 UTC, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
-    auto_donations: Donation message monthly (1st of each month) - DISABLED
     auto_chicken_dinner: Chicken dinner congratulatory messages
     auto_feedback_prompt: Feedback collection weekly
 
@@ -30,7 +29,7 @@ import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
 
-from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, DONATION_MESSAGE, RANKED_MODE_LABELS
+from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
 from storage import modify_guild
 from modules.reports import (
     fetch_clan_report,
@@ -43,7 +42,7 @@ from modules.reports import (
     fetch_leaderboard_report,
 )
 from modules.embeds import build_report_status_embed, build_feedback_prompt_embed
-from modules.utils import _is_due, _is_weekly_due, _is_monthly_donation_due, get_current_pubg_day
+from modules.utils import _is_due, _is_weekly_due, get_current_pubg_day
 
 # Late-binding helpers to avoid stale imports at module load time
 # These re-read the values from config on each call to get the real instances
@@ -532,58 +531,6 @@ async def before_auto_survival_mastery():
 
 
 @tasks.loop(minutes=15)
-async def auto_donations():
-    """Post the optional donation link on the 1st of each month for servers that opt in."""
-    for guild_id in await storage.all_guild_ids():
-        guild_cfg = await storage.get_guild(guild_id)
-        if not guild_cfg.get("donation_enabled", True):
-            continue
-        if not _is_monthly_donation_due(guild_cfg):
-            continue
-        channel_id = guild_cfg.get("donation_channel_id")
-        channel = _get_bot().get_channel(channel_id) if channel_id else None
-        # If no donation channel configured, use the first text channel in the guild
-        if channel is None:
-            guild = _get_bot().get_guild(guild_id)
-            if guild:
-                for ch in guild.text_channels:
-                    if ch.permissions_for(guild.me).send_messages:
-                        channel = ch
-                        break
-        if channel is None:
-            continue
-        try:
-            await channel.send(DONATION_MESSAGE)
-            guild_cfg["donation_posted_at"] = datetime.now(timezone.utc).isoformat()
-
-            def modifier(g):
-                g["donation_posted_at"] = guild_cfg["donation_posted_at"]
-            await storage.modify_guild(guild_id, modifier)
-            # Create embed for donation message
-            donation_embed = discord.Embed(
-                title="☕ Donation Message",
-                description=DONATION_MESSAGE,
-                color=discord.Color.gold(),
-                timestamp=datetime.now(timezone.utc)
-            )
-            await send_audit_log(
-                guild_id,
-                "Scheduled Report Posted",
-                f"Donation message posted automatically",
-                is_automated=True,
-                details={"Report Type": "Donation Message"},
-                report_embed=donation_embed
-            )
-        except Exception as e:
-            print(f"[auto_donations] Could not post for guild {guild_id}: {e}")
-
-
-@auto_donations.before_loop
-async def before_auto_donations():
-    await _get_bot().wait_until_ready()
-
-
-@tasks.loop(minutes=15)
 async def auto_chicken_dinner():
     """
     Every 15 minutes, checks each opted-in guild's roster for recent wins
@@ -592,7 +539,6 @@ async def auto_chicken_dinner():
     Counts wins in all game modes (squad, duo, solo).
     Displays the 25 most recent wins to avoid Discord embed character limits.
     """
-    print(f"[auto_chicken_dinner] Running at {datetime.now(timezone.utc)}")
     utc = timezone.utc
     now_utc = datetime.now(utc)
     
@@ -716,9 +662,7 @@ async def auto_chicken_dinner():
 
 @auto_chicken_dinner.before_loop
 async def before_auto_chicken_dinner():
-    print("[auto_chicken_dinner] before_loop: waiting for bot to be ready")
     await _get_bot().wait_until_ready()
-    print("[auto_chicken_dinner] before_loop: bot is ready, starting loop")
 
 
 @tasks.loop(minutes=30)
@@ -813,7 +757,5 @@ def start_all_scheduled_tasks(bot_instance):
     bot_instance.loop.create_task(run_auto_highlights())
     auto_clan_level.start()
     auto_survival_mastery.start()
-    # auto_donations.start()  # DISABLED: Monthly donation posting
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
-    # auto_api_status.start()  # DISABLED: API status feature removed

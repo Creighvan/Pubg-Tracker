@@ -21,8 +21,6 @@ Slash commands:
   /setstatuschannel           - set current channel for live bot status updates
   /help                     - show help and the official support server
   /donate                   - show the optional donation link
-  /setdonationchannel       - enable the weekly Sunday donation post here
-  /setdonationtime <0-23>   - choose its Sunday UTC posting time
   /setchannel               - set current channel as the auto-post channel
   /setinterval <hours>      - how often (in hours) the digest auto-posts (default 6)
   /setdigesttime <0-23>      - post digest daily at a fixed UTC hour instead
@@ -115,7 +113,6 @@ from modules.config import (
     AUDIT_LOG_CHANNEL_ID,
     DONATION_URL,
     BUY_ME_A_COFFEE_URL,
-    DONATION_MESSAGE,
     VALID_GAME_MODES,
     RANKED_MODE_LABELS,
     intents,
@@ -194,10 +191,8 @@ from modules.scheduler import (
     auto_highlights,
     auto_clan_level,
     auto_survival_mastery,
-    auto_donations,
     auto_chicken_dinner,
     auto_feedback_prompt,
-    # auto_api_status,  # DISABLED: API status feature removed
     start_all_scheduled_tasks,
     run_auto_highlights,
     _set_audit_log_func,
@@ -473,7 +468,7 @@ async def on_guild_remove(guild: discord.Guild):
 # (Scheduled tasks moved to bot/scheduler.py - see that file for implementation)
 # The following functions are now imported from bot.scheduler:
 # - auto_digest, auto_last_active, auto_ranked, auto_highlights
-# - auto_clan_level, auto_survival_mastery, auto_donations
+# - auto_clan_level, auto_survival_mastery
 # - auto_chicken_dinner, auto_feedback_prompt
 # - start_all_scheduled_tasks
 
@@ -1256,22 +1251,6 @@ async def donate(interaction: discord.Interaction):
     )
     await interaction.response.send_message(message)
 
-
-@bot.tree.command(description="Enable the weekly Sunday donation post in this channel")
-@app_commands.checks.has_permissions(manage_guild=True)
-async def setdonationchannel(interaction: discord.Interaction):
-    def modifier(guild_cfg):
-        guild_cfg["donation_channel_id"] = interaction.channel_id
-        guild_cfg["donation_enabled"] = True
-    await storage.modify_guild(interaction.guild_id, modifier)
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    await interaction.response.send_message(
-        f"✅ The donation message will post in {interaction.channel.mention} on the "
-        f"**1st of each month at {guild_cfg['donation_hour_utc']:02d}:{guild_cfg['donation_minute_utc']:02d} UTC**. "
-        "Use `/setdonationtime` to change the time."
-    )
-
-
 @bot.tree.command(description="Set this channel as where the clan digest gets auto-posted")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchannel(interaction: discord.Interaction):
@@ -1368,29 +1347,6 @@ async def setclantime(
     await interaction.response.send_message(
         translations.get_translation(lang, "clan_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
     )
-
-
-@bot.tree.command(description="Set the Sunday UTC donation post time")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.describe(hour="0-23, UTC (e.g. 12 for noon)", minute="Quarter-hour, defaults to :00")
-@app_commands.choices(minute=QUARTER_HOUR_CHOICES)
-async def setdonationtime(
-    interaction: discord.Interaction,
-    hour: app_commands.Range[int, 0, 23],
-    minute: app_commands.Choice[int] = None,
-):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    minute_val = minute.value if minute else 0
-    def modifier(guild_cfg):
-        guild_cfg["donation_hour_utc"] = hour
-        guild_cfg["donation_minute_utc"] = minute_val
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "donation_time_set").format(weekday="Sunday", time=f"{hour:02d}:{minute_val:02d} UTC")
-    )
-
 
 @bot.tree.command(description="Show when each roster player last played PUBG, right now")
 async def lastactive(interaction: discord.Interaction):

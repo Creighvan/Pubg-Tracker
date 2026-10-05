@@ -38,23 +38,6 @@ AUDIT_LOG_CHANNEL_ID = int(os.environ.get("AUDIT_LOG_CHANNEL_ID", "0")) if os.en
 # ---------- Donation configuration ----------
 DONATION_URL = "https://ko-fi.com/creighvan"
 BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/creighvan"
-DONATION_MESSAGE = (
-    "☕ **Support PUBG Tracker Development**\n\n"
-    "PUBG Tracker is completely free to use and will remain so. Your donations help keep the bot running and enable continued development:\n"
-    "• 🖥️ Server hosting and maintenance\n"
-    "• 🚀 New features and improvements\n"
-    "• 🐛 Bug fixes and stability updates\n"
-    "• 📈 PUBG API access and rate limits\n"
-    "• 🎮 Future free bot projects\n\n"
-    "❤️ **Why donate?**\n"
-    "Even small amounts make a big difference in keeping this project alive and improving it for everyone. Your support directly powers the servers and development time.\n\n"
-    "🎁 **What you get:**\n"
-    "Donations are voluntary and don't provide special bot features, but you'll have our eternal gratitude and help ensure PUBG Tracker stays free for everyone!\n\n"
-    "☕ **Support the project:**\n"
-    f"• Ko-Fi: {DONATION_URL}\n"
-    f"• Buy Me a Coffee: {BUY_ME_A_COFFEE_URL}\n\n"
-    "Thank you for considering supporting PUBG Tracker! 🙏"
-)
 
 # ---------- Game mode constants ----------
 VALID_GAME_MODES = {"squad-fpp", "squad", "duo-fpp", "duo", "solo-fpp", "solo"}
