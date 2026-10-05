@@ -86,6 +86,60 @@ async def test_cache_concurrent_access():
     print("[OK] Concurrent cache access works")
 
 
+async def test_in_flight_deduplication():
+    """Test that in-flight requests are deduplicated to prevent cache stampedes."""
+    cache = ResponseCache()
+    request_count = 0
+
+    async def slow_fetch():
+        nonlocal request_count
+        request_count += 1
+        await asyncio.sleep(0.1)  # Simulate slow network request
+        return {"data": "fetched_value"}
+
+    # Simulate 5 concurrent requests for the same key
+    cache_key = "test:deduplication"
+    tasks = [
+        cache.get_or_fetch(cache_key, slow_fetch, ttl_minutes=30)
+        for _ in range(5)
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    # All should return the same value
+    assert all(r == {"data": "fetched_value"} for r in results), "All requests should return same value"
+
+    # Only one actual fetch should have occurred
+    assert request_count == 1, f"Expected 1 fetch, got {request_count}"
+
+    print("[OK] In-flight request deduplication works")
+
+
+async def test_get_or_fetch():
+    """Test get_or_fetch combines cache check and fetch logic."""
+    cache = ResponseCache()
+    fetch_count = 0
+
+    async def fetch_func():
+        nonlocal fetch_count
+        fetch_count += 1
+        return {"count": fetch_count}
+
+    cache_key = "test:get_or_fetch"
+
+    # First call should fetch
+    result1 = await cache.get_or_fetch(cache_key, fetch_func, ttl_minutes=30)
+    assert result1 == {"count": 1}, "First call should fetch"
+    assert fetch_count == 1, "Fetch should have been called once"
+
+    # Second call should use cache
+    result2 = await cache.get_or_fetch(cache_key, fetch_func, ttl_minutes=30)
+    assert result2 == {"count": 1}, "Second call should use cached value"
+    assert fetch_count == 1, "Fetch should not have been called again"
+
+    print("[OK] get_or_fetch works correctly")
+
+
 async def main():
     """Run all cache tests."""
     print("Testing PUBG API Response Cache")
@@ -95,6 +149,8 @@ async def main():
     await test_cache_expiration()
     await test_cache_key_format()
     await test_cache_concurrent_access()
+    await test_in_flight_deduplication()
+    await test_get_or_fetch()
 
     print("=" * 40)
     print("[OK] All cache tests passed!")

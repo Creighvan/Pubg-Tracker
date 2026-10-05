@@ -290,84 +290,6 @@ from commands.admin import (
     botservers_impl,
 )
 
-from commands.inactive import (
-    setinactivedate_impl,
-    removeinactivedate_impl,
-    resetinactivecount_impl,
-)
-from commands.clan import (
-    setclan_impl,
-    clanlevel_impl,
-    setclanchannel_impl,
-    setclantime_impl,
-)
-from commands.ranked import (
-    rankedsquad_impl,
-    rankedduo_impl,
-    rankedsolo_impl,
-    rankedsquadfpp_impl,
-    rankedduofpp_impl,
-    rankedsolofpp_impl,
-    refreshranked_impl,
-    updateranked_impl,
-)
-from commands.mastery import (
-    masterystats_impl,
-    survivalstats_impl,
-)
-from commands.reports import (
-    clanstats_impl,
-    postnow_impl,
-    leaderboard_impl,
-    lastactive_impl,
-)
-from commands.settings import (
-    setgamemode_impl,
-    setchannel_impl,
-    setinterval_impl,
-    setdigesttime_impl,
-    setactivitychannel_impl,
-    setrankedchannel_impl,
-    setrankedqueue_impl,
-    sethighlightschannel_impl,
-    sethighlightstime_impl,
-    setsurvivalchannel_impl,
-    setsurvivaltime_impl,
-    setstatuschannel_impl,
-    setauditchannel_impl,
-    clearauditchannel_impl,
-    showauditconfig_impl,
-    setlanguage_impl,
-    language_impl,
-    reportstatus_impl,
-    reporttoggle_impl,
-    donate_impl,
-)
-from commands.links import (
-    linkme_impl,
-    linkplayer_impl,
-    unlinkme_impl,
-    links_impl,
-)
-from commands.chicken_dinner import (
-    chickendinner_impl,
-    setchickendinnerchannel_impl,
-    pingtoggle_impl,
-)
-from commands.highlights import (
-    dailyhighlights_impl,
-)
-from commands.leaderboard import (
-    leaderboardstats_impl,
-    setleaderboardregion_impl,
-    setleaderboardqueue_impl,
-)
-from commands.admin import (
-    reportcheater_impl,
-    askfeedback_impl,
-    botservers_impl,
-)
-
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
 pubg = PubgClient(PUBG_API_KEY, shard=PUBG_SHARD)
@@ -1094,6 +1016,7 @@ async def masterystats(interaction: discord.Interaction):
 @app_commands.describe(pages="How many 500-player pages to check (default 4 = top 2000)")
 async def leaderboardstats(interaction: discord.Interaction, pages: app_commands.Range[int, 1, 10] = 4):
     guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
     if not guild_cfg["players"]:
         await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
         return
