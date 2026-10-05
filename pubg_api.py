@@ -677,9 +677,9 @@ class PubgClient:
     async def _get_match_details(self, match_id: str) -> dict:
         """
         Fetches a match and extracts just what we need: when it happened,
-        each participant's stats keyed by their account id, and the
-        telemetry asset URL (if present). Rate-limit exempt, like
-        get_match_created_at.
+        each participant's stats keyed by their account id, team_id for
+        teammate identification, and the telemetry asset URL (if present).
+        Rate-limit exempt, like get_match_created_at.
         """
         data = await self._request(f"/shards/{self.shard}/matches/{match_id}", rate_limited=False)
         attrs = data.get("data", {}).get("attributes", {})
@@ -690,10 +690,11 @@ class PubgClient:
                 s = inc.get("attributes", {}).get("stats", {})
                 pid = s.get("playerId")
                 if pid:
-                    # Include the participant name from the attributes
+                    # Include the participant name, stats, and team_id if available
                     participants[pid] = {
                         "stats": s,
-                        "name": inc.get("attributes", {}).get("name")
+                        "name": inc.get("attributes", {}).get("name"),
+                        "team_id": s.get("teamId")  # Team identification for chemistry analytics
                     }
             elif inc.get("type") == "asset":
                 telemetry_url = inc.get("attributes", {}).get("URL")
