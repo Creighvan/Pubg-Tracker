@@ -377,16 +377,23 @@ class PubgClient:
         account_ids = list(account_to_name.keys())
 
         # Fetch match history for each player
-        match_cache: dict[str, dict] = {}
+        match_tasks: dict[str, asyncio.Task] = {}
         cache_lock = asyncio.Lock()
         fetch_semaphore = asyncio.Semaphore(5)  # Limit concurrent match fetches
 
         async def get_match(match_id: str) -> dict:
+            # Use lock only to check/create task, not during network request
             async with cache_lock:
-                if match_id not in match_cache:
-                    async with fetch_semaphore:
-                        match_cache[match_id] = await self._get_match_details(match_id)
-                return match_cache[match_id]
+                task = match_tasks.get(match_id)
+                if task is None:
+                    # Create task but don't await it yet
+                    async def fetch_with_semaphore():
+                        async with fetch_semaphore:
+                            return await self._get_match_details(match_id)
+                    task = asyncio.create_task(fetch_with_semaphore())
+                    match_tasks[match_id] = task
+            # Await the task outside the lock to allow concurrency
+            return await task
 
         # Collect all matches to check
         all_match_ids = set()
@@ -396,6 +403,11 @@ class PubgClient:
 
         # Fetch all matches with concurrency limit
         await asyncio.gather(*(get_match(mid) for mid in all_match_ids))
+
+        # Build match cache from completed tasks
+        match_cache: dict[str, dict] = {}
+        for match_id, task in match_tasks.items():
+            match_cache[match_id] = await task
 
         # Find wins and group by match
         wins: list[dict] = []
