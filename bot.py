@@ -299,6 +299,10 @@ from commands.profile import (
 from commands.season import (
     season_impl,
 )
+from commands.clan_intelligence import (
+    clantrend_impl,
+    rosterhealth_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -1147,6 +1151,17 @@ async def profile(interaction: discord.Interaction, player: str):
 @bot.tree.command(description="Show current season summary for the clan")
 async def season(interaction: discord.Interaction):
     await season_impl(interaction)
+
+
+@bot.tree.command(description="Show clan-wide trend analysis over the last N days")
+@app_commands.describe(days="Number of days to analyze (default 7)")
+async def clantrend(interaction: discord.Interaction, days: app_commands.Range[int, 3, 90] = 7):
+    await clantrend_impl(interaction, days)
+
+
+@bot.tree.command(description="Show clan health dashboard with activity and inactivity status")
+async def rosterhealth(interaction: discord.Interaction):
+    await rosterhealth_impl(interaction)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
