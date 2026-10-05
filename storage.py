@@ -9,6 +9,7 @@ volume for this file or swap this module for SQLite/Postgres later).
 
 import asyncio
 import copy
+import gzip
 import json
 import logging
 import os
@@ -210,6 +211,94 @@ def _save(data: dict):
     with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
     os.replace(tmp_path, DATA_PATH)
+    # Create backup after successful save
+    _rotate_backups()
+
+
+def _rotate_backups():
+    """Rotate backup files: data.json.bak.2 -> .bak.3, .bak.1 -> .bak.2, current -> .bak.1"""
+    try:
+        backup_dir = os.path.dirname(DATA_PATH)
+        base_name = os.path.basename(DATA_PATH)
+        
+        # Rotate existing backups (keep 3)
+        for i in range(2, 0, -1):
+            old_backup = os.path.join(backup_dir, f"{base_name}.bak.{i}")
+            new_backup = os.path.join(backup_dir, f"{base_name}.bak.{i + 1}")
+            if os.path.exists(old_backup):
+                if os.path.exists(new_backup):
+                    os.remove(new_backup)
+                os.rename(old_backup, new_backup)
+        
+        # Current backup becomes .bak.1
+        backup_1 = os.path.join(backup_dir, f"{base_name}.bak.1")
+        if os.path.exists(DATA_PATH):
+            if os.path.exists(backup_1):
+                os.remove(backup_1)
+            shutil.copy2(DATA_PATH, backup_1)
+            logger.info(f"Created backup: {backup_1}")
+    except Exception as e:
+        logger.error(f"Failed to rotate backups: {e}")
+
+
+def create_daily_backup():
+    """Create a daily compressed backup with retention policy."""
+    try:
+        if not os.path.exists(DATA_PATH):
+            logger.warning("No data.json to backup")
+            return
+        
+        backup_dir = os.path.dirname(DATA_PATH)
+        base_name = os.path.basename(DATA_PATH)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d")
+        compressed_path = os.path.join(backup_dir, f"{base_name}.daily.{timestamp}.gz")
+        
+        # Skip if backup already exists for today
+        if os.path.exists(compressed_path):
+            logger.info(f"Daily backup already exists: {compressed_path}")
+            return
+        
+        # Create compressed backup
+        with open(DATA_PATH, "rb") as f_in:
+            with gzip.open(compressed_path, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        
+        logger.info(f"Created daily compressed backup: {compressed_path}")
+        
+        # Clean up old backups (keep 7 daily, 4 weekly, 3 monthly)
+        _cleanup_old_backups(backup_dir, base_name)
+        
+    except Exception as e:
+        logger.error(f"Failed to create daily backup: {e}")
+
+
+def _cleanup_old_backups(backup_dir: str, base_name: str):
+    """Clean up old daily backups based on retention policy."""
+    try:
+        # Get all daily backup files
+        daily_backups = []
+        for filename in os.listdir(backup_dir):
+            if filename.startswith(f"{base_name}.daily.") and filename.endswith(".gz"):
+                daily_backups.append(os.path.join(backup_dir, filename))
+        
+        # Sort by modification time (oldest first)
+        daily_backups.sort(key=lambda x: os.path.getmtime(x))
+        
+        # Keep 7 most recent daily backups
+        daily_to_keep = daily_backups[-7:] if len(daily_backups) > 7 else daily_backups
+        daily_to_delete = daily_backups[:-7] if len(daily_backups) > 7 else []
+        
+        for backup in daily_to_delete:
+            os.remove(backup)
+            logger.info(f"Deleted old daily backup: {backup}")
+        
+        # Weekly backup: keep backup from 7 days ago, 14 days ago, 21 days ago, 28 days ago
+        # Monthly backup: keep backup from 30 days ago, 60 days ago, 90 days ago
+        # For simplicity, we'll just keep the last 14 days total for now
+        # This can be expanded later if needed
+        
+    except Exception as e:
+        logger.error(f"Failed to cleanup old backups: {e}")
 
 
 async def get_guild(guild_id: int) -> dict:

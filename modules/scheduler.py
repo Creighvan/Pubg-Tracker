@@ -759,3 +759,30 @@ def start_all_scheduled_tasks(bot_instance):
     auto_survival_mastery.start()
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
+    # Start daily backup task
+    bot_instance.loop.create_task(run_daily_backup())
+
+
+async def run_daily_backup():
+    """
+    Background task that creates a daily compressed backup of data.json.
+    Runs once per day at 03:00 UTC (after all scheduled reports have posted).
+    """
+    await _get_bot().wait_until_ready()
+    utc = timezone.utc
+    
+    while True:
+        now = datetime.now(utc)
+        # Calculate time until next 03:00 UTC
+        next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run = next_run + timedelta(days=1)
+        
+        sleep_seconds = (next_run - now).total_seconds()
+        print(f"[daily_backup] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
+        await asyncio.sleep(sleep_seconds)
+        
+        # Create the backup
+        print(f"[daily_backup] Creating daily backup at {datetime.now(utc)}")
+        storage.create_daily_backup()
+        print(f"[daily_backup] Daily backup complete")
