@@ -309,6 +309,22 @@ from commands.achievements import (
 from commands.streaks import (
     streaks_impl,
 )
+from commands.weeklyawards import (
+    weeklyawards_impl,
+)
+from commands.weaponstats import (
+    weaponstats_impl,
+)
+from commands.mapstats import (
+    mapstats_impl,
+)
+from commands.matches import (
+    matches_impl,
+)
+from commands.chemistry import (
+    chemistry_impl,
+    bestsquad_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -1180,6 +1196,40 @@ async def achievements(interaction: discord.Interaction, player: str = None):
 @app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
 async def streaks(interaction: discord.Interaction, player: str = None):
     await streaks_impl(interaction, player)
+
+
+@bot.tree.command(description="Show weekly clan awards")
+@app_commands.describe(days="Number of days to analyze (default 7)")
+async def weeklyawards(interaction: discord.Interaction, days: app_commands.Range[int, 3, 30] = 7):
+    await weeklyawards_impl(interaction, days)
+
+
+@bot.tree.command(description="Show weapon statistics for a player")
+@app_commands.describe(player="PUBG player name")
+async def weaponstats(interaction: discord.Interaction, player: str):
+    await weaponstats_impl(interaction, player)
+
+
+@bot.tree.command(description="Show clan map performance statistics")
+async def mapstats(interaction: discord.Interaction):
+    await mapstats_impl(interaction)
+
+
+@bot.tree.command(description="Show recent matches for a player")
+@app_commands.describe(player="PUBG player name")
+async def matches(interaction: discord.Interaction, player: str):
+    await matches_impl(interaction, player)
+
+
+@bot.tree.command(description="Show chemistry between two players")
+@app_commands.describe(player1="First PUBG player name", player2="Second PUBG player name")
+async def chemistry(interaction: discord.Interaction, player1: str, player2: str):
+    await chemistry_impl(interaction, player1, player2)
+
+
+@bot.tree.command(description="Show the best squad combination in the clan")
+async def bestsquad(interaction: discord.Interaction):
+    await bestsquad_impl(interaction)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
