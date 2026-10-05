@@ -212,6 +212,161 @@ from commands.protected import (
     resetprotected_impl,
     addprotectedbulk_impl,
 )
+from commands.inactive import (
+    setinactivedate_impl,
+    removeinactivedate_impl,
+    resetinactivecount_impl,
+)
+from commands.clan import (
+    setclan_impl,
+    clanlevel_impl,
+    setclanchannel_impl,
+    setclantime_impl,
+)
+from commands.ranked import (
+    rankedsquad_impl,
+    rankedduo_impl,
+    rankedsolo_impl,
+    rankedsquadfpp_impl,
+    rankedduofpp_impl,
+    rankedsolofpp_impl,
+    refreshranked_impl,
+    updateranked_impl,
+)
+from commands.mastery import (
+    masterystats_impl,
+    survivalstats_impl,
+)
+from commands.reports import (
+    clanstats_impl,
+    postnow_impl,
+    leaderboard_impl,
+    lastactive_impl,
+)
+from commands.settings import (
+    setgamemode_impl,
+    setchannel_impl,
+    setinterval_impl,
+    setdigesttime_impl,
+    setactivitychannel_impl,
+    setrankedchannel_impl,
+    setrankedqueue_impl,
+    sethighlightschannel_impl,
+    sethighlightstime_impl,
+    setsurvivalchannel_impl,
+    setsurvivaltime_impl,
+    setstatuschannel_impl,
+    setauditchannel_impl,
+    clearauditchannel_impl,
+    showauditconfig_impl,
+    setlanguage_impl,
+    language_impl,
+    reportstatus_impl,
+    reporttoggle_impl,
+    donate_impl,
+)
+from commands.links import (
+    linkme_impl,
+    linkplayer_impl,
+    unlinkme_impl,
+    links_impl,
+)
+from commands.chicken_dinner import (
+    chickendinner_impl,
+    setchickendinnerchannel_impl,
+    pingtoggle_impl,
+)
+from commands.highlights import (
+    dailyhighlights_impl,
+)
+from commands.leaderboard import (
+    leaderboardstats_impl,
+    setleaderboardregion_impl,
+    setleaderboardqueue_impl,
+)
+from commands.admin import (
+    reportcheater_impl,
+    askfeedback_impl,
+    botservers_impl,
+)
+
+from commands.inactive import (
+    setinactivedate_impl,
+    removeinactivedate_impl,
+    resetinactivecount_impl,
+)
+from commands.clan import (
+    setclan_impl,
+    clanlevel_impl,
+    setclanchannel_impl,
+    setclantime_impl,
+)
+from commands.ranked import (
+    rankedsquad_impl,
+    rankedduo_impl,
+    rankedsolo_impl,
+    rankedsquadfpp_impl,
+    rankedduofpp_impl,
+    rankedsolofpp_impl,
+    refreshranked_impl,
+    updateranked_impl,
+)
+from commands.mastery import (
+    masterystats_impl,
+    survivalstats_impl,
+)
+from commands.reports import (
+    clanstats_impl,
+    postnow_impl,
+    leaderboard_impl,
+    lastactive_impl,
+)
+from commands.settings import (
+    setgamemode_impl,
+    setchannel_impl,
+    setinterval_impl,
+    setdigesttime_impl,
+    setactivitychannel_impl,
+    setrankedchannel_impl,
+    setrankedqueue_impl,
+    sethighlightschannel_impl,
+    sethighlightstime_impl,
+    setsurvivalchannel_impl,
+    setsurvivaltime_impl,
+    setstatuschannel_impl,
+    setauditchannel_impl,
+    clearauditchannel_impl,
+    showauditconfig_impl,
+    setlanguage_impl,
+    language_impl,
+    reportstatus_impl,
+    reporttoggle_impl,
+    donate_impl,
+)
+from commands.links import (
+    linkme_impl,
+    linkplayer_impl,
+    unlinkme_impl,
+    links_impl,
+)
+from commands.chicken_dinner import (
+    chickendinner_impl,
+    setchickendinnerchannel_impl,
+    pingtoggle_impl,
+)
+from commands.highlights import (
+    dailyhighlights_impl,
+)
+from commands.leaderboard import (
+    leaderboardstats_impl,
+    setleaderboardregion_impl,
+    setleaderboardqueue_impl,
+)
+from commands.admin import (
+    reportcheater_impl,
+    askfeedback_impl,
+    botservers_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -574,28 +729,7 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        if normalize_player_name(name) in guild_cfg.get("manual_inactive_dates", {}):
-            del guild_cfg["manual_inactive_dates"][normalize_player_name(name)]
-            return True
-        return False
-    
-    removed = await storage.modify_guild(interaction.guild_id, modifier)
-    if removed:
-        await interaction.response.send_message(translations.get_translation(lang, "inactive_date_removed").format(name=name))
-        await send_audit_log(
-            interaction.guild_id,
-            "Manual Inactive Date Removed",
-            f"Removed manual date for {name}",
-            user=interaction.user,
-            details={"Player": name}
-        )
-    else:
-        await interaction.response.send_message(translations.get_translation(lang, "inactive_date_none").format(name=name), ephemeral=True)
-
+    await removeinactivedate_impl(interaction, name)
 
 @bot.tree.command(description="Reset auto-counting for a specific player (start counting from today)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -618,76 +752,15 @@ async def roster(interaction: discord.Interaction):
 @bot.tree.command(description="Report suspicious statistics for manual review")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def reportcheater(interaction: discord.Interaction):
-    await interaction.response.send_modal(StatisticalAnomalyReportModal())
-
-
-def _detect_statistical_anomalies(stats: dict) -> list[str]:
-    """Detect statistical anomalies that may warrant manual review."""
-    flags = []
-    
-    kills = stats.get("kills", 0)
-    deaths = stats.get("deaths", 0)
-    headshot_kills = stats.get("headshotKills", 0)
-    rounds = stats.get("roundsPlayed", 0)
-    wins = stats.get("wins", 0)
-    damage = stats.get("damageDealt", 0)
-    
-    if rounds == 0:
-        return flags
-    
-    kd = kills / max(deaths, 1)
-    kdr = kills / max(rounds - wins, 1)
-    headshot_rate = (headshot_kills / max(kills, 1)) * 100 if kills > 0 else 0
-    avg_damage = damage / max(rounds, 1)
-    
-    # Statistical anomaly thresholds
-    if kd > 10:
-        flags.append(f"Extremely high K/D: {kd:.2f}")
-    if kdr > 8:
-        flags.append(f"Unusual kill rate: {kdr:.2f} kills/round")
-    if headshot_rate > 80:
-        flags.append(f"Suspicious headshot rate: {headshot_rate:.1f}%")
-    if avg_damage > 2000:
-        flags.append(f"High average damage: {avg_damage:.0f}")
-    if wins / rounds > 0.5 and rounds > 10:
-        flags.append(f"High win rate: {(wins/rounds)*100:.1f}%")
-    
-    return flags
-
+    await reportcheater_impl(interaction, pubg, _detect_statistical_anomalies)
 
 @bot.tree.command(description="Post aggregated clan stats right now")
 async def clanstats(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    await interaction.response.defer()
-    try:
-        result = await fetch_clan_report(interaction.guild_id, interaction.guild.name)
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error in /clanstats")
-        return
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error generating clan report")
-        return
-    if result is None:
-        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
-        return
-    embed, players = result
-    await interaction.followup.send(embed=embed)
-    await send_audit_log(
-        interaction.guild_id,
-        "Command Executed",
-        f"Clan stats report generated manually",
-        user=interaction.user,
-        details={"Command": "/clanstats", "Players": len(players)},
-        report_embed=embed
-    )
-
+    await clanstats_impl(interaction, pubg)
 
 @bot.tree.command(description="Manually post today's clan digest to this channel")
 async def postnow(interaction: discord.Interaction):
-    await clanstats.callback(interaction)
-
+    await postnow_impl(interaction, pubg)
 
 @bot.tree.command(description="Show roster sorted by a stat")
 @app_commands.describe(sort_by="Which stat to sort by")
@@ -699,34 +772,7 @@ async def postnow(interaction: discord.Interaction):
     ]
 )
 async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Choice[str] = None):
-    stat_key = sort_by.value if sort_by else "kills"
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    await interaction.response.defer()
-    try:
-        players, not_found = await pubg.get_players_and_stats(guild_cfg["players"], game_mode=guild_cfg["game_mode"])
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-        return
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error generating report")
-        return
-
-    ranked = sorted(players, key=lambda p: p["stats"].get(stat_key, 0), reverse=True)
-    lines = [f"{i}. **{p['name']}** — {p['stats'].get(stat_key, 0):,}" for i, p in enumerate(ranked, start=1)]
-    embed = discord.Embed(
-        title=f"Leaderboard — {stat_key} ({guild_cfg['game_mode']})",
-        description="\n".join(lines) or "No data.",
-        color=discord.Color.blue(),
-    )
-    if not_found:
-        embed.set_footer(text=f"Not found: {', '.join(not_found)}")
-    await interaction.followup.send(embed=embed)
-
+    await leaderboard_impl(interaction, pubg, sort_by)
 
 @bot.tree.command(description="Set the PUBG game mode used for stats (default squad-fpp)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -734,111 +780,22 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
     mode=[app_commands.Choice(name=m, value=m) for m in sorted(VALID_GAME_MODES)]
 )
 async def setgamemode(interaction: discord.Interaction, mode: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["game_mode"] = mode.value
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "mode_set").format(mode=mode.value))
-
+    await setgamemode_impl(interaction, mode)
 
 @bot.tree.command(description="Set the clan-level report from a current PUBG clan member")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name of a member of the clan")
 async def setclan(interaction: discord.Interaction, name: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    await interaction.response.defer(ephemeral=True)
-    try:
-        clan = await pubg.get_clan_for_player_name(name.strip())
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="Failed to resolve PUBG clan")
-        return
-    if clan is None:
-        await interaction.followup.send(
-            translations.get_translation(lang, "clan_not_found").format(name=name.strip(), shard=PUBG_SHARD),
-            ephemeral=True,
-        )
-        return
-    def modifier(guild_cfg):
-        guild_cfg["pubg_clan_id"] = clan["id"]
-        guild_cfg["pubg_clan_name"] = clan["name"]
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(
-        translations.get_translation(lang, "clan_set").format(name=clan['name'], tag=clan['tag'], level=clan['level']),
-        ephemeral=True,
-    )
-
+    await setclan_impl(interaction, name, pubg)
 
 @bot.tree.command(description="Show the current PUBG clan level and weekly progress")
 async def clanlevel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    await interaction.response.defer()
-    try:
-        result = await fetch_clan_level_report(interaction.guild_id)
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-        return
-    if result is None:
-        await interaction.followup.send(translations.get_translation(lang, "clan_not_set"))
-        return
-    embed, _ = result
-    await interaction.followup.send(embed=embed)
-
+    await clanlevel_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["clan_channel_id"] = interaction.channel_id
-        guild_cfg["clan_level_enabled"] = True
-        guild_cfg["clan_message_id"] = None  # force a fresh message in the new channel
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
-    # Immediately post the report
-    try:
-        result = await fetch_clan_level_report(interaction.guild_id)
-        if result:
-            embed, clan = result
-            new_message = await interaction.channel.send(embed=embed)
-            
-            def modifier(guild_cfg):
-                guild_cfg["clan_message_id"] = new_message.id
-                return new_message.id
-            
-            await storage.modify_guild(interaction.guild_id, modifier)
-            
-            await interaction.followup.send(
-                translations.get_translation(lang, "clan_channel_set").format(channel=interaction.channel.mention)
-            )
-            
-            await send_audit_log(
-                interaction.guild_id,
-                "Channel Configured & Report Posted",
-                f"Clan level report channel set and initial report posted",
-                user=interaction.user,
-                details={"Channel": interaction.channel_id, "Clan": clan["name"]},
-                report_embed=embed
-            )
-        else:
-            await interaction.followup.send(
-                f"✅ Weekly clan-level reports will post in {interaction.channel.mention}. "
-                f"Choose the weekly time with `/setclantime`."
-            )
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error")
-
+    await setclanchannel_impl(interaction)
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
 async def help(interaction: discord.Interaction):
@@ -851,102 +808,24 @@ async def help(interaction: discord.Interaction):
         f"{SUPPORT_SERVER_URL}"
     )
 
-
 @bot.tree.command(description="Set the preferred language for this server")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
 async def setlanguage(interaction: discord.Interaction, language: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    current_lang = guild_cfg.get("language", "en")
-    
-    # Valid language codes
-    VALID_LANGUAGES = {"en", "zh", "hi", "es", "ar", "fr", "bn", "pt", "id", "ur"}
-    LANGUAGE_NAMES = {
-        "en": "English",
-        "zh": "Mandarin Chinese",
-        "hi": "Hindi",
-        "es": "Spanish",
-        "ar": "Arabic",
-        "fr": "French",
-        "bn": "Bengali",
-        "pt": "Portuguese",
-        "id": "Indonesian",
-        "ur": "Urdu"
-    }
-    
-    language = language.lower()
-    if language not in VALID_LANGUAGES:
-        await interaction.response.send_message(
-            f"❌ {translations.get_translation(current_lang, 'invalid_language').format(languages=', '.join(VALID_LANGUAGES))}\n"
-            f"Example: English (en), Spanish (es), Chinese (zh)"
-        )
-        return
-    
-    success = await storage.set_language(interaction.guild_id, language)
-    if success:
-        language_name = LANGUAGE_NAMES[language]
-        await interaction.response.send_message(
-            translations.get_translation(language, "language_set").format(language=language_name)
-        )
-    else:
-        await interaction.response.send_message(f"❌ {translations.get_translation(current_lang, 'language_set_failed')}")
-
+    await setlanguage_impl(interaction, language)
 
 @bot.tree.command(description="Show the current language setting for this server")
 async def language(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    LANGUAGE_NAMES = {
-        "en": "English",
-        "zh": "Mandarin Chinese",
-        "hi": "Hindi",
-        "es": "Spanish",
-        "ar": "Arabic",
-        "fr": "French",
-        "bn": "Bengali",
-        "pt": "Portuguese",
-        "id": "Indonesian",
-        "ur": "Urdu"
-    }
-    
-    current_lang = await storage.get_language(interaction.guild_id)
-    language_name = LANGUAGE_NAMES.get(current_lang, current_lang)
-    
-    await interaction.response.send_message(
-        translations.get_translation(lang, "language_current").format(language=f"{language_name} ({current_lang})") +
-        "\nUse `/setlanguage <code>` to change it.\n"
-        f"Available: {', '.join(LANGUAGE_NAMES.keys())}"
-    )
-
+    await language_impl(interaction)
 
 @bot.tree.command(description="Show this server's automatic report schedules and next run times")
 async def reportstatus(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    await interaction.response.send_message(embed=build_report_status_embed(guild_cfg))
-
+    await reportstatus_impl(interaction)
 
 @bot.tree.command(description="Set this channel to show live bot status (connects, joins/leaves, failures, rate limits)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setstatuschannel(interaction: discord.Interaction):
-    """
-    Points a channel at a single persistent status embed that gets EDITED
-    in place whenever something notable happens (see _record_status_event
-    call sites) — never a new message per event. The event log itself is
-    in-memory and resets on restart; it's a live feed, not an audit trail.
-    """
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["status_channel_id"] = interaction.channel_id
-        guild_cfg["status_message_id"] = None  # force a fresh message in the new channel
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "status_channel_set").format(channel=interaction.channel.mention)
-    )
-    await _refresh_all_status_messages(force=True)
-
+    await setstatuschannel_impl(interaction)
 
 @bot.tree.command(description="Administrator: turn a scheduled report on or off without losing its settings")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -990,40 +869,12 @@ async def reporttoggle(
 
 @bot.tree.command(description="Show the optional donation link for PUBG Tracker")
 async def donate(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    message = (
-        f"{translations.get_translation(lang, 'donation_title')}\n\n"
-        f"{translations.get_translation(lang, 'donation_description')}\n\n"
-        f"{translations.get_translation(lang, 'donation_support')}\n"
-        f"• Ko-Fi: {DONATION_URL}\n"
-        f"• Buy Me a Coffee: {BUY_ME_A_COFFEE_URL}\n\n"
-        "Thank you for considering supporting PUBG Tracker! 🙏"
-    )
-    await interaction.response.send_message(message)
+    await donate_impl(interaction)
 
 @bot.tree.command(description="Set this channel as where the clan digest gets auto-posted")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchannel(interaction: discord.Interaction):
-    def modifier(guild_cfg):
-        guild_cfg["post_channel_id"] = interaction.channel_id
-        guild_cfg["digest_enabled"] = True
-        # Seed last_post_at to now so the first auto-post fires a full interval
-        # from now, rather than immediately on the next 15-min check.
-        guild_cfg["last_post_at"] = datetime.now(timezone.utc).isoformat()
-    await storage.modify_guild(interaction.guild_id, modifier)
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    interval = guild_cfg.get("post_interval_hours", 6)
-    lang = guild_cfg.get("language", "en")
-    count = interval
-    unit_key = "hour" if count == 1 else "hours"
-    unit = translations.get_translation(lang, unit_key)
-    schedule = translations.get_translation(lang, 'every_hours').format(count=count, unit=unit)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "digest_channel_set").format(channel=interaction.channel.mention, schedule=schedule)
-    )
-
+    await setchannel_impl(interaction)
 
 @bot.tree.command(description="Set how often (in hours) the digest auto-posts (ignored if a fixed time is set via /setdigesttime)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1102,415 +953,61 @@ async def setclantime(
 
 @bot.tree.command(description="Show when each roster player last played PUBG, right now")
 async def lastactive(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    await interaction.response.defer()
-    try:
-        result = await asyncio.wait_for(fetch_last_active_report(interaction.guild_id, interaction.guild.name), timeout=120)
-    except asyncio.TimeoutError:
-        await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
-        return
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-        return
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error generating report")
-        return
-    if result is None:
-        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
-        return
-    embed, players = result
-    await interaction.followup.send(embed=embed)
-    await send_audit_log(
-        interaction.guild_id,
-        "Command Executed",
-        f"Last active report generated manually",
-        user=interaction.user,
-        details={"Command": "/lastactive", "Players": len(players)},
-        report_embed=embed
-    )
-
-
-async def _refresh_last_active_report(guild_id: int, guild_name: str) -> None:
-    """Refresh the live-updating last active report for a guild."""
-    guild_cfg = await storage.get_guild(guild_id)
-    channel_id = guild_cfg.get("last_activity_channel_id")
-    message_id = guild_cfg.get("last_activity_message_id")
-    
-    if not channel_id or not message_id:
-        return  # No live-updating report configured
-    
-    guild = bot.get_guild(guild_id)
-    if not guild:
-        return
-    
-    channel = bot.get_channel(channel_id)
-    if not channel:
-        return
-    
-    try:
-        result = await fetch_last_active_report(guild_id, guild_name)
-        if result:
-            embed, players = result
-            try:
-                message = await channel.fetch_message(message_id)
-                await message.edit(embed=embed)
-            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-                # Message deleted/inaccessible - post new one
-                new_message = await channel.send(embed=embed)
-                def modifier(guild_cfg):
-                    guild_cfg["last_activity_message_id"] = new_message.id
-                await storage.modify_guild(guild_id, modifier)
-    except Exception as e:
-        logger.error(f"[_refresh_last_active_report] Failed to refresh for guild {guild_id}: {e}", exc_info=e)
-
+    await lastactive_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 02:00 UTC daily reset)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setactivitychannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["last_activity_channel_id"] = interaction.channel_id
-        guild_cfg["activity_enabled"] = True
-        guild_cfg["last_activity_message_id"] = None  # force a fresh message in the new channel
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
-    # Immediately post the report
-    try:
-        result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
-        if result:
-            embed, players = result
-            new_message = await interaction.channel.send(embed=embed)
-            
-            def modifier(guild_cfg):
-                guild_cfg["last_activity_message_id"] = new_message.id
-            await storage.modify_guild(interaction.guild_id, modifier)
-            
-            await interaction.followup.send(
-                translations.get_translation(lang, "activity_channel_set").format(channel=interaction.channel.mention)
-            )
-            
-            await send_audit_log(
-                interaction.guild_id,
-                "Channel Configured & Report Posted",
-                f"Last active report channel set and initial report posted",
-                user=interaction.user,
-                details={"Channel": interaction.channel_id, "Players": len(players)},
-                report_embed=embed
-            )
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="Failed to generate report")
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error in command")
-
+    await setactivitychannel_impl(interaction)
 
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
 async def setauditchannel(interaction: discord.Interaction):
-    if interaction.user.id not in ADMIN_USER_IDS:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
-        return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["audit_log_channel_id"] = interaction.channel_id
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "auditchannel_set").format(channel=interaction.channel.mention)
-    )
-
+    await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
 async def clearauditchannel(interaction: discord.Interaction):
-    if interaction.user.id not in ADMIN_USER_IDS:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
-        return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["audit_log_channel_id"] = None
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "auditchannel_cleared")
-    )
-
+    await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
 async def showauditconfig(interaction: discord.Interaction):
-    if interaction.user.id not in ADMIN_USER_IDS:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(f"❌ {translations.get_translation(lang, 'admin_only_command')}", ephemeral=True)
-        return
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    custom_channel_id = guild_cfg.get("audit_log_channel_id")
-    
-    embed = discord.Embed(
-        title="📋 Audit Logging Configuration",
-        color=discord.Color.blue(),
-        timestamp=datetime.now(timezone.utc)
-    )
-    
-    if AUDIT_SERVER_ID and AUDIT_LOG_CHANNEL_ID:
-        embed.add_field(
-            name="Central Audit Server",
-            value=f"Server ID: `{AUDIT_SERVER_ID}`\nChannel ID: `{AUDIT_LOG_CHANNEL_ID}`",
-            inline=False
-        )
-    else:
-        embed.add_field(
-            name="Central Audit Server",
-            value="❌ Not configured (AUDIT_SERVER_ID or AUDIT_LOG_CHANNEL_ID not set in .env)",
-            inline=False
-        )
-    
-    if custom_channel_id:
-        embed.add_field(
-            name="Custom Channel for This Server",
-            value=f"Channel ID: `{custom_channel_id}` (overrides central server)\nUse `/clearauditchannel` to remove and use central server",
-            inline=False
-        )
-    else:
-        embed.add_field(
-            name="Custom Channel for This Server",
-            value="Not set (using central audit server)\nUse `/setauditchannel` to set a custom channel",
-            inline=False
-        )
-    
-    embed.add_field(
-        name="What Gets Logged",
-        value="• Manual commands (add/remove player, protected players, inactive dates)\n• Automated events (scheduled reports, chicken dinner alerts)\n• Bot server joins/leaves",
-        inline=False
-    )
-    
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
-
-async def _run_ranked_command(interaction: discord.Interaction, game_mode: str, queue_label: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    # Discord only allows a slash command to reply for 15 minutes. The first
-    # full roster scan is one ranked API call per player (paced at 8/min by
-    # the PUBG rate limiter), which can exceed that window on large rosters —
-    # so acknowledge instantly and post the finished report to the channel
-    # instead of through the command reply.
-    await interaction.response.send_message(
-        f"⏳ Fetching {queue_label} ranked standings. Only players with ranked matches will be posted. "
-        f"With a large roster, PUBG's request limit can make this take 15+ minutes — "
-        f"the report will appear in this channel when it's ready."
-    )
-    channel = interaction.channel
-    try:
-        result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name, game_mode)
-    except PubgApiError as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] PUBG API error while fetching {queue_label} ranked standings")
-        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
-        return
-    except Exception as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] Error generating ranked report")
-        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
-        return
-    embed, players = result
-    await channel.send(embed=embed)
-
+    await showauditconfig_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="Show current-season ranked Squad TPP standings")
 async def rankedsquad(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "squad", "Squad TPP")
-
+    await rankedsquad_impl(interaction, pubg)
 
 @bot.tree.command(description="Show current-season ranked Duo TPP standings")
 async def rankedduo(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "duo", "Duo TPP")
-
+    await rankedduo_impl(interaction, pubg)
 
 @bot.tree.command(description="Show current-season ranked Solo TPP standings")
 async def rankedsolo(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "solo", "Solo TPP")
-
+    await rankedsolo_impl(interaction, pubg)
 
 @bot.tree.command(description="Show current-season ranked Squad FPP standings")
 async def rankedsquadfpp(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "squad-fpp", "Squad FPP")
-
+    await rankedsquadfpp_impl(interaction, pubg)
 
 @bot.tree.command(description="Show current-season ranked Duo FPP standings")
 async def rankedduofpp(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "duo-fpp", "Duo FPP")
-
+    await rankedduofpp_impl(interaction, pubg)
 
 @bot.tree.command(description="Show current-season ranked Solo FPP standings")
 async def rankedsolofpp(interaction: discord.Interaction):
-    await _run_ranked_command(interaction, "solo-fpp", "Solo FPP")
-
+    await rankedsolofpp_impl(interaction, pubg)
 
 @bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
 async def refreshranked(interaction: discord.Interaction):
-    def modifier(guild_cfg):
-        guild_cfg["ranked_known_players"] = {}
-    
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
-    # Update the ranked report if a message exists
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    channel_id = guild_cfg.get("ranked_channel_id")
-    message_id = guild_cfg.get("ranked_message_id")
-    
-    if channel_id and message_id:
-        try:
-            guild = bot.get_guild(interaction.guild_id)
-            channel = bot.get_channel(channel_id)
-            if guild and channel:
-                result = await fetch_ranked_report(interaction.guild_id, guild.name)
-                if result:
-                    embed, players = result
-                    try:
-                        message = await channel.fetch_message(message_id)
-                        await message.edit(embed=embed)
-                        await interaction.followup.send(
-                            "✅ Ranked-player cache cleared and report updated."
-                        )
-                    except (discord.NotFound, discord.Forbidden, discord.HTTPException):
-                        await interaction.followup.send(
-                            "✅ Ranked-player cache cleared. (Message not found - use /setrankedchannel to repost)"
-                        )
-                else:
-                    await interaction.followup.send("✅ Ranked-player cache cleared.")
-                return
-        except PubgApiError as e:
-            await send_error_response(interaction, e, context="API error updating ranked report")
-            return
-        except Exception as e:
-            await send_error_response(interaction, e, context="Error updating ranked report")
-            return
-    
-    await interaction.followup.send(
-        "✅ Ranked-player cache cleared. The next check for each ranked queue will scan the full roster; "
-        "later checks will only query players known to play that queue."
-    )
-
+    await refreshranked_impl(interaction, pubg)
 
 @bot.tree.command(description="Update the ranked report with fresh data without clearing the cache")
 async def updateranked(interaction: discord.Interaction):
-    await interaction.response.defer()
-    
-    try:
-        # Update the ranked report if a message exists
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        channel_id = guild_cfg.get("ranked_channel_id")
-        message_id = guild_cfg.get("ranked_message_id")
-        
-        if not channel_id or not message_id:
-            await interaction.followup.send("⚠️ No ranked report message found. Use /setrankedchannel first.")
-            return
-        
-        guild = bot.get_guild(interaction.guild_id)
-        channel = bot.get_channel(channel_id)
-        if not guild or not channel:
-            await interaction.followup.send("⚠️ Guild or channel not found.")
-            return
-        
-        # Add timeout to prevent hanging
-        try:
-            result = await asyncio.wait_for(
-                fetch_ranked_report(interaction.guild_id, guild.name),
-                timeout=120  # 2 minute timeout
-            )
-        except asyncio.TimeoutError:
-            await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
-            return
-        
-        if result:
-            embed, players = result
-            try:
-                message = await asyncio.wait_for(
-                    channel.fetch_message(message_id),
-                    timeout=30  # 30 second timeout for Discord message fetch
-                )
-                await asyncio.wait_for(
-                    message.edit(embed=embed),
-                    timeout=30  # 30 second timeout for Discord message edit
-                )
-                await interaction.followup.send(
-                    "✅ Ranked report updated with fresh data."
-                )
-            except asyncio.TimeoutError:
-                await interaction.followup.send("⚠️ Discord operation timed out. Try again later.")
-                return
-            except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
-                await interaction.followup.send(
-                    f"⚠️ Message not found or inaccessible: {e}. Use /setrankedchannel to repost"
-                )
-        else:
-            await interaction.followup.send("⚠️ No players tracked yet.")
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error updating ranked report")
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error updating ranked report")
-
+    await updateranked_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["ranked_channel_id"] = interaction.channel_id
-        guild_cfg["ranked_enabled"] = True
-        guild_cfg["ranked_message_id"] = None  # force a fresh message in the new channel
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
-    # Immediately post the report
-    try:
-        result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name)
-        if result:
-            embed, players = result
-            new_message = await interaction.channel.send(embed=embed)
-            
-            def modifier(guild_cfg):
-                guild_cfg["ranked_message_id"] = new_message.id
-            await storage.modify_guild(interaction.guild_id, modifier)
-            
-            await interaction.followup.send(
-                translations.get_translation(lang, "ranked_channel_set").format(channel=interaction.channel.mention) +
-                " It will update at 04:30 UTC daily."
-            )
-            
-            await send_audit_log(
-                interaction.guild_id,
-                "Channel Configured & Report Posted",
-                f"Ranked report channel set and initial report posted",
-                user=interaction.user,
-                details={"Channel": interaction.channel_id, "Players": len(players)},
-                report_embed=embed
-            )
-        else:
-            await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error")
-
+    await setrankedchannel_impl(interaction)
 
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1526,91 +1023,16 @@ async def setrankedchannel(interaction: discord.Interaction):
     ]
 )
 async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["ranked_queue"] = queue.value
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "ranked_queue_set").format(queue=queue.name))
-    await send_audit_log(
-        interaction.guild_id,
-        "Queue Configured",
-        f"Ranked report queue set to {queue.name}",
-        user=interaction.user,
-        details={"Queue": queue.value}
-    )
-
-
-    try:
-        result = await fetch_highlights_report(interaction.guild_id, interaction.guild.name)
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-        return
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error generating report")
-        return
-    embed, players = result
-    await interaction.followup.send(embed=embed)
-
+    await setrankedqueue_impl(interaction, queue)
 
 @bot.tree.command(description="Show daily-reset fun-title awards + top 10 + human/bot kills, right now")
 async def dailyhighlights(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    await interaction.response.defer()
-    try:
-        result = await asyncio.wait_for(fetch_highlights_report(interaction.guild_id, interaction.guild.name), timeout=180)
-    except asyncio.TimeoutError:
-        await interaction.followup.send("⚠️ Request timed out. PUBG API is slow or unresponsive. Try again later.")
-        return
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-        return
-    except Exception as e:
-        print(f"[dailyhighlights] Error: {e}")
-        import traceback
-        traceback.print_exc()
-        await send_error_response(interaction, e, context="Error generating report")
-        return
-    if result is None:
-        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
-        return
-    embed, players = result
-    try:
-        await interaction.followup.send(embed=embed)
-    except Exception as e:
-        print(f"[dailyhighlights] Error sending embed: {e}")
-        import traceback
-        traceback.print_exc()
-        await interaction.followup.send("⚠️ Error displaying report. The report may be too large. Try reducing the player count.")
-
+    await dailyhighlights_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    posted_at = datetime.now(timezone.utc).isoformat()
-    def modifier(guild_cfg):
-        guild_cfg["highlights_channel_id"] = interaction.channel_id
-        guild_cfg["highlights_enabled"] = True
-        guild_cfg["highlights_posted_at"] = posted_at
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "highlights_channel_set").format(channel=interaction.channel.mention)
-    )
-    await send_audit_log(
-        interaction.guild_id,
-        "Channel Configured",
-        f"Daily highlights channel set",
-        user=interaction.user,
-        details={"Channel": interaction.channel_id}
-    )
-
+    await sethighlightschannel_impl(interaction)
 
 @bot.tree.command(description="Post the daily highlights report at a fixed UTC time each day")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1632,100 +1054,12 @@ async def sethighlightstime(interaction: discord.Interaction, hour: app_commands
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
 async def survivalstats(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    # Survival mastery is 2 PUBG API calls per player, paced at 8/min —
-    # roughly 15 seconds per player. That blows past Discord's 15-minute
-    # slash-command reply window on rosters of ~60+, so acknowledge
-    # instantly and post the finished report straight to the channel.
-    lang = guild_cfg.get("language", "en")
-    player_count = len(guild_cfg["players"])
-    player_unit_key = "player" if player_count == 1 else "players"
-    player_unit = translations.get_translation(lang, player_unit_key)
-    
-    est_minutes = (player_count * 15 + 59) // 60
-    minute_unit_key = "minute" if est_minutes == 1 else "minutes"
-    minute_unit = translations.get_translation(lang, minute_unit_key)
-    
-    await interaction.response.send_message(
-        translations.get_translation(lang, "working_on_it").format(count=player_count, unit=player_unit, time=est_minutes, time_unit=minute_unit)
-    )
-    channel = interaction.channel
-    try:
-        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
-    except PubgApiError as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] PUBG API error while building Survival Mastery report")
-        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
-        return
-    except Exception as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] Error generating Survival Mastery report")
-        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
-        return
-    if result is None:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await channel.send(translations.get_translation(lang, "no_players_tracked_short"))
-        return
-    embeds, files = result
-    await channel.send(embeds=embeds, files=files)
-
+    await survivalstats_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setsurvivalchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["survival_channel_id"] = interaction.channel_id
-        guild_cfg["survival_enabled"] = True
-        guild_cfg["survival_message_id"] = None  # force a fresh message in the new channel
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
-    # Immediately post the report
-    try:
-        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
-        if result:
-            embeds, files = result
-            new_message = await interaction.channel.send(embeds=embeds, files=files)
-            
-            def modifier(guild_cfg):
-                guild_cfg["survival_message_id"] = new_message.id
-            await storage.modify_guild(interaction.guild_id, modifier)
-            
-            guild_cfg = await storage.get_guild(interaction.guild_id)
-            weekday = guild_cfg.get("survival_weekday_utc")
-            if weekday is None:
-                await interaction.followup.send(
-                    translations.get_translation(lang, "survival_channel_set").format(channel=interaction.channel.mention)
-                )
-            else:
-                weekday_name = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")[weekday]
-                await interaction.followup.send(
-                    translations.get_translation(lang, "survival_channel_set").format(channel=interaction.channel.mention) +
-                    f" Next update: every **{weekday_name} at {guild_cfg.get('survival_hour_utc', 12):02d}:{guild_cfg.get('survival_minute_utc', 0):02d} UTC**."
-                )
-            
-            await send_audit_log(
-                interaction.guild_id,
-                "Channel Configured & Report Posted",
-                f"Survival Mastery report channel set and initial report posted",
-                user=interaction.user,
-                details={"Channel": interaction.channel_id}
-            )
-        else:
-            await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
-    except PubgApiError as e:
-        await send_error_response(interaction, e, context="PUBG API error")
-    except Exception as e:
-        await send_error_response(interaction, e, context="Error")
-
+    await setsurvivalchannel_impl(interaction)
 
 @bot.tree.command(description="Set the weekly Survival Mastery report time in UTC")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1754,44 +1088,7 @@ async def setsurvivaltime(
 
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
 async def masterystats(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    # Same 15-seconds-per-player pacing as /survivalstats (2 PUBG calls per
-    # player) — reply instantly and post to the channel so large rosters
-    # aren't cut off by Discord's 15-minute command reply window.
-    lang = guild_cfg.get("language", "en")
-    player_count = len(guild_cfg["players"])
-    player_unit_key = "player" if player_count == 1 else "players"
-    player_unit = translations.get_translation(lang, player_unit_key)
-    
-    est_minutes = (player_count * 15 + 59) // 60
-    minute_unit_key = "minute" if est_minutes == 1 else "minutes"
-    minute_unit = translations.get_translation(lang, minute_unit_key)
-    
-    await interaction.response.send_message(
-        translations.get_translation(lang, "working_on_it_large").format(count=player_count, unit=player_unit, time=est_minutes, time_unit=minute_unit)
-    )
-    channel = interaction.channel
-    try:
-        result = await fetch_mastery_report(interaction.guild_id, interaction.guild.name)
-    except PubgApiError as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] PUBG API error while building mastery report")
-        await channel.send(f"❌ PUBG API error. Error reference: {error_id}")
-        return
-    except Exception as e:
-        error_id = generate_error_id()
-        logger.exception(f"[{error_id}] Error generating mastery report")
-        await channel.send(f"❌ Something went wrong. Error reference: {error_id}")
-        return
-    if result is None:
-        await channel.send(translations.get_translation(lang, "no_players_tracked_short"))
-        return
-    embed, players = result
-    await channel.send(embed=embed)
-
+    await masterystats_impl(interaction, pubg)
 
 @bot.tree.command(description="Check the official leaderboard for roster placements (most won't appear — top ladder only)")
 @app_commands.describe(pages="How many 500-player pages to check (default 4 = top 2000)")
@@ -1831,11 +1128,7 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     ]
 )
 async def setleaderboardregion(interaction: discord.Interaction, region: app_commands.Choice[str]):
-    def modifier(guild_cfg):
-        guild_cfg["leaderboard_shard"] = region.value
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Leaderboard lookups will now use **{region.name}**.")
-
+    await setleaderboardregion_impl(interaction, region)
 
 @bot.tree.command(description="Set which queue the leaderboard check looks at (squad, duo, or solo TPP)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1847,188 +1140,37 @@ async def setleaderboardregion(interaction: discord.Interaction, region: app_com
     ]
 )
 async def setleaderboardqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
-    def modifier(guild_cfg):
-        guild_cfg["leaderboard_queue"] = queue.value
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(f"✅ Leaderboard checks will now use **{queue.name}**.")
-
-
-async def _resolve_and_link(interaction: discord.Interaction, pubg_name: str, target: discord.Member) -> None:
-    """
-    Shared PUBG-name verification + await storage.link_discord_account() call
-    used by both /linkme (self) and /linkplayer (linking someone
-    else). Always replies ephemerally; caller must have already deferred.
-    """
-    pubg_name = pubg_name.strip()
-    if not pubg_name:
-        await interaction.followup.send("Please provide a PUBG name.", ephemeral=True)
-        return
-
-    try:
-        players = await pubg.get_players_by_name([pubg_name])
-    except PubgApiError as e:
-        await interaction.followup.send(f"❌ Could not verify that name right now: {e}", ephemeral=True)
-        return
-
-    if not players:
-        await interaction.followup.send(
-            f"❌ Could not find a PUBG player named **{pubg_name}**. Check the spelling — it's case-sensitive-looking but PUBG names aren't, so this only fails on an actual typo.",
-            ephemeral=True,
-        )
-        return
-
-    # Use the API's returned casing so the link key matches what every
-    # other report already resolves against (storage lowercases the key
-    # internally, but the display name elsewhere in reports comes from
-    # this exact casing via pubg.get_players_by_name).
-    correct_name = players[0]["name"]
-    existing_id = await storage.get_discord_id(interaction.guild_id, correct_name)
-    await storage.link_discord_account(interaction.guild_id, correct_name, target.id)
-
-    note = ""
-    if existing_id is not None and existing_id != target.id:
-        note = " (this replaces a link to a different Discord account)"
-    await interaction.followup.send(
-        f"✅ Linked **{target.display_name}** to PUBG player **{correct_name}**{note}.\n"
-        f"{'You' if target.id == interaction.user.id else target.display_name} will show as a mention next to "
-        "that name on `/leaderboardstats` if placing on the official ladder. Use `/unlinkme` to remove it.",
-        ephemeral=True,
-    )
-
+    await setleaderboardqueue_impl(interaction, queue)
 
 @bot.tree.command(description="Link your Discord account to a PUBG name (shows as a mention on the official leaderboard report)")
 @app_commands.describe(pubg_name="Your exact PUBG in-game name")
 async def linkme(interaction: discord.Interaction, pubg_name: str):
-    """
-    Creates the report-identity link that await storage.link_discord_account()
-    already supported but nothing called before this command existed.
-    Reports no longer post a separate per-player message or ping anyone;
-    the sole remaining effect of a link is that /leaderboardstats shows a
-    non-pinging @mention next to your name instead of the plain PUBG name
-    when you place on the official ladder.
-    """
-    await interaction.response.defer(ephemeral=True)
-    await _resolve_and_link(interaction, pubg_name, interaction.user)
-
+    await linkme_impl(interaction, pubg_name)
 
 @bot.tree.command(description="Link another member's Discord account to a PUBG name on their behalf")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(member="The Discord member to link", pubg_name="Their exact PUBG in-game name")
 async def linkplayer(interaction: discord.Interaction, member: discord.Member, pubg_name: str):
-    """
-    Counterpart to /linkme, for linking someone other than yourself — e.g.
-    a member who won't run the self-link command themselves. Requires
-    Manage Server permission to prevent unauthorized account linking.
-    Same verification and storage call as /linkme, just targeting an arbitrary
-    member instead of the caller.
-    """
-    await interaction.response.defer(ephemeral=True)
-    await _resolve_and_link(interaction, pubg_name, member)
-
+    await linkplayer_impl(interaction, member, pubg_name)
 
 @bot.tree.command(description="Remove your Discord-to-PUBG-name link")
 @app_commands.describe(pubg_name="The PUBG name to unlink")
 async def unlinkme(interaction: discord.Interaction, pubg_name: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    linked_id = guild_cfg["discord_links"].get(normalize_player_name(pubg_name))
-    # Only the Discord account a link points to — or a server manager — may
-    # remove it. Previously anyone in the server could delete anyone's link.
-    is_their_own_link = linked_id is not None and linked_id == interaction.user.id
-    is_server_manager = interaction.user.guild_permissions.manage_guild
-    if not (is_their_own_link or is_server_manager):
-        await interaction.response.send_message(
-            "You can only remove a link that points to your own account — ask a server manager for other names.",
-            ephemeral=True,
-        )
-        return
-    removed = await storage.unlink_discord_account(interaction.guild_id, pubg_name)
-    if removed:
-        await interaction.response.send_message(f"🗑️ Unlinked **{pubg_name}**.")
-    else:
-        await interaction.response.send_message(f"**{pubg_name}** wasn't linked to anyone.", ephemeral=True)
-
+    await unlinkme_impl(interaction, pubg_name)
 
 @bot.tree.command(description="Show every PUBG-name-to-Discord link for this server")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def links(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    discord_links = guild_cfg["discord_links"]
-    if not discord_links:
-        await interaction.response.send_message(
-            "No accounts are linked yet. Use `/linkme <pubg_name>` to link your own, "
-            "or `/linkplayer <member> <pubg_name>` to link someone else's.",
-            ephemeral=True
-        )
-        return
-
-    # discord_links keys are normalized; show the roster's actual casing
-    # when the linked name is still tracked, otherwise fall back to the
-    # normalized key as stored (e.g. the player was later removed from
-    # the roster but the link was never cleaned up).
-    proper_case = {normalize_player_name(p): p for p in guild_cfg["players"]}
-    lines = [
-        f"**{proper_case.get(name_normalized, name_normalized)}** — <@{discord_id}>"
-        for name_normalized, discord_id in sorted(discord_links.items())
-    ]
-
-    embed = discord.Embed(title="🔗 Linked Accounts", color=discord.Color.blurple())
-    chunk_size = 20
-    for i in range(0, len(lines), chunk_size):
-        embed.add_field(
-            name="Links" if i == 0 else "\u200b",
-            value="\n".join(lines[i : i + chunk_size]),
-            inline=False,
-        )
-    await interaction.response.send_message(embed=embed, ephemeral=True)
-
+    await links_impl(interaction)
 
 @bot.tree.command(description="Check the roster's recent match history for wins in all game modes")
 async def chickendinner(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked_short"))
-        return
-
-    await interaction.response.defer()
-    try:
-        wins, _ = await pubg.get_squad_wins(guild_cfg["players"], matches_to_check=50)
-    except PubgApiError as e:
-        await interaction.followup.send(f"❌ Could not check the PUBG API right now: {e}")
-        return
-
-    # Convert all wins to the format expected by the embed
-    winners = []
-    for win in wins:
-        for player in win.get("players", []):
-            winners.append((player["name"], {
-                "winPlace": player["winPlace"],
-                "kills": player["kills"],
-                "match_id": win.get("match_id"),
-                "created_at": win.get("created_at")
-            }))
-
-    # Count total wins (all matches in range)
-    total_wins = len(wins)
-    
-    embed = build_chicken_dinner_embed(winners, is_automated=False, total_wins=total_wins)
-    await interaction.followup.send(embed=embed)
-
+    await chickendinner_impl(interaction, pubg)
 
 @bot.tree.command(description="Set this channel for automatic Chicken Dinner win alerts (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
-        guild_cfg["chicken_dinner_enabled"] = True
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "chicken_dinner_channel_set").format(channel=interaction.channel.mention)
-    )
-
+    await setchickendinnerchannel_impl(interaction)
 
 @bot.tree.command(description="Toggle mention notifications for achievement awards in reports")
 @app_commands.checks.has_permissions(manage_guild=True)
