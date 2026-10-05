@@ -138,10 +138,11 @@ def _validate_schema(data: dict) -> bool:
                     logger.critical(f"Guild {guild_id} '{field}' field is not numeric")
                     return False
         
-        # Validate timestamp fields
-        for field in ["last_post_at", "last_activity_posted_at", "ranked_posted_at", 
-                      "clan_posted_at", "survival_posted_at", "donation_posted_at",
-                      "last_feedback_prompt_at"]:
+        # Validate timestamp fields only if present
+        timestamp_fields = ["last_post_at", "last_activity_posted_at", "ranked_posted_at",
+                          "clan_posted_at", "survival_posted_at", "donation_posted_at",
+                          "last_feedback_prompt_at", "chicken_dinner_reset_at"]
+        for field in timestamp_fields:
             if field in guild_data and guild_data[field] is not None:
                 if not isinstance(guild_data[field], str):
                     logger.critical(f"Guild {guild_id} '{field}' field is not a string")
