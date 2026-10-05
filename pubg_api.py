@@ -34,10 +34,12 @@ class ResponseCache:
     """
     TTL cache for PUBG API responses to avoid redundant requests.
     PUBG explicitly recommends caching player data for 20-30 minutes.
+    Includes in-flight request deduplication to prevent cache stampedes.
     """
 
     def __init__(self):
         self._cache: dict[str, tuple[Any, datetime]] = {}
+        self._in_flight: dict[str, asyncio.Task] = {}
         self._lock = asyncio.Lock()
 
     def _make_key(self, prefix: str, *parts: Any) -> str:
@@ -61,6 +63,46 @@ class ResponseCache:
         async with self._lock:
             expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
             self._cache[key] = (value, expires_at)
+
+    async def get_or_fetch(self, key: str, fetch_func, ttl_minutes: int) -> Any:
+        """
+        Get cached value, or fetch using the provided function.
+        Deduplicates simultaneous requests for the same key to prevent cache stampedes.
+        """
+        async with self._lock:
+            # Check cache first (inside lock to avoid race condition)
+            entry = self._cache.get(key)
+            if entry is not None:
+                value, expires_at = entry
+                if datetime.now(timezone.utc) < expires_at:
+                    return value
+                else:
+                    # Expired - remove it
+                    del self._cache[key]
+
+            # Check for in-flight request
+            task = self._in_flight.get(key)
+            if task is not None:
+                # Another request is already fetching this
+                # Release lock before awaiting to avoid blocking other operations
+                pass
+            else:
+                # No in-flight request - create one
+                async def fetch_and_cache():
+                    try:
+                        result = await fetch_func()
+                        await self.set(key, result, ttl_minutes)
+                        return result
+                    finally:
+                        # Clean up in-flight task regardless of success/failure
+                        async with self._lock:
+                            self._in_flight.pop(key, None)
+
+                task = asyncio.create_task(fetch_and_cache())
+                self._in_flight[key] = task
+
+        # Await the task outside the lock (whether it existed or was just created)
+        return await task
 
     async def clear_expired(self):
         """Remove expired entries. Call periodically to prevent unbounded growth."""
@@ -249,60 +291,56 @@ class PubgClient:
         (last ~14 days), most-recent-first per the PUBG API.
         Unknown/misspelled names are silently dropped from the result (caller
         should diff against the input list to report ones not found).
+
+        Note: Uses 5-minute cache TTL for player lookups to balance API
+        reduction with real-time match discovery for Chicken Dinner/Daily Highlights.
         """
         if not names:
             return []
         if len(names) > 10:
             raise ValueError("PUBG API allows at most 10 player names per lookup call")
 
-        # Check cache first (30 minute TTL)
+        # Use cache with in-flight request deduplication (5 minute TTL for real-time features)
         cache_key = self._cache._make_key("players", self.shard, ",".join(sorted(names)))
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(
-            f"/shards/{self.shard}/players",
-            params={"filter[playerNames]": ",".join(names)},
-        )
-        results = []
-        for entry in data.get("data", []):
-            match_refs = entry.get("relationships", {}).get("matches", {}).get("data", [])
-            results.append(
-                {
-                    "id": entry["id"],
-                    "name": entry["attributes"]["name"],
-                    "clan_id": entry["attributes"].get("clanId"),
-                    "match_ids": [m["id"] for m in match_refs],
-                }
+        async def fetch_players():
+            data = await self._request(
+                f"/shards/{self.shard}/players",
+                params={"filter[playerNames]": ",".join(names)},
             )
+            results = []
+            for entry in data.get("data", []):
+                match_refs = entry.get("relationships", {}).get("matches", {}).get("data", [])
+                results.append(
+                    {
+                        "id": entry["id"],
+                        "name": entry["attributes"]["name"],
+                        "clan_id": entry["attributes"].get("clanId"),
+                        "match_ids": [m["id"] for m in match_refs],
+                    }
+                )
+            return results
 
-        # Cache the result
-        await self._cache.set(cache_key, results, ttl_minutes=30)
-        return results
+        return await self._cache.get_or_fetch(cache_key, fetch_players, ttl_minutes=5)
 
     async def get_clan_by_id(self, clan_id: str) -> dict:
         """Fetch a clan using its official PUBG clan ID."""
-        # Check cache first (60 minute TTL)
+        # Use cache with in-flight request deduplication (60 minute TTL)
         cache_key = self._cache._make_key("clan", self.shard, clan_id)
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(f"/shards/{self.shard}/clans/{clan_id}")
-        entry = data.get("data", {})
-        attrs = entry.get("attributes", {})
-        result = {
-            "id": entry.get("id", clan_id),
-            "name": attrs.get("clanName", "Unknown clan"),
-            "tag": attrs.get("clanTag") or "—",
-            "level": attrs.get("clanLevel", 0),
-            "member_count": attrs.get("clanMemberCount", 0),
-        }
+        async def fetch_clan():
+            data = await self._request(f"/shards/{self.shard}/clans/{clan_id}")
+            entry = data.get("data", {})
+            attrs = entry.get("attributes", {})
+            return {
+                "id": entry.get("id", clan_id),
+                "name": attrs.get("clanName", "Unknown clan"),
+                "tag": attrs.get("clanTag") or "—",
+                "level": attrs.get("clanLevel", 0),
+                "member_count": attrs.get("clanMemberCount", 0),
+            }
 
-        # Cache the result
-        await self._cache.set(cache_key, result, ttl_minutes=60)
-        return result
+        return await self._cache.get_or_fetch(cache_key, fetch_clan, ttl_minutes=60)
 
     async def get_clan_for_player_name(self, player_name: str) -> dict | None:
         """Resolve a player's clan, since PUBG does not offer clan-name search."""
@@ -321,24 +359,21 @@ class PubgClient:
         if len(player_ids) > 10:
             raise ValueError("PUBG API allows at most 10 player IDs per stats batch call")
 
-        # Check cache first (25 minute TTL)
+        # Use cache with in-flight request deduplication (25 minute TTL)
         cache_key = self._cache._make_key("lifetime", self.shard, game_mode, ",".join(sorted(player_ids)))
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(
-            f"/shards/{self.shard}/seasons/lifetime/gameMode/{game_mode}/players",
-            params={"filter[playerIds]": ",".join(player_ids)},
-        )
-        out: dict[str, dict] = {}
-        for entry in data.get("data", []):
-            player_id = entry["relationships"]["player"]["data"]["id"]
-            out[player_id] = entry["attributes"]["gameModeStats"].get(game_mode, {})
+        async def fetch_lifetime():
+            data = await self._request(
+                f"/shards/{self.shard}/seasons/lifetime/gameMode/{game_mode}/players",
+                params={"filter[playerIds]": ",".join(player_ids)},
+            )
+            out: dict[str, dict] = {}
+            for entry in data.get("data", []):
+                player_id = entry["relationships"]["player"]["data"]["id"]
+                out[player_id] = entry["attributes"]["gameModeStats"].get(game_mode, {})
+            return out
 
-        # Cache the result
-        await self._cache.set(cache_key, out, ttl_minutes=25)
-        return out
+        return await self._cache.get_or_fetch(cache_key, fetch_lifetime, ttl_minutes=25)
 
     async def get_players_and_stats(self, names: list[str], game_mode: str = "squad-fpp") -> tuple[list[dict], list[str]]:
         """
@@ -563,19 +598,15 @@ class PubgClient:
         """
         season_id = await self.get_current_season_id()
 
-        # Check cache first (20 minute TTL)
+        # Use cache with in-flight request deduplication (20 minute TTL)
         cache_key = self._cache._make_key("ranked", self.shard, season_id, player_id, game_mode)
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(f"/shards/{self.shard}/players/{player_id}/seasons/{season_id}/ranked")
-        modes = data.get("data", {}).get("attributes", {}).get("rankedGameModeStats", {})
-        result = modes.get(game_mode, {})
+        async def fetch_ranked():
+            data = await self._request(f"/shards/{self.shard}/players/{player_id}/seasons/{season_id}/ranked")
+            modes = data.get("data", {}).get("attributes", {}).get("rankedGameModeStats", {})
+            return modes.get(game_mode, {})
 
-        # Cache the result
-        await self._cache.set(cache_key, result, ttl_minutes=20)
-        return result
+        return await self._cache.get_or_fetch(cache_key, fetch_ranked, ttl_minutes=20)
 
     async def get_ranked_report(self, names: list[str], game_mode: str) -> tuple[list[dict], list[str]]:
         """
@@ -851,33 +882,25 @@ class PubgClient:
 
     async def get_weapon_mastery(self, player_id: str) -> dict:
         """Raw attributes from the weapon_mastery endpoint for one player."""
-        # Check cache first (20 minute TTL)
+        # Use cache with in-flight request deduplication (20 minute TTL)
         cache_key = self._cache._make_key("weapon_mastery", self.shard, player_id)
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(f"/shards/{self.shard}/players/{player_id}/weapon_mastery")
-        result = data.get("data", {}).get("attributes", {})
+        async def fetch_weapon():
+            data = await self._request(f"/shards/{self.shard}/players/{player_id}/weapon_mastery")
+            return data.get("data", {}).get("attributes", {})
 
-        # Cache the result
-        await self._cache.set(cache_key, result, ttl_minutes=20)
-        return result
+        return await self._cache.get_or_fetch(cache_key, fetch_weapon, ttl_minutes=20)
 
     async def get_survival_mastery(self, player_id: str) -> dict:
         """Raw attributes from the survival_mastery endpoint for one player."""
-        # Check cache first (20 minute TTL)
+        # Use cache with in-flight request deduplication (20 minute TTL)
         cache_key = self._cache._make_key("survival_mastery", self.shard, player_id)
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        data = await self._request(f"/shards/{self.shard}/players/{player_id}/survival_mastery")
-        result = data.get("data", {}).get("attributes", {})
+        async def fetch_survival():
+            data = await self._request(f"/shards/{self.shard}/players/{player_id}/survival_mastery")
+            return data.get("data", {}).get("attributes", {})
 
-        # Cache the result
-        await self._cache.set(cache_key, result, ttl_minutes=20)
-        return result
+        return await self._cache.get_or_fetch(cache_key, fetch_survival, ttl_minutes=20)
 
     @staticmethod
     def _best_weapon_from_mastery(attrs: dict) -> dict | None:
