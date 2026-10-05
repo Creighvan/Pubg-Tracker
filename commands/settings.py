@@ -185,19 +185,25 @@ async def clearauditchannel_impl(interaction, admin_ids):
 
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
+    await interaction.response.defer()
+
     # Check if user is admin (whitelisted or bot owner)
     is_admin = interaction.user.id in admin_ids
     if not is_admin and bot:
-        app_info = await bot.application_info()
-        is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
-        if not is_owner and hasattr(app_info, "team") and app_info.team:
-            is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
-        is_admin = is_owner
+        try:
+            app_info = await bot.application_info()
+            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
+            if not is_owner and hasattr(app_info, "team") and app_info.team:
+                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
+            is_admin = is_owner
+        except Exception:
+            # If we can't verify owner status, fall back to whitelist only
+            pass
 
     if not is_admin:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
+        await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
         return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -207,11 +213,11 @@ async def showauditconfig_impl(interaction, admin_ids):
     if audit_channel_id:
         channel = interaction.guild.get_channel(audit_channel_id)
         channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
         )
     else:
-        await interaction.response.send_message(translations.get_translation(lang, "using_central_audit"))
+        await interaction.followup.send(translations.get_translation(lang, "using_central_audit"))
 
 
 async def setlanguage_impl(interaction, language):
