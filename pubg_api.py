@@ -445,21 +445,17 @@ class PubgClient:
         can't be fetched. Match-endpoint calls do not count against the
         10/min rate limit, so these are cheap to make per-player.
         """
-        # Check cache first (10 minute TTL - matches don't change)
+        # Use cache with in-flight request deduplication (10 minute TTL - matches don't change)
         cache_key = self._cache._make_key("match_created", self.shard, match_id)
-        cached = await self._cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        try:
-            data = await self._request(f"/shards/{self.shard}/matches/{match_id}", rate_limited=False)
-        except PubgApiError:
-            return None
-        result = data.get("data", {}).get("attributes", {}).get("createdAt")
+        async def fetch_match():
+            try:
+                data = await self._request(f"/shards/{self.shard}/matches/{match_id}", rate_limited=False)
+            except PubgApiError:
+                return None
+            return data.get("data", {}).get("attributes", {}).get("createdAt")
 
-        # Cache the result
-        if result:
-            await self._cache.set(cache_key, result, ttl_minutes=10)
+        result = await self._cache.get_or_fetch(cache_key, fetch_match, ttl_minutes=10)
         return result
 
     async def get_last_active_times(self, names: list[str]) -> tuple[list[dict], list[str]]:
@@ -484,11 +480,15 @@ class PubgClient:
                     not_found.append(n)
             found.extend(resolved)
 
+        # Limit concurrent match requests to prevent overwhelming the connection pool
+        match_semaphore = asyncio.Semaphore(10)
+
         async def resolve_one(p: dict):
-            if p["match_ids"]:
-                p["last_match_at"] = await self.get_match_created_at(p["match_ids"][0])
-            else:
-                p["last_match_at"] = None
+            async with match_semaphore:
+                if p["match_ids"]:
+                    p["last_match_at"] = await self.get_match_created_at(p["match_ids"][0])
+                else:
+                    p["last_match_at"] = None
 
         await asyncio.gather(*(resolve_one(p) for p in found))
 
@@ -729,6 +729,11 @@ class PubgClient:
         winPlace achieved in a match where they got 0 kills, or None if
         every match had at least 1 kill. Sorted by kills, highest first.
         """
+        start_time = time.monotonic()
+        matches_examined = 0
+        telemetry_downloaded = 0
+        telemetry_bytes = 0
+
         # Use rolling 24-hour window from the provided hours parameter
         # Default is 24 hours from now, not the PUBG daily reset
         from datetime import datetime, timezone, timedelta
@@ -757,6 +762,8 @@ class PubgClient:
         sem = asyncio.Semaphore(1)
 
         async def fetch_match(match_id: str) -> dict:
+            nonlocal matches_examined
+            matches_examined += 1
             async with sem:
                 return await self._get_match_details(match_id)
 
@@ -773,11 +780,14 @@ class PubgClient:
             a match. Self-kills (e.g. own grenade/vehicle) show up in
             telemetry as a kill event where killer and victim are the same
             account — there's no stats-endpoint field for this."""
+            nonlocal telemetry_downloaded, telemetry_bytes
             tally: dict[str, list[int]] = {}
             if telemetry_url:
                 async with sem:
                     try:
                         events = await self._get_telemetry(telemetry_url)
+                        telemetry_downloaded += 1
+                        telemetry_bytes += len(str(events).encode('utf-8'))
                     except PubgApiError:
                         events = []
                 for e in events:
@@ -912,6 +922,12 @@ class PubgClient:
 
         await asyncio.gather(*(process_player(p) for p in found))
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
+
+        elapsed = time.monotonic() - start_time
+        print(f"[daily_highlights] Report completed in {elapsed:.1f}s - "
+              f"{matches_examined} matches examined, {telemetry_downloaded} telemetry files "
+              f"({telemetry_bytes / 1024:.1f} KB), {len(found)} players")
+
         return found, not_found
 
     # ---------- Weapon / Survival Mastery ----------
