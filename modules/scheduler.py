@@ -29,7 +29,7 @@ import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
 import history
-from commands.achievements import check_achievements, record_achievement
+from commands.achievements import check_achievements, record_achievement, ACHIEVEMENTS
 
 from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
 from storage import modify_guild

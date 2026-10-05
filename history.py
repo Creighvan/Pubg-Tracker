@@ -29,6 +29,60 @@ _lock = asyncio.Lock()
 MAX_DAILY_SNAPSHOTS = 90  # 3 months
 MAX_MATCH_HISTORY = 1000  # matches per guild
 
+# Achievement definitions (shared with commands/achievements.py)
+ACHIEVEMENTS = {
+    "first_win": {
+        "name": "First Chicken Dinner",
+        "emoji": "🏆",
+        "description": "Won your first match",
+    },
+    "wins_10": {
+        "name": "10 Wins",
+        "emoji": "🏆",
+        "description": "Reached 10 total wins",
+    },
+    "wins_50": {
+        "name": "50 Wins",
+        "emoji": "🏆",
+        "description": "Reached 50 total wins",
+    },
+    "wins_100": {
+        "name": "100 Wins",
+        "emoji": "🏆",
+        "description": "Reached 100 total wins",
+    },
+    "kills_100": {
+        "name": "100 Kills",
+        "emoji": "💀",
+        "description": "Reached 100 total kills",
+    },
+    "kills_500": {
+        "name": "500 Kills",
+        "emoji": "💀",
+        "description": "Reached 500 total kills",
+    },
+    "kills_1000": {
+        "name": "1000 Kills",
+        "emoji": "💀",
+        "description": "Reached 1000 total kills",
+    },
+    "kills_5000": {
+        "name": "5000 Kills",
+        "emoji": "💀",
+        "description": "Reached 5000 total kills",
+    },
+    "survival_tier5": {
+        "name": "Survival Tier 5",
+        "emoji": "🛡️",
+        "description": "Reached Survival Mastery Tier 5",
+    },
+    "survival_level30": {
+        "name": "Survival Level 30",
+        "emoji": "🛡️",
+        "description": "Reached Survival Mastery Level 30",
+    },
+}
+
 
 _DEFAULT_HISTORY = {
     # guild_id -> {
