@@ -293,6 +293,12 @@ from commands.analytics import (
     playertrend_impl,
     compare_impl,
 )
+from commands.profile import (
+    profile_impl,
+)
+from commands.season import (
+    season_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -1130,6 +1136,17 @@ async def playertrend(interaction: discord.Interaction, player: str, days: app_c
 @app_commands.describe(player1="First player name", player2="Second player name")
 async def compare(interaction: discord.Interaction, player1: str, player2: str):
     await compare_impl(interaction, player1, player2)
+
+
+@bot.tree.command(description="Show comprehensive player profile with stats and trends")
+@app_commands.describe(player="PUBG player name")
+async def profile(interaction: discord.Interaction, player: str):
+    await profile_impl(interaction, player)
+
+
+@bot.tree.command(description="Show current season summary for the clan")
+async def season(interaction: discord.Interaction):
+    await season_impl(interaction)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
