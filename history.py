@@ -103,6 +103,8 @@ _DEFAULT_HISTORY = {
     #         "top_weapon": str,
     #         "ranked_points": Optional[int],
     #         "ranked_tier": Optional[str],
+    #         "season_id": Optional[str],
+    #         "ranked_status": Optional[str],
     #       }
     #     }
     #   },
@@ -113,12 +115,36 @@ _DEFAULT_HISTORY = {
     #       "timestamp": ISO timestamp,
     #       "map": str,
     #       "game_mode": str,
-    #       "participants": [normalize_player_name],
+    #       "participants": [normalize_player_name],  # Legacy - list of names
+    #       "participant_details": [  # New - detailed participant data
+    #         {
+    #           "player_id": str,
+    #           "player_name": str,
+    #           "team_id": Optional[str],
+    #           "kills": int,
+    #           "damage": float,
+    #           "placement": int,
+    #         }
+    #       ],
     #       "outside_teammates": [str],  # non-tracked player names
     #       "is_win": bool,
     #       "placement": int,
     #       "total_kills": int,
     #       "total_damage": float,
+    #     }
+    #   ],
+    #   "clan_participants": [  # Canonical clan match participant dataset
+    #     {
+    #       "match_id": str,
+    #       "player_id": str,
+    #       "player_name": str,
+    #       "team_id": Optional[str],
+    #       "map": str,
+    #       "placement": int,
+    #       "kills": int,
+    #       "damage": float,
+    #       "created_at": ISO timestamp,
+    #       "is_tracked": bool,  # Whether this player is in the clan roster
     #     }
     #   ],
     #   "achievements": {
@@ -332,6 +358,237 @@ async def record_match(
 
         _save_history(data)
         logger.info(f"Recorded match {match_id} for guild {guild_id}: {len(participants)} participants")
+
+
+async def record_clan_participant(
+    guild_id: int,
+    match_id: str,
+    player_id: str,
+    player_name: str,
+    team_id: Optional[str],
+    map_name: str,
+    placement: int,
+    kills: int,
+    damage: float,
+    created_at: str,
+    is_tracked: bool,
+) -> None:
+    """
+    Record a clan match participant with team identification for chemistry analytics.
+
+    This is the canonical participant dataset that enables:
+    - /clanmatches
+    - /chemistry
+    - /bestduo
+    - /bestsquad
+    - Squad win rates
+    - Common teammates
+
+    The critical relationship is: match_id + team_id → actual teammates in that match
+    """
+    async with _lock:
+        data = _load_history()
+        guild_id_str = str(guild_id)
+
+        if guild_id_str not in data:
+            data[guild_id_str] = {
+                "daily_snapshots": {},
+                "match_history": [],
+                "achievements": {},
+                "streaks": {},
+                "clan_participants": [],
+            }
+
+        if "clan_participants" not in data[guild_id_str]:
+            data[guild_id_str]["clan_participants"] = []
+
+        # Check if this participant already recorded for this match
+        clan_participants = data[guild_id_str]["clan_participants"]
+        for participant in clan_participants:
+            if participant.get("match_id") == match_id and participant.get("player_id") == player_id:
+                return  # Already recorded (idempotent)
+
+        # Add new participant
+        clan_participants.append({
+            "match_id": match_id,
+            "player_id": player_id,
+            "player_name": player_name,
+            "team_id": team_id,
+            "map": map_name,
+            "placement": placement,
+            "kills": kills,
+            "damage": damage,
+            "created_at": created_at,
+            "is_tracked": is_tracked,
+        })
+
+        # Trim old participants (use same retention as match history)
+        if len(clan_participants) > MAX_MATCH_HISTORY * 4:  # Assume ~4 players per match
+            data[guild_id_str]["clan_participants"] = clan_participants[-(MAX_MATCH_HISTORY * 4):]
+
+        _save_history(data)
+        logger.info(f"Recorded clan participant {player_name} for match {match_id} in guild {guild_id}")
+
+
+async def get_clan_participants(
+    guild_id: int,
+    days: Optional[int] = None,
+    player_filter: Optional[str] = None,
+    tracked_only: bool = True,
+) -> list[dict]:
+    """
+    Get clan match participants for analytics.
+
+    Args:
+        guild_id: Discord guild ID
+        days: Optional time filter (None = all history)
+        player_filter: Optional player name filter
+        tracked_only: If True, only return tracked clan members
+
+    Returns:
+        List of participant records with team_id for chemistry analysis
+    """
+    async with _lock:
+        data = _load_history()
+        guild_id_str = str(guild_id)
+
+        if guild_id_str not in data:
+            return []
+
+        clan_participants = data[guild_id_str].get("clan_participants", [])
+
+        # Apply filters
+        if days is not None:
+            cutoff_date = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+            clan_participants = [p for p in clan_participants if p.get("created_at", "") >= cutoff_date]
+
+        if player_filter is not None:
+            normalized = normalize_player_name(player_filter)
+            clan_participants = [p for p in clan_participants if normalize_player_name(p.get("player_name", "")) == normalized]
+
+        if tracked_only:
+            clan_participants = [p for p in clan_participants if p.get("is_tracked", False)]
+
+        return clan_participants
+
+
+def are_teammates(participant_a: dict, participant_b: dict) -> bool:
+    """
+    Determine if two participants were teammates in the same match.
+
+    Args:
+        participant_a: First participant record
+        participant_b: Second participant record
+
+    Returns:
+        True if same match AND same team_id, False otherwise
+    """
+    # Must be same match
+    if participant_a.get("match_id") != participant_b.get("match_id"):
+        return False
+
+    # Must have valid team_ids
+    team_a = participant_a.get("team_id")
+    team_b = participant_b.get("team_id")
+
+    if not team_a or not team_b:
+        return False
+
+    # Must be same team
+    return team_a == team_b
+
+
+async def get_teammate_pairs(
+    guild_id: int,
+    days: Optional[int] = None,
+    min_matches: int = 1,
+) -> dict:
+    """
+    Get all teammate pairs and their match history for chemistry analytics.
+
+    Returns:
+        Dict where key is "player1_player2" (sorted alphabetically) and value is:
+        {
+            "matches": int,
+            "wins": int,
+            "top10": int,
+            "combined_kills": int,
+            "combined_damage": float,
+            "avg_placement": float,
+            "win_rate": float,
+        }
+    """
+    participants = await get_clan_participants(guild_id, days=days, tracked_only=True)
+
+    # Group by match
+    matches: dict[str, list[dict]] = {}
+    for p in participants:
+        match_id = p.get("match_id")
+        if match_id not in matches:
+            matches[match_id] = []
+        matches[match_id].append(p)
+
+    # Find teammate pairs
+    pairs: dict[str, dict] = {}
+
+    for match_id, match_participants in matches.items():
+        # Group by team
+        teams: dict[str, list[dict]] = {}
+        for p in match_participants:
+            team_id = p.get("team_id")
+            if team_id:
+                if team_id not in teams:
+                    teams[team_id] = []
+                teams[team_id].append(p)
+
+        # For each team, generate all pairs
+        for team_id, team_players in teams.items():
+            # Sort players by name for consistent pairing
+            team_players.sort(key=lambda x: x.get("player_name", ""))
+
+            # Generate all pairs
+            for i in range(len(team_players)):
+                for j in range(i + 1, len(team_players)):
+                    p1 = team_players[i]
+                    p2 = team_players[j]
+
+                    # Create pair key (sorted alphabetically)
+                    names = sorted([p1.get("player_name", ""), p2.get("player_name", "")])
+                    pair_key = f"{names[0]}_{names[1]}"
+
+                    if pair_key not in pairs:
+                        pairs[pair_key] = {
+                            "matches": 0,
+                            "wins": 0,
+                            "top10": 0,
+                            "combined_kills": 0,
+                            "combined_damage": 0.0,
+                            "placements": [],
+                        }
+
+                    # Update stats
+                    pairs[pair_key]["matches"] += 1
+                    pairs[pair_key]["combined_kills"] += p1.get("kills", 0) + p2.get("kills", 0)
+                    pairs[pair_key]["combined_damage"] += p1.get("damage", 0) + p2.get("damage", 0)
+
+                    placement = p1.get("placement", 0)  # Both have same placement
+                    pairs[pair_key]["placements"].append(placement)
+
+                    if placement == 1:
+                        pairs[pair_key]["wins"] += 1
+                    if placement <= 10:
+                        pairs[pair_key]["top10"] += 1
+
+    # Calculate derived stats
+    for pair_key, stats in pairs.items():
+        if stats["matches"] >= min_matches:
+            stats["win_rate"] = (stats["wins"] / stats["matches"] * 100) if stats["matches"] > 0 else 0
+            stats["avg_placement"] = (sum(stats["placements"]) / len(stats["placements"])) if stats["placements"] else 0
+        else:
+            stats["win_rate"] = 0
+            stats["avg_placement"] = 0
+
+    return pairs
 
 
 async def get_guild_matches(
