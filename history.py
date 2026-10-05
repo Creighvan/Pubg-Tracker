@@ -422,3 +422,73 @@ async def calculate_trend(
         "period_days": days,
         "snapshots_count": len(snapshots),
     }
+
+
+def calculate_rank_progression(previous: dict, current: dict) -> dict:
+    """
+    Calculate rank progression between two snapshots.
+
+    Explicit outcomes:
+    - same season + valid RP → delta
+    - different season → season_reset
+    - missing previous data → insufficient_history
+    - missing current RP → unavailable
+    - API error → unavailable
+
+    Args:
+        previous: dict with ranked_points, ranked_tier, season_id, ranked_status
+        current: dict with ranked_points, ranked_tier, season_id, ranked_status
+
+    Returns:
+        dict with:
+        - status: "delta", "season_reset", "insufficient_history", "unavailable"
+        - point_change: int (only if status is "delta")
+        - previous_tier: str
+        - current_tier: str
+        - previous_points: int
+        - current_points: int
+    """
+    prev_points = previous.get("ranked_points")
+    curr_points = current.get("ranked_points")
+    prev_season = previous.get("season_id")
+    curr_season = current.get("season_id")
+    prev_status = previous.get("ranked_status")
+    curr_status = current.get("ranked_status")
+
+    # Handle API errors or unavailable data
+    if curr_status == "error" or prev_status == "error":
+        return {
+            "status": "unavailable",
+            "reason": "ranked data unavailable due to API error"
+        }
+
+    # Handle missing data
+    if prev_points is None or curr_points is None:
+        return {
+            "status": "insufficient_history",
+            "reason": "missing ranked data in one or both snapshots"
+        }
+
+    # Handle season transition
+    if prev_season != curr_season:
+        return {
+            "status": "season_reset",
+            "reason": "season changed",
+            "previous_season": prev_season,
+            "current_season": curr_season,
+            "previous_points": prev_points,
+            "current_points": curr_points,
+            "previous_tier": previous.get("ranked_tier"),
+            "current_tier": current.get("ranked_tier"),
+        }
+
+    # Same season, valid data - calculate delta
+    point_change = curr_points - prev_points
+    return {
+        "status": "delta",
+        "point_change": point_change,
+        "previous_points": prev_points,
+        "current_points": curr_points,
+        "previous_tier": previous.get("ranked_tier"),
+        "current_tier": current.get("ranked_tier"),
+    }
