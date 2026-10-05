@@ -29,6 +29,7 @@ import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
 import history
+from commands.achievements import check_achievements, record_achievement
 
 from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
 from storage import modify_guild
@@ -864,6 +865,13 @@ async def run_daily_snapshot():
                         "kd": round(stats.get("kills", 0) / max(stats.get("deaths", 1), 1), 2),
                         "avg_placement": stats.get("avgPlacement", 0),
                     }
+
+                    # Check for new achievements
+                    new_achievements = await check_achievements(guild_id, player["name"], stats)
+                    for achievement_id in new_achievements:
+                        await record_achievement(guild_id, player["name"], achievement_id)
+                        achievement = ACHIEVEMENTS.get(achievement_id, {})
+                        print(f"[auto_daily_snapshot] {player['name']} earned achievement: {achievement.get('name', achievement_id)}")
 
                 await history.record_daily_snapshot(guild_id, today, player_stats)
                 print(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
