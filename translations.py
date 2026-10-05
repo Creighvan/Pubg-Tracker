@@ -84,6 +84,10 @@ TRANSLATIONS = {
         "inactive_rate": "Inactive Rate",
         "inactive_players": "Inactive Players",
         "declining_players": "Declining Players",
+        "achievements_title": "Achievements",
+        "no_achievements": "No achievements earned yet.",
+        "earned_achievement": "Earned:",
+        "achievement_notification": "🏆 {player} earned achievement: {achievement}!",
         
         # Last Active Report
         "last_active_report": "Last Active Report",
@@ -360,6 +364,10 @@ TRANSLATIONS = {
         "inactive_rate": "不活跃率",
         "inactive_players": "不活跃玩家",
         "declining_players": "下降中玩家",
+        "achievements_title": "成就",
+        "no_achievements": "尚未获得任何成就。",
+        "earned_achievement": "获得：",
+        "achievement_notification": "🏆 {player} 获得成就：{achievement}！",
         
         # Last Active Report
         "last_active_report": "最后活跃报告",
@@ -638,6 +646,10 @@ TRANSLATIONS = {
         "inactive_rate": "Tasa de inactividad",
         "inactive_players": "Jugadores inactivos",
         "declining_players": "Jugadores en declive",
+        "achievements_title": "Logros",
+        "no_achievements": "Aún no se han ganado logros.",
+        "earned_achievement": "Ganado:",
+        "achievement_notification": "🏆 {player} ganó logro: {achievement}!",
         
         # Last Active Report
         "last_active_report": "Informe de última actividad",
@@ -918,6 +930,10 @@ TRANSLATIONS = {
         "inactive_rate": "निष्क्रियता दर",
         "inactive_players": "निष्क्रिय खिलाड़ी",
         "declining_players": "गिरावट वाले खिलाड़ी",
+        "achievements_title": "उपलब्धियाँ",
+        "no_achievements": "अभी तक कोई उपलब्धि नहीं मिली है।",
+        "earned_achievement": "प्राप्त:",
+        "achievement_notification": "🏆 {player} ने उपलब्धि प्राप्त की: {achievement}!",
         
         # Last Active Report
         "last_active_report": "अंतिम सक्रिय रिपोर्ट",
@@ -1196,6 +1212,10 @@ TRANSLATIONS = {
         "inactive_rate": "معدل عدم النشاط",
         "inactive_players": "اللاعبون غير النشطين",
         "declining_players": "اللاعبون المتراجعون",
+        "achievements_title": "الإنجازات",
+        "no_achievements": "لم يتم كسب أي إنجازات بعد.",
+        "earned_achievement": "مكتسب:",
+        "achievement_notification": "🏆 {player} كسب إنجاز: {achievement}!",
         
         # Last Active Report
         "last_active_report": "تقرير آخر نشاط",
@@ -1474,6 +1494,10 @@ TRANSLATIONS = {
         "inactive_rate": "Taux d'inactivité",
         "inactive_players": "Joueurs inactifs",
         "declining_players": "Joueurs en déclin",
+        "achievements_title": "Réalisations",
+        "no_achievements": "Aucune réalisation gagnée pour le moment.",
+        "earned_achievement": "Gagné:",
+        "achievement_notification": "🏆 {player} a gagné une réalisation: {achievement}!",
         
         # Last Active Report
         "last_active_report": "Rapport de dernière activité",
@@ -1752,6 +1776,10 @@ TRANSLATIONS = {
         "inactive_rate": "নিষ্ক্রিয়তা হার",
         "inactive_players": "নিষ্ক্রিয় খেলোয়াড়",
         "declining_players": "হ্রাসমান খেলোয়াড়",
+        "achievements_title": "অর্জন",
+        "no_achievements": "এখনও কোনো অর্জন অর্জিত হয়নি।",
+        "earned_achievement": "অর্জিত:",
+        "achievement_notification": "🏆 {player} অর্জন অর্জিত করেছে: {achievement}!",
         
         # Last Active Report
         "last_active_report": "শেষ সক্রিয় রিপোর্ট",
@@ -2030,6 +2058,10 @@ TRANSLATIONS = {
         "inactive_rate": "Taxa de inatividade",
         "inactive_players": "Jogadores inativos",
         "declining_players": "Jogadores em declínio",
+        "achievements_title": "Conquistas",
+        "no_achievements": "Nenhuma conquista ainda ganada.",
+        "earned_achievement": "Ganho:",
+        "achievement_notification": "🏆 {player} ganhou conquista: {achievement}!",
         
         # Last Active Report
         "last_active_report": "Relatório de última atividade",
@@ -2316,6 +2348,10 @@ TRANSLATIONS = {
         "inactive_rate": "Tingkat ketidakaktifan",
         "inactive_players": "Pemain tidak aktif",
         "declining_players": "Pemain menurun",
+        "achievements_title": "Pencapaian",
+        "no_achievements": "Belum ada pencapaian yang diraih.",
+        "earned_achievement": "Diraih:",
+        "achievement_notification": "🏆 {player} meraih pencapaian: {achievement}!",
         
         # Last Active Report
         "last_active_report": "Laporan aktivitas terakhir",
@@ -2602,6 +2638,10 @@ TRANSLATIONS = {
         "inactive_rate": "غیر فعال شرح",
         "inactive_players": "غیر فعال کھلاڑی",
         "declining_players": "گرائے والے کھلاڑی",
+        "achievements_title": "کارنامے",
+        "no_achievements": "ابھی تک کوئی کارنامہ حاصل نہیں ہوا۔",
+        "earned_achievement": "حاصل:",
+        "achievement_notification": "🏆 {player} نے کارنامہ حاصل کیا: {achievement}!",
         
         # Last Active Report
         "last_active_report": "آخری فعال رپورٹ",
