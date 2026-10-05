@@ -289,6 +289,10 @@ from commands.admin import (
     askfeedback_impl,
     botservers_impl,
 )
+from commands.analytics import (
+    playertrend_impl,
+    compare_impl,
+)
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
@@ -1114,6 +1118,18 @@ async def pingtoggle(interaction: discord.Interaction, enabled: app_commands.Cho
         f"When {'enabled' if is_enabled else 'disabled'}, linked Discord accounts will {'be @mentioned' if is_enabled else 'not be @mentioned'} "
         f"in achievement reports. Their avatar links will still work regardless of this setting."
     )
+
+
+@bot.tree.command(description="Show 7-day trend for a tracked player")
+@app_commands.describe(player="PUBG player name", days="Number of days to analyze (default 7)")
+async def playertrend(interaction: discord.Interaction, player: str, days: app_commands.Range[int, 3, 90] = 7):
+    await playertrend_impl(interaction, player, days)
+
+
+@bot.tree.command(description="Compare two tracked players")
+@app_commands.describe(player1="First player name", player2="Second player name")
+async def compare(interaction: discord.Interaction, player1: str, player2: str):
+    await compare_impl(interaction, player1, player2)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
