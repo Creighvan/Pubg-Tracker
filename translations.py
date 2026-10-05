@@ -69,6 +69,9 @@ TRANSLATIONS = {
         "not_found": "Not found",
         "protected_footer": "🛡️ = Protected from inactivity removal",
         "updates_daily": "Updates daily at 02:00 UTC (live-updating, not reposted)",
+        "player_not_tracked": "{name} is not tracked. Add them with `/addplayer`.",
+        "insufficient_history": "Need at least 2 days of historical data to calculate trend over {days} days.",
+        "insufficient_history_compare": "Need historical data for both players to compare.",
         
         # Last Active Report
         "last_active_report": "Last Active Report",
@@ -330,6 +333,9 @@ TRANSLATIONS = {
         "not_found": "未找到",
         "protected_footer": "🛡️ = 免受不活跃移除保护",
         "updates_daily": "每天UTC凌晨2点更新（实时更新，不重新发布）",
+        "player_not_tracked": "{name} 未被跟踪。使用 `/addplayer` 添加。",
+        "insufficient_history": "需要至少2天的历史数据来计算 {days} 天的趋势。",
+        "insufficient_history_compare": "需要两名玩家的历史数据才能进行比较。",
         
         # Last Active Report
         "last_active_report": "最后活跃报告",
@@ -593,6 +599,9 @@ TRANSLATIONS = {
         "not_found": "No encontrado",
         "protected_footer": "🛡️ = Protegido de eliminación por inactividad",
         "updates_daily": "Actualizaciones diarias a las 02:00 UTC (actualización en vivo, no republicado)",
+        "player_not_tracked": "{name} no está rastreado. Agrégalos con `/addplayer`.",
+        "insufficient_history": "Se necesitan al menos 2 días de datos históricos para calcular la tendencia de {days} días.",
+        "insufficient_history_compare": "Se necesitan datos históricos de ambos jugadores para comparar.",
         
         # Last Active Report
         "last_active_report": "Informe de última actividad",
@@ -858,6 +867,9 @@ TRANSLATIONS = {
         "not_found": "नहीं मिला",
         "protected_footer": "🛡️ = निष्क्रियता हटाने से संरक्षित",
         "updates_daily": "दैनिक UTC रात 2 बजे अपडेट (लाइव अपडेट, पुनः पोस्ट नहीं)",
+        "player_not_tracked": "{name} ट्रैक नहीं किया गया। `/addplayer` के साथ जोड़ें।",
+        "insufficient_history": "{days} दिनों की प्रवृत्ति की गणना के लिए कम से कम 2 दिनों का ऐतिहासिक डेटा आवश्यक है।",
+        "insufficient_history_compare": "तुलना करने के लिए दोनों खिलाड़ियों का ऐतिहासिक डेटा आवश्यक है।",
         
         # Last Active Report
         "last_active_report": "अंतिम सक्रिय रिपोर्ट",
@@ -1121,6 +1133,9 @@ TRANSLATIONS = {
         "not_found": "غير موجود",
         "protected_footer": "🛡️ = محمي من الإزالة بسبب عدم النشاط",
         "updates_daily": "تحديثات يومية الساعة 02:00 UTC (تحديث مباشر، لا إعادة نشر)",
+        "player_not_tracked": "{name} غير متتبع. أضفهم باستخدام `/addplayer`.",
+        "insufficient_history": "يحتاج إلى بيانات تاريخية لمدة يومين على الأقل لحساب الاتجاه خلال {days} يوم.",
+        "insufficient_history_compare": "يحتاج إلى بيانات تاريخية للاعبين للمقارنة.",
         
         # Last Active Report
         "last_active_report": "تقرير آخر نشاط",
@@ -1384,6 +1399,9 @@ TRANSLATIONS = {
         "not_found": "Non trouvé",
         "protected_footer": "🛡️ = Protégé de la suppression par inactivité",
         "updates_daily": "Mises à jour quotidiennes à 02:00 UTC (mise à jour en direct, non republié)",
+        "player_not_tracked": "{name} n'est pas suivi. Ajoutez-les avec `/addplayer`.",
+        "insufficient_history": "Besoin d'au moins 2 jours de données historiques pour calculer la tendance sur {days} jours.",
+        "insufficient_history_compare": "Besoin de données historiques pour les deux joueurs pour comparer.",
         
         # Last Active Report
         "last_active_report": "Rapport de dernière activité",
@@ -1647,6 +1665,9 @@ TRANSLATIONS = {
         "not_found": "পাওয়া যায়নি",
         "protected_footer": "🛡️ = নিষ্ক্রিয়তা অপসারণ থেকে সুরক্ষিত",
         "updates_daily": "দৈনিক UTC রাত 2 টায় আপডেট (লাইভ আপডেট, পুনঃপোস্ট নয়)",
+        "player_not_tracked": "{name} ট্র্যাক করা হয়নি। `/addplayer` দিয়ে যোগ করুন।",
+        "insufficient_history": "{days} দিনের ট্রেন্ড গণনা করতে অন্তত 2 দিনের ঐতিহাসিক ডেটা প্রয়োজন।",
+        "insufficient_history_compare": "তুলনা করতে উভয খেলোয়াড়ের ঐতিহাসিক ডেটা প্রয়োজন।",
         
         # Last Active Report
         "last_active_report": "শেষ সক্রিয় রিপোর্ট",
@@ -1910,6 +1931,9 @@ TRANSLATIONS = {
         "not_found": "Não encontrado",
         "protected_footer": "🛡️ = Protegido de remoção por inatividade",
         "updates_daily": "Atualizações diárias às 02:00 UTC (atualização ao vivo, não republicado)",
+        "player_not_tracked": "{name} não é rastreado. Adicione com `/addplayer`.",
+        "insufficient_history": "Precisa de pelo menos 2 dias de dados históricos para calcular tendência de {days} dias.",
+        "insufficient_history_compare": "Precisa de dados históricos de ambos os jogadores para comparar.",
         
         # Last Active Report
         "last_active_report": "Relatório de última atividade",
@@ -2181,6 +2205,9 @@ TRANSLATIONS = {
         "not_found": "Tidak ditemukan",
         "protected_footer": "🛡️ = Dilindungi dari penghapusan karena tidak aktif",
         "updates_daily": "Pembaruan harian pukul 02:00 UTC (pembaruan langsung, tidak diposting ulang)",
+        "player_not_tracked": "{name} tidak dilacak. Tambahkan dengan `/addplayer`.",
+        "insufficient_history": "Membutuhkan setidaknya 2 hari data historis untuk menghitung tren {days} hari.",
+        "insufficient_history_compare": "Membutuhkan data historis kedua pemain untuk membandingkan.",
         
         # Last Active Report
         "last_active_report": "Laporan aktivitas terakhir",
@@ -2452,6 +2479,9 @@ TRANSLATIONS = {
         "not_found": "نہیں ملا",
         "protected_footer": "🛡️ = عدم فعالیت سے ہٹانے سے محفوظ",
         "updates_daily": "روزانہ UTC رات 2 بجے اپ ڈیٹ (لائیو اپ ڈیٹ، دوبارہ پوسٹ نہیں)",
+        "player_not_tracked": "{name} ٹریک نہیں کیا گیا۔ `/addplayer` کے ساتھ شامل کریں۔",
+        "insufficient_history": "{days} دنوں کی رجحان کیلئے کم از کم 2 دنوں کا تاریخی ڈیٹا درکار ہے۔",
+        "insufficient_history_compare": "موازنہ کرنے کیلئے دونوں کھلاڑیوں کا تاریخی ڈیٹا درکار ہے۔",
         
         # Last Active Report
         "last_active_report": "آخری فعال رپورٹ",
