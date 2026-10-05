@@ -1,0 +1,22 @@
+{
+  "999999999": {
+    "daily_snapshots": {
+      "2026-10-05": {
+        "testplayer": {
+          "matches": 100,
+          "wins": 10,
+          "kills": 250,
+          "deaths": 100,
+          "damage": 50000,
+          "top10": 40,
+          "win_rate": 10.0,
+          "kd": 2.5,
+          "avg_placement": 12.5
+        }
+      }
+    },
+    "match_history": [],
+    "achievements": {},
+    "streaks": {}
+  }
+}

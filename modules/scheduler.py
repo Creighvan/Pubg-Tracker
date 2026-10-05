@@ -28,6 +28,7 @@ import asyncio
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
+import history
 
 from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
 from storage import modify_guild
@@ -763,6 +764,8 @@ def start_all_scheduled_tasks(bot_instance):
     bot_instance.loop.create_task(run_daily_backup())
     # Start cache cleanup task
     bot_instance.loop.create_task(run_cache_cleanup())
+    # Start daily snapshot task
+    bot_instance.loop.create_task(run_daily_snapshot())
 
 
 async def run_daily_backup():
@@ -806,3 +809,66 @@ async def run_cache_cleanup():
             print("[cache_cleanup] Expired cache entries cleared")
         except Exception as e:
             print(f"[cache_cleanup] Error clearing cache: {e}")
+
+
+async def run_daily_snapshot():
+    """
+    Background task that records historical daily snapshots for all tracked players.
+    Runs once daily at 03:00 UTC (after the daily backup).
+    """
+    await _get_bot().wait_until_ready()
+    utc = timezone.utc
+    from modules.utils import normalize_player_name
+
+    while True:
+        now = datetime.now(utc)
+        next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run += timedelta(days=1)
+
+        sleep_seconds = (next_run - now).total_seconds()
+        print(f"[auto_daily_snapshot] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
+        await asyncio.sleep(sleep_seconds)
+
+        today = datetime.now(utc).strftime("%Y-%m-%d")
+        print(f"[auto_daily_snapshot] Recording daily snapshots for {today}")
+
+        for guild_id in await storage.all_guild_ids():
+            guild_cfg = await storage.get_guild(guild_id)
+            players = guild_cfg.get("players", [])
+
+            if not players:
+                continue
+
+            game_mode = guild_cfg.get("game_mode", "squad-fpp")
+            player_stats = {}
+
+            try:
+                pubg = _get_pubg()
+
+                # Fetch lifetime stats for all players
+                found, not_found = await pubg.get_players_and_stats(players, game_mode=game_mode)
+
+                for player in found:
+                    normalized = normalize_player_name(player["name"])
+                    stats = player.get("stats", {})
+
+                    player_stats[normalized] = {
+                        "matches": stats.get("matches", 0),
+                        "wins": stats.get("wins", 0),
+                        "kills": stats.get("kills", 0),
+                        "deaths": stats.get("deaths", 0),
+                        "damage": stats.get("damageDealt", 0),
+                        "top10": stats.get("top10s", 0),
+                        "win_rate": round(stats.get("wins", 0) / max(stats.get("matches", 1), 1) * 100, 2),
+                        "kd": round(stats.get("kills", 0) / max(stats.get("deaths", 1), 1), 2),
+                        "avg_placement": stats.get("avgPlacement", 0),
+                    }
+
+                await history.record_daily_snapshot(guild_id, today, player_stats)
+                print(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
+
+            except PubgApiError as e:
+                print(f"[auto_daily_snapshot] PUBG API error for guild {guild_id}: {e}")
+            except Exception as e:
+                print(f"[auto_daily_snapshot] Unexpected error for guild {guild_id}: {e}")
