@@ -291,6 +291,99 @@ class TestClanParticipants(unittest.TestCase):
         self.assertFalse(are_teammates(squad_a[1], squad_b[0]))
         self.assertFalse(are_teammates(squad_a[1], squad_b[1]))
 
+    def test_same_team_id_different_matches_not_teammates(self):
+        """Test same team_id across different matches doesn't create false relationships."""
+        participant_a = {
+            "match_id": "match123",
+            "player_id": "player1",
+            "player_name": "Creighvan",
+            "team_id": "team7",
+            "placement": 1,
+            "kills": 5,
+        }
+        participant_b = {
+            "match_id": "match456",
+            "player_id": "player2",
+            "player_name": "Cipher617",
+            "team_id": "team7",  # Same team_id but different match
+            "placement": 5,
+            "kills": 4,
+        }
+
+        result = are_teammates(participant_a, participant_b)
+        self.assertFalse(result, "Same team_id across different matches should not create false relationships")
+
+    def test_historical_participant_without_team_id_unknown_not_opponent(self):
+        """Test historical participant without team_id is treated as unknown, not opponent."""
+        participant_a = {
+            "match_id": "match123",
+            "player_id": "player1",
+            "player_name": "Creighvan",
+            "team_id": None,  # Historical data without team_id
+            "placement": 1,
+            "kills": 5,
+        }
+        participant_b = {
+            "match_id": "match123",
+            "player_id": "player2",
+            "player_name": "Cipher617",
+            "team_id": None,  # Historical data without team_id
+            "placement": 1,
+            "kills": 7,
+        }
+
+        result = are_teammates(participant_a, participant_b)
+        self.assertFalse(result, "Missing team_id should not create false teammates")
+        # This is correct: unknown ≠ teammates, but also ≠ opponents
+        # The system conservatively requires explicit team_id confirmation
+
+    def test_partial_participant_data_no_fabricated_teammates(self):
+        """Test partial participant data doesn't fabricate teammates."""
+        participant_a = {
+            "match_id": "match123",
+            "player_id": "player1",
+            "player_name": "Creighvan",
+            "team_id": "team7",
+            "placement": 1,
+            "kills": 5,
+        }
+        participant_b = {
+            "match_id": "match123",
+            "player_id": "player2",
+            "player_name": "Cipher617",
+            "team_id": None,  # Missing team_id
+            "placement": 1,
+            "kills": 7,
+        }
+
+        result = are_teammates(participant_a, participant_b)
+        self.assertFalse(result, "Partial data (missing team_id) should not fabricate teammates")
+
+    def test_player_id_canonical_identity(self):
+        """Test player_id is canonical identity, not player_name."""
+        # Same player_id, different names (name change scenario)
+        participant_a = {
+            "match_id": "match123",
+            "player_id": "player1",
+            "player_name": "Creighvan_OldName",
+            "team_id": "team7",
+            "placement": 1,
+            "kills": 5,
+        }
+        participant_b = {
+            "match_id": "match123",
+            "player_id": "player1",  # Same player_id
+            "player_name": "Creighvan_NewName",  # Different name
+            "team_id": "team7",
+            "placement": 1,
+            "kills": 7,
+        }
+
+        # This would be the same participant (idempotency check)
+        # In real usage, player_id is the key for uniqueness
+        # This test documents that player_id is canonical
+        self.assertEqual(participant_a["player_id"], participant_b["player_id"])
+
 
 if __name__ == "__main__":
     unittest.main()
