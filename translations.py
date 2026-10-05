@@ -23,6 +23,11 @@ TRANSLATIONS = {
         "next_run": "Next run",
         "due_now": "Due now (the scheduler checks about every 15 minutes)",
         "scheduler_note": "Scheduler checks every 15 minutes; a report can post shortly after its shown time.",
+        "no_permission": "You do not have permission to use this command.",
+        "unknown_deleted": "Unknown (deleted)",
+        "custom_audit_channel": "Custom audit channel:",
+        "using_central_audit": "Using central audit server (default)",
+        "next": "Next",
         
         # Report titles
         "clan_digest": "Clan Digest",
