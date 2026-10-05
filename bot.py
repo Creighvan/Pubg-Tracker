@@ -197,6 +197,22 @@ from modules.scheduler import (
     _set_audit_log_func,
 )
 
+# Import command implementations
+from commands.roster import (
+    addplayer_impl,
+    addplayers_impl,
+    removeplayer_impl,
+    roster_impl,
+)
+from commands.protected import (
+    addprotected_impl,
+    removeprotected_impl,
+    listprotected_impl,
+    cleanprotected_impl,
+    resetprotected_impl,
+    addprotectedbulk_impl,
+)
+
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
 pubg = PubgClient(PUBG_API_KEY, shard=PUBG_SHARD)
@@ -473,217 +489,59 @@ async def on_guild_remove(guild: discord.Guild):
 
 
 # ---------- slash commands ----------
+# Roster and protected commands are now in commands/roster.py and commands/protected.py
+# For now, keeping old commands in bot.py as backup during migration
+# After testing, these will be removed
 
 @bot.tree.command(description="Add a PUBG player name to this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
 async def addplayer(interaction: discord.Interaction, name: str):
-    try:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        
-        added = await storage.add_player(interaction.guild_id, name)
-        if added:
-            await interaction.response.send_message(translations.get_translation(lang, "player_added_success").format(name=name))
-            await send_audit_log(
-                interaction.guild_id,
-                "Player Added",
-                f"Added {name} to roster",
-                user=interaction.user,
-                details={"Player": name}
-            )
-            # Refresh last active report if configured
-            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
-        else:
-            await interaction.response.send_message(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
-    except DatabaseCorruptionError as e:
-        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-
+    await addplayer_impl(interaction, name, send_audit_log, _refresh_last_active_report)
 
 @bot.tree.command(description="Add many PUBG players at once — paste names separated by commas or new lines")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(names="e.g. PlayerOne, PlayerTwo, PlayerThree (commas or newlines both work)")
 async def addplayers(interaction: discord.Interaction, names: str):
-    raw = names.replace("\n", ",").split(",")
-    candidates = [n.strip() for n in raw if n.strip()]
-    if not candidates:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(translations.get_translation(lang, "no_names_found"), ephemeral=True)
-        return
-
-    try:
-        added, duplicates = await storage.add_players(interaction.guild_id, candidates)
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        
-        count = len(added)
-        unit_key = "player" if count == 1 else "players"
-        unit = translations.get_translation(lang, unit_key)
-        
-        lines = [translations.get_translation(lang, "added_players_count").format(count=count)]
-        if added:
-            lines.append(", ".join(added))
-        if duplicates:
-            lines.append(translations.get_translation(lang, "skipped_duplicates").format(count=len(duplicates)) + ", ".join(duplicates))
-        await interaction.response.send_message("\n".join(lines))
-        
-        # Refresh last active report if configured
-        if added:
-            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
-    except DatabaseCorruptionError as e:
-        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-
+    await addplayers_impl(interaction, names, send_audit_log, _refresh_last_active_report)
 
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to remove")
 async def removeplayer(interaction: discord.Interaction, name: str):
-    try:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        
-        removed = await storage.remove_player(interaction.guild_id, name)
-        if removed:
-            await interaction.response.send_message(translations.get_translation(lang, "player_removed_success").format(name=name))
-            await send_audit_log(
-                interaction.guild_id,
-            "Player Removed",
-            f"Removed {name} from roster",
-            user=interaction.user,
-            details={"Player": name}
-        )
-            # Refresh last active report if configured
-            await _refresh_last_active_report(interaction.guild_id, interaction.guild.name)
-        else:
-            await interaction.response.send_message(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
-    except DatabaseCorruptionError as e:
-        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-
+    await removeplayer_impl(interaction, name, send_audit_log, _refresh_last_active_report)
 
 @bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to protect")
 async def addprotected(interaction: discord.Interaction, name: str):
-    try:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        
-        added = await storage.add_protected_player(interaction.guild_id, name)
-        if added:
-            await interaction.response.send_message(translations.get_translation(lang, "protected_added").format(name=name))
-            await send_audit_log(
-                interaction.guild_id,
-                "Protected Player Added",
-                f"Added {name} to protected list",
-                user=interaction.user,
-                details={"Player": name}
-            )
-        else:
-            await interaction.response.send_message(f"**{name}** is already on the protected list.", ephemeral=True)
-    except DatabaseCorruptionError as e:
-        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-
+    await addprotected_impl(interaction, name, send_audit_log)
 
 @bot.tree.command(description="Remove a player from the protected list")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to unprotect")
 async def removeprotected(interaction: discord.Interaction, name: str):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    removed = await storage.remove_protected_player(interaction.guild_id, name)
-    if removed:
-        await interaction.response.send_message(translations.get_translation(lang, "protected_removed").format(name=name))
-        await send_audit_log(
-            interaction.guild_id,
-            "Protected Player Removed",
-            f"Removed {name} from protected list",
-            user=interaction.user,
-            details={"Player": name}
-        )
-    else:
-        await interaction.response.send_message(translations.get_translation(lang, "protected_not_found").format(name=name), ephemeral=True)
-
+    await removeprotected_impl(interaction, name, send_audit_log)
 
 @bot.tree.command(description="List all protected players (immune to inactivity removal)")
 async def listprotected(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    protected = await storage.get_protected_players(interaction.guild_id)
-    
-    if not protected:
-        await interaction.response.send_message(translations.get_translation(lang, "protected_empty"))
-        return
-    
-    message = translations.get_translation(lang, "protected_list").format(count=len(protected)) + "\n" + ", ".join(protected)
-    message += "\n\n🛡️ These players won't be flagged for removal due to inactivity."
-    await interaction.response.send_message(message)
-
+    await listprotected_impl(interaction)
 
 @bot.tree.command(description="Clean up protected player list (remove duplicates and empty entries)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def cleanprotected(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    removed = await storage.clean_protected_players(interaction.guild_id)
-    protected = await storage.get_protected_players(interaction.guild_id)
-    await interaction.response.send_message(translations.get_translation(lang, "protected_cleaned").format(count=removed))
-
+    await cleanprotected_impl(interaction)
 
 @bot.tree.command(description="Clear and reset the entire protected player list")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def resetprotected(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["protected_players"] = []
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "protected_cleared"))
-
+    await resetprotected_impl(interaction)
 
 @bot.tree.command(description="Bulk add protected players (one per line or comma-separated)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(players="Player names (one per line or comma-separated)")
 async def addprotectedbulk(interaction: discord.Interaction, players: str):
-    # Parse the input - handle both comma and newline separators
-    player_list = [p.strip() for p in players.replace(',', '\n').split('\n')]
-    player_list = [p for p in player_list if p]  # Remove empty entries
-    
-    def modifier(guild_cfg):
-        current_protected = set(normalize_player_name(p) for p in guild_cfg["protected_players"])
-        added = []
-        duplicates = []
-        
-        for player in player_list:
-            if normalize_player_name(player) in current_protected:
-                duplicates.append(player)
-            else:
-                guild_cfg["protected_players"].append(player)
-                current_protected.add(normalize_player_name(player))
-                added.append(player)
-        
-        return {"added": added, "duplicates": duplicates}
-    
-    result = await storage.modify_guild(interaction.guild_id, modifier)
-    added = result["added"]
-    duplicates = result["duplicates"]
-    
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    count = len(added)
-    unit_key = "player" if count == 1 else "players"
-    unit = translations.get_translation(lang, unit_key)
-    
-    message = translations.get_translation(lang, "protected_bulk_added").format(count=count) + ":\n" + ", ".join(added)
-    if duplicates:
-        message += f"\n⚠️ Skipped {len(duplicates)} already protected: " + ", ".join(duplicates)
-    await interaction.response.send_message(message)
-
+    await addprotectedbulk_impl(interaction, players)
 
 @bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -755,112 +613,7 @@ async def resetinactivedate(interaction: discord.Interaction, name: str):
 
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
 async def roster(interaction: discord.Interaction):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    players = guild_cfg["players"]
-    if not players:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    await interaction.response.send_message(
-        translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
-    )
-
-
-class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical Anomaly"):
-    player_name = discord.ui.TextInput(
-        label="Player Name",
-        placeholder="Enter the PUBG player name to report",
-        required=True,
-    )
-    
-    anomaly_type = discord.ui.TextInput(
-        label="Anomaly Type",
-        placeholder="e.g., High K/D, Unusual win rate, Suspicious headshot rate",
-        required=True,
-    )
-    
-    description = discord.ui.TextInput(
-        label="Description",
-        style=discord.TextStyle.long,
-        placeholder="Describe the statistical anomalies and any context for manual review",
-        required=True,
-        max_length=1000,
-    )
-    
-    match_id = discord.ui.TextInput(
-        label="Match ID (optional)",
-        placeholder="Enter match ID if available",
-        required=False,
-    )
-    
-    evidence_urls = discord.ui.TextInput(
-        label="Evidence URLs (optional)",
-        style=discord.TextStyle.long,
-        placeholder="Paste URLs to screenshots/video clips (one per line)",
-        required=False,
-        max_length=1000,
-    )
-    
-    async def on_submit(self, interaction: discord.Interaction):
-        reporter_name = interaction.user.display_name
-        player_name = self.player_name.value
-        anomaly_type = self.anomaly_type.value
-        description = self.description.value
-        match_id = self.match_id.value or None
-        evidence_urls = [url.strip() for url in self.evidence_urls.value.split('\n') if url.strip()] if self.evidence_urls.value else None
-        
-        await interaction.response.defer()
-        
-        try:
-            report_id = await storage.add_cheat_report(
-                interaction.guild_id,
-                reporter_name,
-                player_name,
-                anomaly_type,
-                description,
-                match_id,
-                evidence_urls,
-            )
-            
-            # Auto-detect if player has statistical anomalies
-            guild_cfg = await storage.get_guild(interaction.guild_id)
-            players, _ = await pubg.get_players_and_stats([player_name], game_mode=guild_cfg.get("game_mode", "squad-fpp"))
-            if players:
-                player = players[0]
-                stats = player.get("stats", {})
-                flags = _detect_statistical_anomalies(stats)
-                if flags:
-                    await storage.update_statistical_anomaly(interaction.guild_id, player_name, stats, flags)
-            
-            embed = discord.Embed(
-                title="📊 Statistical Anomaly Report Submitted",
-                color=discord.Color.orange(),
-                timestamp=datetime.now(timezone.utc),
-            )
-            embed.add_field(name="Report ID", value=report_id, inline=False)
-            embed.add_field(name="Player", value=player_name, inline=True)
-            embed.add_field(name="Anomaly Type", value=anomaly_type, inline=True)
-            embed.add_field(name="Reporter", value=reporter_name, inline=True)
-            embed.add_field(name="Description", value=description[:500] + "..." if len(description) > 500 else description, inline=False)
-            if match_id:
-                embed.add_field(name="Match ID", value=match_id, inline=False)
-            if evidence_urls:
-                embed.add_field(name="Evidence", value=f"{len(evidence_urls)} file(s) attached", inline=False)
-            
-            await interaction.followup.send(embed=embed)
-            
-            # Notify admin channel if configured
-            channel_id = guild_cfg.get("cheat_report_channel_id")
-            if channel_id:
-                channel = bot.get_channel(channel_id)
-                if channel:
-                    await channel.send(f"🚨 New cheat report submitted by {reporter_name} against **{player_name}**")
-                    
-        except Exception as e:
-            error_id = generate_error_id()
-            logger.error(f"[{error_id}] Error submitting cheat report: {e}", exc_info=e)
-            await interaction.followup.send(f"❌ Error submitting report. Error reference: {error_id}")
-
+    await roster_impl(interaction)
 
 @bot.tree.command(description="Report suspicious statistics for manual review")
 @app_commands.checks.has_permissions(manage_guild=True)
