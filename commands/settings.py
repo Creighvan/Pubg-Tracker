@@ -218,29 +218,25 @@ async def showauditconfig_impl(interaction, admin_ids):
     # Check whitelist first (synchronous, no async needed)
     is_admin = interaction.user.id in admin_ids
 
-    # Only defer if we need to do async owner check
+    # Only do async owner check if not in whitelist
+    if not is_admin and bot:
+        try:
+            app_info = await bot.application_info()
+            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
+            if not is_owner and hasattr(app_info, "team") and app_info.team:
+                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
+            is_admin = is_owner
+        except Exception:
+            # If we can't verify owner status, fall back to whitelist only
+            pass
+
     if not is_admin:
-        await interaction.response.defer()
-        if bot:
-            try:
-                app_info = await bot.application_info()
-                is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
-                if not is_owner and hasattr(app_info, "team") and app_info.team:
-                    is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
-                is_admin = is_owner
-            except Exception:
-                # If we can't verify owner status, fall back to whitelist only
-                pass
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
+        return
 
-        if not is_admin:
-            guild_cfg = await storage.get_guild(interaction.guild_id)
-            lang = guild_cfg.get("language", "en")
-            await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
-            return
-    else:
-        # User is in whitelist, defer and proceed
-        await interaction.response.defer()
-
+    # User is admin, proceed with the command
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 
@@ -248,11 +244,11 @@ async def showauditconfig_impl(interaction, admin_ids):
     if audit_channel_id:
         channel = interaction.guild.get_channel(audit_channel_id)
         channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
-        await interaction.followup.send(
+        await interaction.response.send_message(
             f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
         )
     else:
-        await interaction.followup.send(translations.get_translation(lang, "using_central_audit"))
+        await interaction.response.send_message(translations.get_translation(lang, "using_central_audit"))
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
