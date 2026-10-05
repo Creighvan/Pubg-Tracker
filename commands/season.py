@@ -6,6 +6,7 @@ import discord
 from discord import app_commands
 
 import storage
+import history
 import translations
 from modules.utils import normalize_player_name
 
@@ -28,74 +29,134 @@ async def season_impl(interaction: discord.Interaction):
 
     game_mode = guild_cfg.get("game_mode", "squad-fpp")
 
-    # For now, use lifetime stats as "season" data
-    # In the future, this could pull from actual ranked season data
-    from pubg_api import PubgClient, PubgApiError
-    from modules.config import pubg
+    # Get historical snapshots for rank progression
+    guild_history = await history.get_guild_history(interaction.guild_id)
+    daily_snapshots = guild_history.get("daily_snapshots", {})
 
-    try:
-        found, not_found = await pubg.get_players_and_stats(players, game_mode=game_mode)
+    # Get latest and previous snapshots (7 days ago)
+    from datetime import datetime, timezone, timedelta
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    prev_date = (datetime.now(timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
 
-        if not found:
-            await interaction.followup.send(
-                translations.get_translation(lang, "no_data_available"),
-                ephemeral=True
-            )
-            return
+    # Aggregate season stats from latest snapshots
+    total_matches = 0
+    total_wins = 0
+    total_kills = 0
+    total_deaths = 0
+    total_damage = 0
+    total_ranked_points = 0
 
-        # Aggregate season stats
-        total_matches = sum(p.get("stats", {}).get("matches", 0) for p in found)
-        total_wins = sum(p.get("stats", {}).get("wins", 0) for p in found)
-        total_kills = sum(p.get("stats", {}).get("kills", 0) for p in found)
-        total_deaths = sum(p.get("stats", {}).get("deaths", 0) for p in found)
-        total_damage = sum(p.get("stats", {}).get("damageDealt", 0) for p in found)
+    ranked_players = []
+    rank_progressions = []
 
-        avg_kd = total_kills / max(total_deaths, 1)
-        avg_win_rate = (total_wins / max(total_matches, 1)) * 100
+    for player in players:
+        normalized = normalize_player_name(player)
 
-        # Find top performers
-        top_killer = max(found, key=lambda p: p.get("stats", {}).get("kills", 0))
-        top_winner = max(found, key=lambda p: p.get("stats", {}).get("wins", 0))
-        top_kd = max(found, key=lambda p: p.get("stats", {}).get("kd", 0))
+        # Get latest snapshot
+        latest_data = None
+        for date_str in sorted(daily_snapshots.keys(), reverse=True):
+            if normalized in daily_snapshots[date_str]:
+                latest_data = daily_snapshots[date_str][normalized]
+                break
 
-        # Build embed
-        embed = discord.Embed(
-            title="🏆 Season Summary",
-            color=discord.Color.gold()
-        )
+        if latest_data:
+            total_matches += latest_data.get("matches", 0)
+            total_wins += latest_data.get("wins", 0)
+            total_kills += latest_data.get("kills", 0)
+            total_deaths += latest_data.get("deaths", 0)
+            total_damage += latest_data.get("damage", 0)
 
-        embed.add_field(
-            name="📊 Clan Totals",
-            value=f"**Matches:** {total_matches:,}\n"
-                  f"**Wins:** {total_wins:,}\n"
-                  f"**Kills:** {total_kills:,}\n"
-                  f"**Win Rate:** {avg_win_rate:.1f}%\n"
-                  f"**Avg K/D:** {avg_kd:.2f}",
-            inline=True
-        )
+            ranked_points = latest_data.get("ranked_points", 0)
+            ranked_tier = latest_data.get("ranked_tier", "")
 
-        embed.add_field(
-            name="🥇 Top Performers",
-            value=f"**Most Kills:** {top_killer['name']} ({top_killer.get('stats', {}).get('kills', 0):,})\n"
-                  f"**Most Wins:** {top_winner['name']} ({top_winner.get('stats', {}).get('wins', 0):,})\n"
-                  f"**Best K/D:** {top_kd['name']} ({top_kd.get('stats', {}).get('kd', 0):.2f})",
-            inline=True
-        )
+            if ranked_points > 0:
+                total_ranked_points += ranked_points
+                ranked_players.append({
+                    "name": player,
+                    "points": ranked_points,
+                    "tier": ranked_tier
+                })
 
-        embed.add_field(
-            name="🎮 Activity",
-            value=f"**Tracked Players:** {len(found)}\n"
-                  f"**Total Damage:** {total_damage:,.0f}\n"
-                  f"**Game Mode:** {game_mode}",
-            inline=True
-        )
+            # Calculate rank progression
+            prev_data = daily_snapshots.get(prev_date, {}).get(normalized)
+            if prev_data:
+                prev_points = prev_data.get("ranked_points", 0)
+                prev_tier = prev_data.get("ranked_tier", "")
+                point_change = ranked_points - prev_points
 
-        embed.set_footer(text=f"Based on lifetime stats. Ranked season data coming soon.")
+                if point_change != 0:
+                    rank_progressions.append({
+                        "name": player,
+                        "points": ranked_points,
+                        "tier": ranked_tier,
+                        "change": point_change,
+                        "prev_tier": prev_tier
+                    })
 
-        await interaction.followup.send(embed=embed)
+    avg_kd = total_kills / max(total_deaths, 1)
+    avg_win_rate = (total_wins / max(total_matches, 1)) * 100
 
-    except PubgApiError as e:
-        await interaction.followup.send(
-            translations.get_translation(lang, "api_error").format(error=str(e)),
-            ephemeral=True
-        )
+    # Find top performers
+    if ranked_players:
+        top_ranked = max(ranked_players, key=lambda p: p["points"])
+    else:
+        top_ranked = None
+
+    # Find most improved
+    if rank_progressions:
+        most_improved = max(rank_progressions, key=lambda p: p["change"])
+    else:
+        most_improved = None
+
+    # Build embed
+    embed = discord.Embed(
+        title="🏆 Season Summary",
+        color=discord.Color.gold()
+    )
+
+    embed.add_field(
+        name="📊 Clan Totals",
+        value=f"**Matches:** {total_matches:,}\n"
+              f"**Wins:** {total_wins:,}\n"
+              f"**Kills:** {total_kills:,}\n"
+              f"**Win Rate:** {avg_win_rate:.1f}%\n"
+              f"**Avg K/D:** {avg_kd:.2f}",
+        inline=True
+    )
+
+    ranked_field = f"**Highest Ranked:** {top_ranked['name'] if top_ranked else 'N/A'}\n"
+    if top_ranked:
+        ranked_field += f"{top_ranked['tier']} ({top_ranked['points']:,} RP)"
+
+    embed.add_field(
+        name="🏅 Ranked",
+        value=ranked_field,
+        inline=True
+    )
+
+    progression_field = ""
+    if most_improved:
+        change_emoji = "📈" if most_improved["change"] > 0 else "📉"
+        progression_field = f"**Most Improved:** {most_improved['name']}\n"
+        progression_field += f"{change_emoji} {most_improved['change']:+,} RP\n"
+        progression_field += f"Current: {most_improved['tier']}"
+    else:
+        progression_field = "No rank progression data yet (need 7+ days of snapshots)"
+
+    embed.add_field(
+        name="📈 Rank Progression",
+        value=progression_field,
+        inline=True
+    )
+
+    embed.add_field(
+        name="🎮 Activity",
+        value=f"**Tracked Players:** {len(players)}\n"
+              f"**Total Damage:** {total_damage:,.0f}\n"
+              f"**Game Mode:** {game_mode}",
+        inline=True
+    )
+
+    embed.set_footer(text=f"Based on historical snapshots. Rank progression requires 7+ days of data.")
+
+    await interaction.followup.send(embed=embed)
