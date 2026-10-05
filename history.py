@@ -4,11 +4,52 @@ Historical data storage for trend tracking and analytics.
 Stores:
 - Daily player snapshots (matches, kills, wins, K/D, etc.)
 - Match history with participant tracking
+- Clan match participants (for chemistry analytics)
 - Achievement milestones
 - Streaks
 
 Data is kept in a separate JSON file (history.json) to avoid bloating
 the main data.json with historical records.
+
+ARCHITECTURAL DECISIONS (Integrity Audit):
+
+1. Canonical Identity:
+   - player_id (PUBG account ID) is the canonical identity
+   - player_name is presentation data only
+   - This handles PUBG name changes correctly
+
+2. Teammate Identification:
+   - Critical invariant: match_id + team_id → actual teammates in that match
+   - team_id is NOT globally unique (team7 in match A ≠ team7 in match B)
+   - Missing team_id = unknown relationship, NOT opponents
+   - This prevents false chemistry from incomplete data
+
+3. Idempotency:
+   - record_clan_participant() checks (match_id, player_id) before inserting
+   - Re-processing the same match does not create duplicates
+   - Essential for scheduled jobs and historical backfill
+
+4. Historical Data Semantics:
+   - Old match_history records without team_id = unknown, not "never teammates"
+   - Chemistry commands must distinguish:
+     - 0 shared matches (never played together)
+     - 0 usable matches (missing team data)
+   - is_tracked = "was tracked when recorded", not "currently tracked"
+   - Historical facts are preserved even if clan membership changes
+
+5. Data Flow:
+   PUBG match → participant_details (immutable facts)
+                → clan membership (current interpretation)
+                → analytics layer (chemistry, bestduo, bestsquad)
+
+6. Safety Rules:
+   - Missing team_id → no chemistry (conservative)
+   - Partial data → no fabricated relationships
+   - Historical backfill → unknown ≠ opponent
+   - Name changes → player_id wins
+   - Duplicate processing → idempotent
+
+This dataset is frozen pending chemistry command implementation.
 """
 
 import asyncio
@@ -383,8 +424,26 @@ async def record_clan_participant(
     - /bestsquad
     - Squad win rates
     - Common teammates
+    - Team-specific Chicken Dinner stats
 
     The critical relationship is: match_id + team_id → actual teammates in that match
+
+    IDEMPOTENCY:
+    - Checks (match_id, player_id) before inserting
+    - Re-processing the same match does not create duplicates
+    - Essential for scheduled jobs and historical backfill
+
+    SEMANTICS:
+    - player_id: Canonical identity (PUBG account ID)
+    - player_name: Presentation data only (handles name changes)
+    - team_id: Team identifier within the match (NOT globally unique)
+    - is_tracked: "Was tracked when this match was recorded" (NOT "currently tracked")
+                Historical facts are preserved even if clan membership changes
+
+    SAFETY:
+    - Missing team_id = unknown relationship, NOT opponents
+    - Partial data = no fabricated relationships
+    - Historical backfill = unknown ≠ opponent
     """
     async with _lock:
         data = _load_history()
@@ -475,6 +534,23 @@ async def get_clan_participants(
 def are_teammates(participant_a: dict, participant_b: dict) -> bool:
     """
     Determine if two participants were teammates in the same match.
+
+    CRITICAL INVARIANT: match_id + team_id → actual teammates in that match
+
+    IMPORTANT: team_id is NOT globally unique
+    - team7 in match A ≠ team7 in match B
+    - Must check BOTH match_id AND team_id
+
+    MISSING DATA HANDLING:
+    - Missing team_id = unknown relationship, NOT opponents
+    - Conservative approach: if unsure, not teammates
+    - This prevents false chemistry from incomplete data
+
+    HISTORICAL DATA:
+    - Old matches without team_id = unknown, not "never teammates"
+    - Chemistry commands must distinguish:
+      - 0 shared matches (never played together)
+      - 0 usable matches (missing team data)
 
     Args:
         participant_a: First participant record
