@@ -20,8 +20,8 @@ For Bot help, bug reports, feature requests, and service updates, join the
 The official PUBG API has **no clan-roster endpoint**. There's no way to
 ask it "give me everyone in clan X." So this bot works the way every PUBG
 stat site does: you manually add player names to a roster with
-`/addplayer`, and the bot looks each one up individually and aggregates
-the results.
+`/addplayer`, and the bot resolves the roster in batches of up to 10 players
+and aggregates the results.
 
 ## Data retention limitation
 
@@ -164,7 +164,8 @@ non-protected players can be identified and removed for roster cleanup.
      the generated URL to invite the bot to your server
 2. **A PUBG API key** — https://developer.pubg.com/
    - Sign in, create an app, copy the API key
-   - Free tier = 10 requests/minute, which this bot respects automatically
+   - The bot self-paces rate-limited PUBG API requests at 8 requests per minute
+     and handles HTTP 429 responses with Retry-After delays
 3. **Somewhere to run it 24/7** — see hosting options below
 
 ## Slash commands not showing up in Discord?

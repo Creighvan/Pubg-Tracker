@@ -30,6 +30,47 @@ from modules.utils import normalize_player_name
 BASE_URL = "https://api.pubg.com"
 
 
+class ResponseCache:
+    """
+    TTL cache for PUBG API responses to avoid redundant requests.
+    PUBG explicitly recommends caching player data for 20-30 minutes.
+    """
+
+    def __init__(self):
+        self._cache: dict[str, tuple[Any, datetime]] = {}
+        self._lock = asyncio.Lock()
+
+    def _make_key(self, prefix: str, *parts: Any) -> str:
+        """Create a cache key from components."""
+        return f"{prefix}:{':'.join(str(p) for p in parts)}"
+
+    async def get(self, key: str) -> Any | None:
+        """Get cached value if it exists and hasn't expired."""
+        async with self._lock:
+            entry = self._cache.get(key)
+            if entry is None:
+                return None
+            value, expires_at = entry
+            if datetime.now(timezone.utc) >= expires_at:
+                del self._cache[key]
+                return None
+            return value
+
+    async def set(self, key: str, value: Any, ttl_minutes: int):
+        """Cache a value with a TTL in minutes."""
+        async with self._lock:
+            expires_at = datetime.now(timezone.utc) + timedelta(minutes=ttl_minutes)
+            self._cache[key] = (value, expires_at)
+
+    async def clear_expired(self):
+        """Remove expired entries. Call periodically to prevent unbounded growth."""
+        async with self._lock:
+            now = datetime.now(timezone.utc)
+            expired_keys = [k for k, (_, expires) in self._cache.items() if now >= expires]
+            for k in expired_keys:
+                del self._cache[k]
+
+
 def _friendly_map_name(map_code: str) -> str:
     """Convert PUBG API map code to readable name."""
     if not map_code:
@@ -115,6 +156,8 @@ class PubgClient:
         self._external_session: aiohttp.ClientSession | None = None  # Separate session for non-PUBG requests
         self._current_season_id: str | None = None  # cached for the process lifetime
         self._season_lock = asyncio.Lock()
+        # TTL cache for player/stat responses (PUBG recommends 20-30 min)
+        self._cache = ResponseCache()
         # Optional async callback(delay_seconds: float), set by the caller
         # (bot.py) to surface a REAL PUBG 429 to a status feed. Left unset,
         # this is a no-op. Deliberately NOT fired on the routine, self-
@@ -212,6 +255,12 @@ class PubgClient:
         if len(names) > 10:
             raise ValueError("PUBG API allows at most 10 player names per lookup call")
 
+        # Check cache first (30 minute TTL)
+        cache_key = self._cache._make_key("players", self.shard, ",".join(sorted(names)))
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(
             f"/shards/{self.shard}/players",
             params={"filter[playerNames]": ",".join(names)},
@@ -227,20 +276,33 @@ class PubgClient:
                     "match_ids": [m["id"] for m in match_refs],
                 }
             )
+
+        # Cache the result
+        await self._cache.set(cache_key, results, ttl_minutes=30)
         return results
 
     async def get_clan_by_id(self, clan_id: str) -> dict:
         """Fetch a clan using its official PUBG clan ID."""
+        # Check cache first (60 minute TTL)
+        cache_key = self._cache._make_key("clan", self.shard, clan_id)
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(f"/shards/{self.shard}/clans/{clan_id}")
         entry = data.get("data", {})
         attrs = entry.get("attributes", {})
-        return {
+        result = {
             "id": entry.get("id", clan_id),
             "name": attrs.get("clanName", "Unknown clan"),
             "tag": attrs.get("clanTag") or "—",
             "level": attrs.get("clanLevel", 0),
             "member_count": attrs.get("clanMemberCount", 0),
         }
+
+        # Cache the result
+        await self._cache.set(cache_key, result, ttl_minutes=60)
+        return result
 
     async def get_clan_for_player_name(self, player_name: str) -> dict | None:
         """Resolve a player's clan, since PUBG does not offer clan-name search."""
@@ -259,6 +321,12 @@ class PubgClient:
         if len(player_ids) > 10:
             raise ValueError("PUBG API allows at most 10 player IDs per stats batch call")
 
+        # Check cache first (25 minute TTL)
+        cache_key = self._cache._make_key("lifetime", self.shard, game_mode, ",".join(sorted(player_ids)))
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(
             f"/shards/{self.shard}/seasons/lifetime/gameMode/{game_mode}/players",
             params={"filter[playerIds]": ",".join(player_ids)},
@@ -267,6 +335,9 @@ class PubgClient:
         for entry in data.get("data", []):
             player_id = entry["relationships"]["player"]["data"]["id"]
             out[player_id] = entry["attributes"]["gameModeStats"].get(game_mode, {})
+
+        # Cache the result
+        await self._cache.set(cache_key, out, ttl_minutes=25)
         return out
 
     async def get_players_and_stats(self, names: list[str], game_mode: str = "squad-fpp") -> tuple[list[dict], list[str]]:
@@ -303,11 +374,22 @@ class PubgClient:
         can't be fetched. Match-endpoint calls do not count against the
         10/min rate limit, so these are cheap to make per-player.
         """
+        # Check cache first (10 minute TTL - matches don't change)
+        cache_key = self._cache._make_key("match_created", self.shard, match_id)
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         try:
             data = await self._request(f"/shards/{self.shard}/matches/{match_id}", rate_limited=False)
         except PubgApiError:
             return None
-        return data.get("data", {}).get("attributes", {}).get("createdAt")
+        result = data.get("data", {}).get("attributes", {}).get("createdAt")
+
+        # Cache the result
+        if result:
+            await self._cache.set(cache_key, result, ttl_minutes=10)
+        return result
 
     async def get_last_active_times(self, names: list[str]) -> tuple[list[dict], list[str]]:
         """
@@ -480,9 +562,20 @@ class PubgClient:
         one API call per player.
         """
         season_id = await self.get_current_season_id()
+
+        # Check cache first (20 minute TTL)
+        cache_key = self._cache._make_key("ranked", self.shard, season_id, player_id, game_mode)
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(f"/shards/{self.shard}/players/{player_id}/seasons/{season_id}/ranked")
         modes = data.get("data", {}).get("attributes", {}).get("rankedGameModeStats", {})
-        return modes.get(game_mode, {})
+        result = modes.get(game_mode, {})
+
+        # Cache the result
+        await self._cache.set(cache_key, result, ttl_minutes=20)
+        return result
 
     async def get_ranked_report(self, names: list[str], game_mode: str) -> tuple[list[dict], list[str]]:
         """
@@ -758,13 +851,33 @@ class PubgClient:
 
     async def get_weapon_mastery(self, player_id: str) -> dict:
         """Raw attributes from the weapon_mastery endpoint for one player."""
+        # Check cache first (20 minute TTL)
+        cache_key = self._cache._make_key("weapon_mastery", self.shard, player_id)
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(f"/shards/{self.shard}/players/{player_id}/weapon_mastery")
-        return data.get("data", {}).get("attributes", {})
+        result = data.get("data", {}).get("attributes", {})
+
+        # Cache the result
+        await self._cache.set(cache_key, result, ttl_minutes=20)
+        return result
 
     async def get_survival_mastery(self, player_id: str) -> dict:
         """Raw attributes from the survival_mastery endpoint for one player."""
+        # Check cache first (20 minute TTL)
+        cache_key = self._cache._make_key("survival_mastery", self.shard, player_id)
+        cached = await self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
         data = await self._request(f"/shards/{self.shard}/players/{player_id}/survival_mastery")
-        return data.get("data", {}).get("attributes", {})
+        result = data.get("data", {}).get("attributes", {})
+
+        # Cache the result
+        await self._cache.set(cache_key, result, ttl_minutes=20)
+        return result
 
     @staticmethod
     def _best_weapon_from_mastery(attrs: dict) -> dict | None:
