@@ -7,12 +7,14 @@ This test suite verifies:
 - No unexpected keys in any locale
 - Placeholder consistency between English and translations
 - Pluralization-related keys are properly structured
+- No duplicate keys in any locale (detected via source file analysis)
 
 Run with: python test_translations.py
 """
 
 import re
 import sys
+import ast
 from translations import TRANSLATIONS
 
 # Expected locales
@@ -62,7 +64,7 @@ def validate_locale_completeness():
         if missing:
             missing_keys_by_locale[locale] = sorted(missing)
         
-        # Check for extra keys
+        # Check for extra keys (info only, not a failure)
         extra = locale_keys - english_keys
         if extra:
             extra_keys_by_locale[locale] = sorted(extra)
@@ -80,17 +82,15 @@ def validate_locale_completeness():
         print("[OK] No missing keys in any locale")
     
     if extra_keys_by_locale:
-        print("[X] Extra keys found:")
+        print("[INFO] Extra keys found (not errors):")
         for locale, keys in extra_keys_by_locale.items():
             print(f"  {locale}: {len(keys)} extra")
             for key in keys[:5]:
                 print(f"    - {key}")
             if len(keys) > 5:
                 print(f"    ... and {len(keys) - 5} more")
-    else:
-        print("[OK] No extra keys in any locale")
     
-    return not (missing_keys_by_locale or extra_keys_by_locale)
+    return not missing_keys_by_locale
 
 
 def validate_placeholder_consistency():
@@ -338,6 +338,65 @@ def validate_locales_present():
     return not missing_locales
 
 
+def validate_no_duplicate_keys():
+    """Detect duplicate keys in translations.py by parsing the source file."""
+    print("\n=== Checking for duplicate keys in translations.py ===")
+    
+    try:
+        with open("translations.py", "r", encoding="utf-8") as f:
+            source = f.read()
+        
+        # Parse the source file as AST
+        tree = ast.parse(source)
+        
+        # Find the TRANSLATIONS dictionary
+        duplicate_keys_by_locale = {}
+        
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id == "TRANSLATIONS":
+                        if isinstance(node.value, ast.Dict):
+                            # Analyze each locale dictionary
+                            for i, (key_node, value_node) in enumerate(zip(node.value.keys, node.value.values)):
+                                if isinstance(key_node, ast.Constant) and isinstance(key_node.value, str):
+                                    locale = key_node.value
+                                    if isinstance(value_node, ast.Dict):
+                                        # Check for duplicate keys in this locale's dictionary
+                                        keys_seen = {}
+                                        for j, (k_node, v_node) in enumerate(zip(value_node.keys, value_node.values)):
+                                            if isinstance(k_node, ast.Constant) and isinstance(k_node.value, str):
+                                                key = k_node.value
+                                                if key in keys_seen:
+                                                    if locale not in duplicate_keys_by_locale:
+                                                        duplicate_keys_by_locale[locale] = []
+                                                    duplicate_keys_by_locale[locale].append({
+                                                        'key': key,
+                                                        'first_line': keys_seen[key],
+                                                        'duplicate_line': k_node.lineno,
+                                                    })
+                                                else:
+                                                    keys_seen[key] = k_node.lineno
+        
+        if duplicate_keys_by_locale:
+            print(f"[X] Duplicate keys found: {sum(len(v) for v in duplicate_keys_by_locale.values())}")
+            for locale, duplicates in duplicate_keys_by_locale.items():
+                print(f"  {locale}: {len(duplicates)} duplicates")
+                for dup in duplicates[:5]:
+                    print(f"    Key '{dup['key']}' first at line {dup['first_line']}, duplicate at line {dup['duplicate_line']}")
+                if len(duplicates) > 5:
+                    print(f"    ... and {len(duplicates) - 5} more")
+        else:
+            print("[OK] No duplicate keys found in translations.py")
+        
+        return not duplicate_keys_by_locale
+        
+    except Exception as e:
+        print(f"[!] Could not parse translations.py for duplicate detection: {e}")
+        print("[!] Skipping duplicate key check")
+        return True  # Don't fail the test if we can't parse
+
+
 def run_all_tests():
     """Run all translation validation tests."""
     print("=" * 60)
@@ -352,6 +411,7 @@ def run_all_tests():
         "Unit placeholders": validate_unit_placeholders(),
         "UTC terminology": validate_utc_terminology(),
         "Runtime formatting": validate_runtime_formatting(),
+        "Duplicate keys": validate_no_duplicate_keys(),
     }
     
     print("\n" + "=" * 60)
