@@ -28,48 +28,49 @@ async def update_streaks(guild_id: int, player_name: str, stats: dict):
     """
     normalized = normalize_player_name(player_name)
 
-    data = history._load_history()
-    guild_id_str = str(guild_id)
+    async with history._lock:
+        data = history._load_history()
+        guild_id_str = str(guild_id)
 
-    if guild_id_str not in data:
-        data[guild_id_str] = {
-            "daily_snapshots": {},
-            "match_history": [],
-            "achievements": {},
-            "streaks": {},
-        }
+        if guild_id_str not in data:
+            data[guild_id_str] = {
+                "daily_snapshots": {},
+                "match_history": [],
+                "achievements": {},
+                "streaks": {},
+            }
 
-    if "streaks" not in data[guild_id_str]:
-        data[guild_id_str]["streaks"] = {}
+        if "streaks" not in data[guild_id_str]:
+            data[guild_id_str]["streaks"] = {}
 
-    if normalized not in data[guild_id_str]["streaks"]:
-        data[guild_id_str]["streaks"][normalized] = {
-            "day_streak": 0,
-            "last_snapshot_date": None,
-        }
+        if normalized not in data[guild_id_str]["streaks"]:
+            data[guild_id_str]["streaks"][normalized] = {
+                "day_streak": 0,
+                "last_snapshot_date": None,
+            }
 
-    player_streaks = data[guild_id_str]["streaks"][normalized]
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        player_streaks = data[guild_id_str]["streaks"][normalized]
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Update day streak
-    if player_streaks["last_snapshot_date"]:
-        last_date = datetime.strptime(player_streaks["last_snapshot_date"], "%Y-%m-%d")
-        today_date = datetime.strptime(today, "%Y-%m-%d")
-        days_diff = (today_date - last_date).days
+        # Update day streak
+        if player_streaks["last_snapshot_date"]:
+            last_date = datetime.strptime(player_streaks["last_snapshot_date"], "%Y-%m-%d")
+            today_date = datetime.strptime(today, "%Y-%m-%d")
+            days_diff = (today_date - last_date).days
 
-        if days_diff == 1:
-            # Consecutive day
-            player_streaks["day_streak"] += 1
-        elif days_diff > 1:
-            # Streak broken
+            if days_diff == 1:
+                # Consecutive day
+                player_streaks["day_streak"] += 1
+            elif days_diff > 1:
+                # Streak broken
+                player_streaks["day_streak"] = 1
+            # If days_diff == 0, same day, don't change
+        else:
             player_streaks["day_streak"] = 1
-        # If days_diff == 0, same day, don't change
-    else:
-        player_streaks["day_streak"] = 1
 
-    player_streaks["last_snapshot_date"] = today
+        player_streaks["last_snapshot_date"] = today
 
-    history._save_history(data)
+        history._save_history(data)
 
 
 async def streaks_impl(interaction: discord.Interaction, player: str = None):
