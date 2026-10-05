@@ -65,27 +65,28 @@ async def record_achievement(guild_id: int, player_name: str, achievement_id: st
     """Record an achievement for a player."""
     normalized = normalize_player_name(player_name)
 
-    data = history._load_history()
-    guild_id_str = str(guild_id)
+    async with history._lock:
+        data = history._load_history()
+        guild_id_str = str(guild_id)
 
-    if guild_id_str not in data:
-        data[guild_id_str] = {
-            "daily_snapshots": {},
-            "match_history": [],
-            "achievements": {},
-            "streaks": {},
-        }
+        if guild_id_str not in data:
+            data[guild_id_str] = {
+                "daily_snapshots": {},
+                "match_history": [],
+                "achievements": {},
+                "streaks": {},
+            }
 
-    if "achievements" not in data[guild_id_str]:
-        data[guild_id_str]["achievements"] = {}
+        if "achievements" not in data[guild_id_str]:
+            data[guild_id_str]["achievements"] = {}
 
-    if normalized not in data[guild_id_str]["achievements"]:
-        data[guild_id_str]["achievements"][normalized] = {}
+        if normalized not in data[guild_id_str]["achievements"]:
+            data[guild_id_str]["achievements"][normalized] = {}
 
-    from datetime import datetime, timezone
-    data[guild_id_str]["achievements"][normalized][achievement_id] = datetime.now(timezone.utc).isoformat()
+        from datetime import datetime, timezone
+        data[guild_id_str]["achievements"][normalized][achievement_id] = datetime.now(timezone.utc).isoformat()
 
-    history._save_history(data)
+        history._save_history(data)
 
 
 async def achievements_impl(interaction: discord.Interaction, player: str = None):
