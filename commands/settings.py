@@ -2,11 +2,14 @@
 Settings command implementations for PUBG Tracker bot.
 """
 
+import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
 from discord import app_commands
 from modules.config import bot
+
+logger = logging.getLogger(__name__)
 
 
 async def setgamemode_impl(interaction, mode):
@@ -153,81 +156,55 @@ async def setstatuschannel_impl(interaction):
 
 async def setauditchannel_impl(interaction, admin_ids):
     """Implementation of setauditchannel command."""
-    await interaction.response.defer()
-
-    # Check if user is admin (whitelisted or bot owner)
-    is_admin = interaction.user.id in admin_ids
-    if not is_admin and bot:
-        try:
-            app_info = await bot.application_info()
-            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
-            if not is_owner and hasattr(app_info, "team") and app_info.team:
-                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
-            is_admin = is_owner
-        except Exception:
-            pass
-
-    if not is_admin:
+    # User is already authorized by the decorator check
+    try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
-        await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
-        return
 
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-
-    def modifier(guild_cfg):
-        guild_cfg["audit_channel_id"] = interaction.channel_id
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "audit_channel_set"))
+        def modifier(guild_cfg):
+            guild_cfg["audit_channel_id"] = interaction.channel_id
+        await storage.modify_guild(interaction.guild_id, modifier)
+        await interaction.followup.send(translations.get_translation(lang, "audit_channel_set"))
+    except Exception as e:
+        logger.error(f"Error in setauditchannel_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def clearauditchannel_impl(interaction, admin_ids):
     """Implementation of clearauditchannel command."""
-    await interaction.response.defer()
-
-    # Check if user is admin (whitelisted or bot owner)
-    is_admin = interaction.user.id in admin_ids
-    if not is_admin and bot:
-        try:
-            app_info = await bot.application_info()
-            is_owner = interaction.user.id == app_info.owner.id if app_info.owner else False
-            if not is_owner and hasattr(app_info, "team") and app_info.team:
-                is_owner = any(m.id == interaction.user.id for m in app_info.team.members)
-            is_admin = is_owner
-        except Exception:
-            pass
-
-    if not is_admin:
+    # User is already authorized by the decorator check
+    try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
-        await interaction.followup.send(translations.get_translation(lang, "no_permission"), ephemeral=True)
-        return
 
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-
-    def modifier(guild_cfg):
-        guild_cfg["audit_channel_id"] = None
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "audit_channel_cleared"))
+        def modifier(guild_cfg):
+            guild_cfg["audit_channel_id"] = None
+        await storage.modify_guild(interaction.guild_id, modifier)
+        await interaction.followup.send(translations.get_translation(lang, "audit_channel_cleared"))
+    except Exception as e:
+        logger.error(f"Error in clearauditchannel_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
     # User is already authorized by the decorator check
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
+    try:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
 
-    audit_channel_id = guild_cfg.get("audit_channel_id")
-    if audit_channel_id:
-        channel = interaction.guild.get_channel(audit_channel_id)
-        channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
-        await interaction.response.send_message(
-            f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
-        )
-    else:
-        await interaction.response.send_message(translations.get_translation(lang, "using_central_audit"))
+        audit_channel_id = guild_cfg.get("audit_channel_id")
+        if audit_channel_id:
+            channel = interaction.guild.get_channel(audit_channel_id)
+            channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
+            await interaction.followup.send(
+                f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
+            )
+        else:
+            await interaction.followup.send(translations.get_translation(lang, "using_central_audit"))
+    except Exception as e:
+        logger.error(f"Error in showauditconfig_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def setlanguage_impl(interaction, language):
