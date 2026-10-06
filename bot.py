@@ -1252,6 +1252,8 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
         await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
         return
 
+    await interaction.response.defer(ephemeral=True)
+
     guilds = sorted(bot.guilds, key=lambda g: g.member_count or 0, reverse=True)
     total_members = sum(g.member_count or 0 for g in guilds)
 
@@ -1275,7 +1277,7 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
             inline=False,
         )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # build_feedback_prompt_embed - moved to bot/embeds.py
