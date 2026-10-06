@@ -9,7 +9,7 @@ import translations
 from storage import DatabaseCorruptionError
 
 
-async def addplayer_impl(interaction, name, send_audit_log, fetch_last_active_report):
+async def addplayer_impl(interaction, name, send_audit_log):
     """Implementation of addplayer command."""
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -25,18 +25,13 @@ async def addplayer_impl(interaction, name, send_audit_log, fetch_last_active_re
                 user=interaction.user,
                 details={"Player": name}
             )
-            # Refresh last active report if configured
-            result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
-            if result:
-                embed, _ = result
-                await interaction.followup.send(embed=embed)
         else:
             await interaction.response.send_message(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
-async def addplayers_impl(interaction, names, send_audit_log, fetch_last_active_report):
+async def addplayers_impl(interaction, names, send_audit_log):
     """Implementation of addplayers command."""
     raw = names.replace("\n", ",").split(",")
     candidates = [n.strip() for n in raw if n.strip()]
@@ -61,18 +56,11 @@ async def addplayers_impl(interaction, names, send_audit_log, fetch_last_active_
         if duplicates:
             lines.append(translations.get_translation(lang, "skipped_duplicates").format(count=len(duplicates)) + ", ".join(duplicates))
         await interaction.response.send_message("\n".join(lines))
-
-        # Refresh last active report if configured
-        if added:
-            result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
-            if result:
-                embed, _ = result
-                await interaction.followup.send(embed=embed)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
 
 
-async def removeplayer_impl(interaction, name, send_audit_log, fetch_last_active_report):
+async def removeplayer_impl(interaction, name, send_audit_log):
     """Implementation of removeplayer command."""
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -88,11 +76,6 @@ async def removeplayer_impl(interaction, name, send_audit_log, fetch_last_active
                 user=interaction.user,
                 details={"Player": name}
             )
-            # Refresh last active report if configured
-            result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
-            if result:
-                embed, _ = result
-                await interaction.followup.send(embed=embed)
         else:
             await interaction.response.send_message(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:

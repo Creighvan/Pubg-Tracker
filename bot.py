@@ -610,19 +610,19 @@ async def on_guild_remove(guild: discord.Guild):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
 async def addplayer(interaction: discord.Interaction, name: str):
-    await addplayer_impl(interaction, name, send_audit_log, fetch_last_active_report)
+    await addplayer_impl(interaction, name, send_audit_log)
 
 @bot.tree.command(description="Add many PUBG players at once — paste names separated by commas or new lines")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(names="e.g. PlayerOne, PlayerTwo, PlayerThree (commas or newlines both work)")
 async def addplayers(interaction: discord.Interaction, names: str):
-    await addplayers_impl(interaction, names, send_audit_log, fetch_last_active_report)
+    await addplayers_impl(interaction, names, send_audit_log)
 
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to remove")
 async def removeplayer(interaction: discord.Interaction, name: str):
-    await removeplayer_impl(interaction, name, send_audit_log, fetch_last_active_report)
+    await removeplayer_impl(interaction, name, send_audit_log)
 
 @bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
 @app_commands.checks.has_permissions(manage_guild=True)
