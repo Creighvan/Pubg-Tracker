@@ -920,14 +920,23 @@ async def setactivitychannel(interaction: discord.Interaction):
 
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
 async def setauditchannel(interaction: discord.Interaction):
+    if not await _is_admin_authorized(interaction, None):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return
     await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
 async def clearauditchannel(interaction: discord.Interaction):
+    if not await _is_admin_authorized(interaction, None):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return
     await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
 async def showauditconfig(interaction: discord.Interaction):
+    if not await _is_admin_authorized(interaction, None):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return
     await showauditconfig_impl(interaction, ADMIN_USER_IDS)
 
 @bot.tree.command(description="Show current-season ranked Squad TPP standings")

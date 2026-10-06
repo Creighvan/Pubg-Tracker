@@ -215,16 +215,7 @@ async def clearauditchannel_impl(interaction, admin_ids):
 
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
-    # Check whitelist only (no async checks to prevent timeout)
-    is_admin = interaction.user.id in admin_ids
-
-    if not is_admin:
-        guild_cfg = await storage.get_guild(interaction.guild_id)
-        lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(translations.get_translation(lang, "no_permission"), ephemeral=True)
-        return
-
-    # User is admin, proceed with the command
+    # User is already authorized by the decorator check
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 
@@ -237,19 +228,6 @@ async def showauditconfig_impl(interaction, admin_ids):
         )
     else:
         await interaction.response.send_message(translations.get_translation(lang, "using_central_audit"))
-
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-
-    audit_channel_id = guild_cfg.get("audit_channel_id")
-    if audit_channel_id:
-        channel = interaction.guild.get_channel(audit_channel_id)
-        channel_name = channel.mention if channel else translations.get_translation(lang, "unknown_deleted")
-        await interaction.followup.send(
-            f"{translations.get_translation(lang, 'custom_audit_channel')} {channel_name} (ID: {audit_channel_id})"
-        )
-    else:
-        await interaction.followup.send(translations.get_translation(lang, "using_central_audit"))
 
 
 async def setlanguage_impl(interaction, language):
