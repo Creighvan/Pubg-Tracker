@@ -65,12 +65,14 @@ async def leaderboard_impl(interaction, pubg, sort_by):
 
 async def lastactive_impl(interaction, pubg):
     """Implementation of lastactive command."""
+    from modules.reports import fetch_last_active_report
+    
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     await interaction.response.defer()
     try:
-        result = await pubg.get_last_active_report(interaction.guild_id, interaction.guild.name)
+        result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
