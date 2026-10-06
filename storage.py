@@ -179,7 +179,7 @@ def _load() -> dict:
             _CORRUPTION_DETECTED = True
             # Return empty dict to allow bot to continue, but the corrupted file is preserved
             return {}
-    
+
     # Validate schema
     if not _validate_schema(data):
         logger.critical("Database schema validation failed")
@@ -189,7 +189,9 @@ def _load() -> dict:
         logger.critical(f"File with invalid schema preserved as {corrupt_path}")
         _CORRUPTION_DETECTED = True
         return {}
-    
+
+    # Clear corruption flag if load and validation succeed
+    _CORRUPTION_DETECTED = False
     return data
 
 
