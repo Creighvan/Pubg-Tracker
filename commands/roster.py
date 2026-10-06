@@ -108,19 +108,24 @@ async def removeplayer_impl(interaction, name, send_audit_log):
 async def roster_impl(interaction):
     """Implementation of roster command."""
     try:
+        await interaction.response.defer()
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
         players = guild_cfg["players"]
         if not players:
-            await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
+            await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
             return
-        await interaction.response.send_message(
+        await interaction.followup.send(
             translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
         )
     except DatabaseCorruptionError as e:
         if not interaction.response.is_done():
             await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in roster_impl: {e}", exc_info=True)
         if not interaction.response.is_done():
             await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
