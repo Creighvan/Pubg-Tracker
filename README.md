@@ -1,19 +1,27 @@
-# PUBG Clan Tracker Discord Bot
+# PUBG Clan Intelligence & Analytics Discord Bot
 
-Tracks a list of PUBG player names per Discord server, pulls their lifetime
-stats from the official PUBG API, and posts an aggregated "clan report"
-(kills, wins, win rate, top fraggers) — both on a daily schedule and on
-demand via slash commands.
+A comprehensive PUBG clan analytics bot that tracks roster statistics, accumulates historical data, and provides team chemistry analysis. Originally designed for roster cleanup, it has evolved into a full clan intelligence system that answers "How are we doing?" rather than just reporting current lifetime statistics.
 
-**Perfect for roster cleanup** — Track inactive clan members who have been
-removed from the actual PUBG clan but still have Discord server access.
-Use the protected player list to keep key members while tracking others
-for removal decisions.
+**Core Features:**
+- **Historical Data Layer** - 90-day daily snapshots, match history with participant tracking
+- **Player Analytics** - Profiles, trends, comparisons, season summaries with rank progression
+- **Clan Analytics** - Clan trends, roster health, map analytics
+- **Team Intelligence** - Chemistry analysis (who plays well together), team relationships
+- **Roster Management** - Inactivity tracking, protected player lists, automated cleanup
+- **Scheduled Reports** - Daily highlights, ranked standings, chicken dinner alerts
+
+**Original Purpose:**
+Track inactive clan members who have been removed from the actual PUBG clan but still have Discord server access. This feature remains fully functional through the protected player list and inactivity tracking system.
 
 ## Support server
 
 For Bot help, bug reports, feature requests, and service updates, join the
 [Game Tracker Bot Discord Support Server](https://discord.gg/KEUWmwBYV4).
+
+## Legal
+
+- [Terms of Service](TERMS.md) - Effective Date: August 21, 2026
+- [Privacy Policy](PRIVACY.md) - Effective Date: August 21, 2026
 
 ## Important limitation (same one PUBGLooker deals with)
 
@@ -266,6 +274,36 @@ Commands:
 
 The official PUBG API now exposes the Survival Mastery `tier` field, so the bot reads the tier directly rather than guessing it from the level.
 
+## Historical Data & Analytics
+
+The bot automatically accumulates historical data to enable trend analysis and team intelligence:
+
+**Daily Snapshots (90-day retention):**
+- Collected automatically at 03:00 UTC daily
+- Tracks matches, wins, kills, damage, placement per player
+- Includes ranked progression data with season awareness
+- Enables historical trend analysis
+
+**Match History with Participant Tracking:**
+- Records match participants with team identification
+- Canonical participant dataset: `player_id`, `player_name`, `team_id`, map, placement, kills, damage
+- Enables chemistry and team analytics
+- Distinguishes: shared matches vs confirmed teammates vs unknown relationships
+
+**Data Retention:**
+- Daily snapshots: 90 days
+- Match history: up to 1,000 matches per guild
+- Clan participant records: approximately 4,000 records per guild
+
+**Automatic Accumulation:**
+Once the roster is configured with `/addplayer` or `/addplayers`, the bot automatically:
+- Collects daily snapshots at 03:00 UTC
+- Records match history as players participate in matches
+- Tracks team relationships for chemistry analysis
+- Calculates achievements and streaks
+
+No manual match recording is required — historical data accumulates in the background.
+
 ## Commands
 
 | Command | What it does |
@@ -328,6 +366,18 @@ The official PUBG API now exposes the Survival Mastery `tier` field, so the bot 
 | `/setauditchannel` | **Admin**: Set a custom audit log channel for this server (overrides central audit server) |
 | `/clearauditchannel` | **Admin**: Remove custom audit channel and use central audit server |
 | `/showauditconfig` | **Admin**: Show current audit logging configuration for this server |
+
+### Historical Analytics (requires accumulated data)
+
+|| `/profile <player>` | Player profile with historical analysis (snapshots, stats, trends) |
+|| `/playertrend <player>` | 7-day trend analysis (improvement/decline in key stats) |
+|| `/compare <player1> <player2>` | Side-by-side player comparison |
+|| `/clantrend` | Clan-wide historical trends (aggregate stats over time) |
+|| `/mapstats` | Map performance analytics (best/worst maps, K/D, win rates) |
+|| `/season <player>` | Season summary with rank progression tracking |
+|| `/chemistry <player1> <player2>` | Squad chemistry analysis (who plays well together, team performance) |
+
+**Note:** Historical analytics require accumulated data. Trend commands need at least 2 days of snapshots. Chemistry requires sufficient match history with team tracking.
 
 ### Chicken Dinner win alerts
 
