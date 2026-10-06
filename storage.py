@@ -159,9 +159,6 @@ def _validate_schema(data: dict) -> bool:
 
 def _load() -> dict:
     global _CORRUPTION_DETECTED
-    if _CORRUPTION_DETECTED:
-        logger.critical("Database in corrupted state - refusing to load and returning empty dict")
-        return {}
     if not os.path.exists(DATA_PATH):
         return {}
     with open(DATA_PATH, "r", encoding="utf-8") as f:

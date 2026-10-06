@@ -4,9 +4,12 @@ Roster management command implementations for PUBG Tracker bot.
 These are the actual command functions. They are decorated in bot.py.
 """
 
+import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
+
+logger = logging.getLogger(__name__)
 
 
 async def addplayer_impl(interaction, name, send_audit_log):
@@ -29,6 +32,10 @@ async def addplayer_impl(interaction, name, send_audit_log):
             await interaction.response.send_message(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in addplayer_impl: {e}", exc_info=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def addplayers_impl(interaction, names, send_audit_log):
@@ -58,6 +65,10 @@ async def addplayers_impl(interaction, names, send_audit_log):
         await interaction.response.send_message("\n".join(lines))
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in addplayers_impl: {e}", exc_info=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def removeplayer_impl(interaction, name, send_audit_log):
@@ -80,16 +91,27 @@ async def removeplayer_impl(interaction, name, send_audit_log):
             await interaction.response.send_message(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in removeplayer_impl: {e}", exc_info=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def roster_impl(interaction):
     """Implementation of roster command."""
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    players = guild_cfg["players"]
-    if not players:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
-        return
-    await interaction.response.send_message(
-        translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
-    )
+    try:
+        guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
+        players = guild_cfg["players"]
+        if not players:
+            await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
+            return
+        await interaction.response.send_message(
+            translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
+        )
+    except DatabaseCorruptionError as e:
+        await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in roster_impl: {e}", exc_info=True)
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
