@@ -13,6 +13,8 @@ PUBG Tracker is a Discord utility bot for PUBG communities and clans. Features m
 - Tracking PUBG player statistics and match activity.
 - Displaying lifetime, ranked, leaderboard, clan, weapon, and survival information obtained from the official PUBG API.
 - Creating server-specific reports, including scheduled daily or weekly reports.
+- Historical analytics including player profiles, trend analysis, comparisons, clan trends, and map performance.
+- Team chemistry analysis based on match participation and team performance.
 - Allowing authorized server members to configure tracked players, reporting channels, scheduled times, clan settings, and ranked queues.
 
 Features may change as the Bot is updated.
