@@ -414,9 +414,11 @@ async def auto_highlights():
             except PubgApiError as e:
                 print(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
+                continue  # Continue with next guild
             except Exception as e:
                 print(f"[auto_highlights] Unexpected error for guild {guild_id}: {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
+                continue  # Continue with next guild
 
 
 async def run_auto_highlights():

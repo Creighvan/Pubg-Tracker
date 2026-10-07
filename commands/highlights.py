@@ -5,6 +5,7 @@ Highlights command implementations for PUBG Tracker bot.
 import storage
 import translations
 from pubg_api import PubgApiError
+from modules.reports import fetch_highlights_report
 
 
 async def dailyhighlights_impl(interaction, pubg):
@@ -14,7 +15,7 @@ async def dailyhighlights_impl(interaction, pubg):
     
     await interaction.response.defer()
     try:
-        result = await pubg.get_highlights_report(interaction.guild_id)
+        result = await fetch_highlights_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
