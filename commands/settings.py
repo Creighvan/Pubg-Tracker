@@ -97,6 +97,7 @@ async def setrankedqueue_impl(interaction, queue):
 
 async def sethighlightschannel_impl(interaction):
     """Implementation of sethighlightschannel command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -104,22 +105,24 @@ async def sethighlightschannel_impl(interaction):
         guild_cfg["highlights_channel_id"] = interaction.channel_id
         guild_cfg["highlights_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "highlights_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "highlights_channel_set"))
 
 
 async def sethighlightstime_impl(interaction, hour):
     """Implementation of sethighlightstime command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["highlights_hour_utc"] = hour
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "highlights_time_set").format(hour=hour))
+    await interaction.followup.send(translations.get_translation(lang, "highlights_time_set").format(hour=hour))
 
 
 async def setsurvivalchannel_impl(interaction):
     """Implementation of setsurvivalchannel command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -127,11 +130,12 @@ async def setsurvivalchannel_impl(interaction):
         guild_cfg["survival_channel_id"] = interaction.channel_id
         guild_cfg["survival_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "survival_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "survival_channel_set"))
 
 
 async def setsurvivaltime_impl(interaction, day, hour, minute):
     """Implementation of setsurvivaltime command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -140,7 +144,7 @@ async def setsurvivaltime_impl(interaction, day, hour, minute):
         guild_cfg["survival_hour_utc"] = hour
         guild_cfg["survival_minute_utc"] = minute
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "survival_time_set").format(day=day, hour=hour, minute=minute))
+    await interaction.followup.send(translations.get_translation(lang, "survival_time_set").format(day=day, hour=hour, minute=minute))
 
 
 async def setstatuschannel_impl(interaction):
