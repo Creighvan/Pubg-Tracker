@@ -7,8 +7,8 @@ discord.ext.tasks to automatically post reports at configured times.
 Functions:
     auto_digest: Clan digest every 15 minutes (checks if due)
     auto_last_active: Last active report daily (after 02:00 UTC, recovers from downtime)
-    auto_ranked: Ranked standings daily (after 04:30 UTC, recovers from downtime)
-    auto_highlights: Highlights report daily (at configured UTC time per guild, defaults to 02:00 UTC)
+    auto_ranked: Ranked standings daily (at 04:30 UTC, recovers from downtime)
+    auto_highlights: Highlights report daily (at 02:00 UTC, recovers from downtime)
     auto_clan_level: Clan level progress weekly
     auto_survival_mastery: Survival mastery weekly
     auto_chicken_dinner: Chicken dinner congratulatory messages
@@ -317,22 +317,21 @@ async def _wait_until_time(target_hour: int, target_minute: int):
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours at the configured UTC time.
+    human/bot kill split) every 24 hours at 02:00 UTC.
     Edits existing message instead of posting new ones.
     """
     from modules.utils import get_current_pubg_day
     print("[auto_highlights] Starting highlights loop")
     while True:
-        # Wait until next configured time for each guild
-        print("[auto_highlights] Waiting for next scheduled highlights run")
-        await asyncio.sleep(60)  # Check every minute
-        
-        utc = timezone.utc
-        now_utc = datetime.now(utc)
-        current_hour = now_utc.hour
-        current_minute = now_utc.minute
+        # Wait until 02:00 UTC
+        print("[auto_highlights] Waiting until 02:00 UTC")
+        await _wait_until_time(2, 0)
+        print(f"[auto_highlights] Reached 02:00 UTC, processing guilds")
         
         # Run the highlights report for all guilds
+        utc = timezone.utc
+        now_utc = datetime.now(utc)
+        
         for guild_id in await storage.all_guild_ids():
             guild_cfg = await storage.get_guild(guild_id)
             if not guild_cfg.get("highlights_enabled", True):
@@ -341,29 +340,12 @@ async def auto_highlights():
             if channel_id is None:
                 continue
 
-            # Check if this guild has a specific time configured
-            configured_hour = guild_cfg.get("highlights_hour_utc")
-            configured_minute = guild_cfg.get("highlights_minute_utc", 0)
-            
-            # If no specific time configured, default to 02:00 UTC
-            if configured_hour is None:
-                configured_hour = 2
-                configured_minute = 0
-            
-            # Check if current time matches configured time (within the same minute)
-            if current_hour != configured_hour or current_minute != configured_minute:
-                continue
-            
-            print(f"[auto_highlights] Processing guild {guild_id} at configured time {configured_hour:02d}:{configured_minute:02d} UTC")
-
-            # Check if we've already posted since the most recent reset time
+            # Check if we've already posted since the most recent 02:00 UTC reset
             last_posted = guild_cfg.get("highlights_posted_at")
             if last_posted:
                 last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
-                # Calculate reset time for this guild's configured time
-                reset_time_utc = now_utc.replace(hour=configured_hour, minute=configured_minute, second=0, microsecond=0)
+                reset_time_utc = get_current_pubg_day(now_utc)
                 if last_posted_date >= reset_time_utc:
-                    print(f"[auto_highlights] Guild {guild_id} already posted since reset time, skipping")
                     continue  # Already posted since the most recent reset
 
             guild = _get_bot().get_guild(guild_id)
@@ -404,7 +386,7 @@ async def auto_highlights():
                         await send_audit_log(
                             guild_id,
                             "Scheduled Report Updated",
-                            f"Highlights report updated at {configured_hour:02d}:{configured_minute:02d} UTC",
+                            f"Highlights report updated at 02:00 UTC daily",
                             is_automated=True,
                             details={"Report Type": "Highlights", "Players": len(players)},
                             report_embed=embed

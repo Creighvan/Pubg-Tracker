@@ -104,20 +104,11 @@ async def sethighlightschannel_impl(interaction):
     def modifier(guild_cfg):
         guild_cfg["highlights_channel_id"] = interaction.channel_id
         guild_cfg["highlights_enabled"] = True
+        # Hardcode to 02:00 UTC - not configurable
+        guild_cfg["highlights_hour_utc"] = 2
+        guild_cfg["highlights_minute_utc"] = 0
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "highlights_channel_set"))
-
-
-async def sethighlightstime_impl(interaction, hour):
-    """Implementation of sethighlightstime command."""
-    await interaction.response.defer()
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["highlights_hour_utc"] = hour
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "highlights_time_set").format(hour=hour))
+    await interaction.followup.send(translations.get_translation(lang, "highlights_channel_set").format(channel=interaction.channel.mention))
 
 
 async def setsurvivalchannel_impl(interaction):

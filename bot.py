@@ -38,8 +38,7 @@ Slash commands:
   /setrankedchannel           - set current channel for the daily ranked report (updates at 04:30 UTC)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
-  /sethighlightschannel          - set current channel for the 24h highlights report
-  /sethighlightstime <0-23>       - fixed UTC hour for the highlights report
+  /sethighlightschannel          - set current channel for the 24h highlights report (updates at 02:00 UTC)
   /masterystats                     - top weapon mastery + survival level per player (on-demand only, slow)
   /leaderboardstats [pages]          - check official leaderboard for roster placements (on-demand only)
   /setleaderboardregion               - platform-region shard for leaderboard lookups (default pc-na)
@@ -252,7 +251,6 @@ from commands.settings import (
     setrankedchannel_impl,
     setrankedqueue_impl,
     sethighlightschannel_impl,
-    sethighlightstime_impl,
     setsurvivalchannel_impl,
     setsurvivaltime_impl,
     setstatuschannel_impl,
@@ -1006,23 +1004,6 @@ async def dailyhighlights(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
     await sethighlightschannel_impl(interaction)
-
-@bot.tree.command(description="Post the daily highlights report at a fixed UTC time each day")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
-@app_commands.choices(minute=QUARTER_HOUR_CHOICES)
-async def sethighlightstime(interaction: discord.Interaction, hour: app_commands.Range[int, 0, 23], minute: app_commands.Choice[int] = None):
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    minute_val = minute.value if minute else 0
-    def modifier(guild_cfg):
-        guild_cfg["highlights_hour_utc"] = hour
-        guild_cfg["highlights_minute_utc"] = minute_val
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(
-        translations.get_translation(lang, "highlights_time_set").format(time=f"{hour:02d}:{minute_val:02d} UTC")
-    )
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
