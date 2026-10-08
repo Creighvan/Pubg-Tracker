@@ -2,17 +2,26 @@
 Clan management command implementations for PUBG Tracker bot.
 """
 
+import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
+import discord
+
+logger = logging.getLogger(__name__)
 
 
 async def setclan_impl(interaction, name, pubg):
     """Implementation of setclan command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
-    await interaction.response.defer(ephemeral=True)
     try:
         clan = await pubg.get_clan_for_player_name(name.strip())
     except PubgApiError as e:
@@ -38,10 +47,16 @@ async def setclan_impl(interaction, name, pubg):
 
 async def clanlevel_impl(interaction, pubg):
     """Implementation of clanlevel command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
-    await interaction.response.defer()
+
     try:
         from modules.reports import fetch_clan_level_report
         result = await fetch_clan_level_report(interaction.guild_id)
@@ -58,17 +73,22 @@ async def clanlevel_impl(interaction, pubg):
 
 async def setclanchannel_impl(interaction, send_audit_log):
     """Implementation of setclanchannel command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     def modifier(guild_cfg):
         guild_cfg["clan_channel_id"] = interaction.channel_id
         guild_cfg["clan_level_enabled"] = True
         guild_cfg["clan_message_id"] = None
     await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.response.defer()
-    
+
     # Immediately post the report
     try:
         from modules.reports import fetch_clan_level_report
@@ -110,6 +130,13 @@ async def setclanchannel_impl(interaction, send_audit_log):
 
 async def setclantime_impl(interaction, day, hour, minute):
     """Implementation of setclantime command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -119,4 +146,4 @@ async def setclantime_impl(interaction, day, hour, minute):
         guild_cfg["clan_minute_utc"] = minute
     
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "clan_time_set").format(day=day, hour=hour, minute=minute))
+    await interaction.followup.send(translations.get_translation(lang, "clan_time_set").format(day=day, hour=hour, minute=minute))

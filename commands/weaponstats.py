@@ -2,6 +2,7 @@
 Weapon analytics - per-weapon performance tracking.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -11,10 +12,17 @@ from modules.utils import normalize_player_name
 from pubg_api import PubgClient
 from modules.config import pubg
 
+logger = logging.getLogger(__name__)
+
 
 async def weaponstats_impl(interaction: discord.Interaction, player: str):
     """Show weapon statistics for a player."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

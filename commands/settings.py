@@ -8,16 +8,23 @@ import translations
 from storage import DatabaseCorruptionError
 from discord import app_commands
 from modules.config import bot
+import discord
 
 logger = logging.getLogger(__name__)
 
 
 async def setgamemode_impl(interaction, mode):
     """Implementation of setgamemode command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     def modifier(guild_cfg):
         guild_cfg["game_mode"] = mode.value
     await storage.modify_guild(interaction.guild_id, modifier)
@@ -26,7 +33,13 @@ async def setgamemode_impl(interaction, mode):
 
 async def setchannel_impl(interaction):
     """Implementation of setchannel command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -38,7 +51,13 @@ async def setchannel_impl(interaction):
 
 async def setinterval_impl(interaction, hours):
     """Implementation of setinterval command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -50,7 +69,13 @@ async def setinterval_impl(interaction, hours):
 
 async def setdigesttime_impl(interaction, hour, minute):
     """Implementation of setdigesttime command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -63,7 +88,13 @@ async def setdigesttime_impl(interaction, hour, minute):
 
 async def setactivitychannel_impl(interaction):
     """Implementation of setactivitychannel command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -78,7 +109,13 @@ async def setactivitychannel_impl(interaction):
 
 async def setrankedchannel_impl(interaction):
     """Implementation of setrankedchannel command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -91,7 +128,13 @@ async def setrankedchannel_impl(interaction):
 
 async def setrankedqueue_impl(interaction, queue):
     """Implementation of setrankedqueue command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -103,7 +146,13 @@ async def setrankedqueue_impl(interaction, queue):
 
 async def sethighlightschannel_impl(interaction):
     """Implementation of sethighlightschannel command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -119,7 +168,13 @@ async def sethighlightschannel_impl(interaction):
 
 async def setsurvivalchannel_impl(interaction):
     """Implementation of setsurvivalchannel command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -132,10 +187,16 @@ async def setsurvivalchannel_impl(interaction):
 
 async def setsurvivaltime_impl(interaction, day, hour, minute):
     """Implementation of setsurvivaltime command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     def modifier(guild_cfg):
         guild_cfg["survival_day_utc"] = day
         guild_cfg["survival_hour_utc"] = hour
@@ -146,18 +207,32 @@ async def setsurvivaltime_impl(interaction, day, hour, minute):
 
 async def setstatuschannel_impl(interaction):
     """Implementation of setstatuschannel command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["status_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "status_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "status_channel_set"))
 
 
 async def setauditchannel_impl(interaction, admin_ids):
     """Implementation of setauditchannel command."""
     # User is already authorized by the decorator check
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
@@ -174,6 +249,13 @@ async def setauditchannel_impl(interaction, admin_ids):
 async def clearauditchannel_impl(interaction, admin_ids):
     """Implementation of clearauditchannel command."""
     # User is already authorized by the decorator check
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
@@ -190,6 +272,13 @@ async def clearauditchannel_impl(interaction, admin_ids):
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
     # User is already authorized by the decorator check
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
@@ -210,7 +299,13 @@ async def showauditconfig_impl(interaction, admin_ids):
 
 async def setlanguage_impl(interaction, language):
     """Implementation of setlanguage command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     current_lang = guild_cfg.get("language", "en")
     
@@ -248,7 +343,13 @@ async def setlanguage_impl(interaction, language):
 
 async def language_impl(interaction):
     """Implementation of language command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -272,7 +373,13 @@ async def language_impl(interaction):
 
 async def reportstatus_impl(interaction):
     """Implementation of reportstatus command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -302,7 +409,13 @@ async def reportstatus_impl(interaction):
 
 async def reporttoggle_impl(interaction, report):
     """Implementation of reporttoggle command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -320,7 +433,13 @@ async def reporttoggle_impl(interaction, report):
 
 async def donate_impl(interaction):
     """Implementation of donate command."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     

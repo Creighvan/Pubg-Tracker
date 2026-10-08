@@ -2,6 +2,7 @@
 Streak tracking system for player performance streaks.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -10,6 +11,8 @@ import history
 import translations
 from modules.utils import normalize_player_name
 from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 STREAK_TYPES = {
@@ -75,7 +78,12 @@ async def update_streaks(guild_id: int, player_name: str, stats: dict):
 
 async def streaks_impl(interaction: discord.Interaction, player: str = None):
     """Show current streaks for a player (or all players if none specified)."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

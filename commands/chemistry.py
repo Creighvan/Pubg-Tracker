@@ -2,6 +2,7 @@
 Squad chemistry - analyze team synergy and best squad combinations.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -11,10 +12,17 @@ import translations
 from modules.utils import normalize_player_name
 from datetime import datetime, timezone
 
+logger = logging.getLogger(__name__)
+
 
 async def chemistry_impl(interaction: discord.Interaction, player1: str, player2: str):
     """Show chemistry between two players."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
@@ -134,7 +142,12 @@ async def chemistry_impl(interaction: discord.Interaction, player1: str, player2
 
 async def bestsquad_impl(interaction: discord.Interaction):
     """Show the best squad combination in the clan (placeholder)."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
