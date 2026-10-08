@@ -66,6 +66,7 @@ async def auto_digest():
     behavior (post_interval_hours), depending on what's configured.
     """
     now = datetime.now(timezone.utc)
+    print(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("digest_enabled", True):
@@ -111,7 +112,9 @@ async def auto_digest():
 
 @auto_digest.before_loop
 async def before_auto_digest():
+    print("[auto_digest] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
+    print("[auto_digest] Bot ready, starting loop (every 15 minutes)")
 
 
 @tasks.loop(minutes=15)
@@ -546,31 +549,56 @@ async def auto_chicken_dinner():
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    
+    print(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+    guilds_processed = 0
+    guilds_skipped = 0
+    guilds_failed = 0
+
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("chicken_dinner_enabled", True):
+            guilds_skipped += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: chicken_dinner_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("chicken_dinner_channel_id") or guild_cfg.get("post_channel_id")
-        if channel_id is None or not guild_cfg["players"]:
+        if channel_id is None:
+            guilds_skipped += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: No channel configured, skipping")
+            continue
+        if not guild_cfg["players"]:
+            guilds_skipped += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None or channel is None:
+        if guild is None:
+            guilds_skipped += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: Guild not found, skipping")
+            continue
+        if channel is None:
+            guilds_skipped += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
 
         # No daily reset filter - show all recent wins
 
         try:
+            print(f"[auto_chicken_dinner] Guild {guild_id}: Fetching wins for {len(guild_cfg['players'])} players")
             async with get_scheduler_lock():
                 wins, _ = await _get_pubg().get_squad_wins(guild_cfg["players"], matches_to_check=50)
+            print(f"[auto_chicken_dinner] Guild {guild_id}: Found {len(wins)} wins")
         except PubgApiError as e:
+            guilds_failed += 1
             print(f"[auto_chicken_dinner] PUBG API error for guild {guild_id}: {e}")
-            await _record_status_event(f"⚠️ auto_chicken_dinner report failed for guild {guild_id}: {e}"[:200])
+            await _record_status_event(f"⚠️ auto_chicken_dinner API error for guild {guild_id}: {e}"[:200])
             continue
         except Exception as e:
+            guilds_failed += 1
             print(f"[auto_chicken_dinner] Unexpected error for guild {guild_id}: {e}")
-            await _record_status_event(f"⚠️ auto_chicken_dinner report failed for guild {guild_id}: {e}"[:200])
+            import traceback
+            traceback.print_exc()
+            await _record_status_event(f"⚠️ auto_chicken_dinner error for guild {guild_id}: {e}"[:200])
             continue
 
         posted_matches = guild_cfg.get("chicken_dinner_posted_matches", {})
@@ -608,7 +636,7 @@ async def auto_chicken_dinner():
 
         try:
             from modules.embeds import build_chicken_dinner_embed
-            
+
             # Get all wins for the display
             all_winners = []
             for win in wins:
@@ -620,38 +648,46 @@ async def auto_chicken_dinner():
                             "match_id": win_match_id,
                             "created_at": win.get("created_at")
                         }))
-            
+
             if not all_winners:
                 # No recent wins, skip update
+                guilds_skipped += 1
+                print(f"[auto_chicken_dinner] Guild {guild_id}: No recent wins, skipping")
                 continue
-            
+
             embed = build_chicken_dinner_embed(all_winners, is_automated=True, total_wins=total_wins)
-            
+
             # Try to edit existing message
             message_id = guild_cfg.get("chicken_dinner_message_id")
             message = None
             if message_id:
                 try:
                     message = await channel.fetch_message(message_id)
-                except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+                except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
+                    print(f"[auto_chicken_dinner] Guild {guild_id}: Could not fetch message {message_id}: {e}")
                     message = None
-            
+
             if message is not None:
                 await message.edit(embed=embed)
+                print(f"[auto_chicken_dinner] Guild {guild_id}: Updated existing message")
             else:
                 new_message = await channel.send(embed=embed)
                 guild_cfg["chicken_dinner_message_id"] = new_message.id
-            
+                print(f"[auto_chicken_dinner] Guild {guild_id}: Posted new message")
+
             # Only record match IDs to track what we've seen
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
             guild_cfg["chicken_dinner_total_wins"] = total_wins
-            
+
             def modifier(g):
                 g["chicken_dinner_posted_matches"] = guild_cfg["chicken_dinner_posted_matches"]
                 g["chicken_dinner_total_wins"] = guild_cfg["chicken_dinner_total_wins"]
                 g["chicken_dinner_message_id"] = guild_cfg.get("chicken_dinner_message_id")
             await storage.modify_guild(guild_id, modifier)
-            
+
+            guilds_processed += 1
+            print(f"[auto_chicken_dinner] Guild {guild_id}: Report posted successfully ({new_match_count} new wins, {total_wins} total)")
+
             if new_wins:
                 await send_audit_log(
                     guild_id,
@@ -662,12 +698,20 @@ async def auto_chicken_dinner():
                     report_embed=embed
                 )
         except Exception as e:
+            guilds_failed += 1
             print(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            await _record_status_event(f"⚠️ auto_chicken_dinner post failed for guild {guild_id}: {e}"[:200])
+
+    print(f"[auto_chicken_dinner] Completed: {guilds_processed} processed, {guilds_skipped} skipped, {guilds_failed} failed")
 
 
 @auto_chicken_dinner.before_loop
 async def before_auto_chicken_dinner():
+    print("[auto_chicken_dinner] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
+    print("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
 
 
 @tasks.loop(minutes=30)
