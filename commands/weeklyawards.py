@@ -2,6 +2,7 @@
 Weekly clan awards - weekly performance summary and awards.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -10,6 +11,8 @@ import history
 import translations
 from modules.utils import normalize_player_name
 from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 
 AWARD_CATEGORIES = {
@@ -138,7 +141,12 @@ async def calculate_weekly_awards(guild_id: int, days: int = 7) -> dict:
 
 async def weeklyawards_impl(interaction: discord.Interaction, days: int = 7):
     """Show weekly clan awards."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

@@ -2,11 +2,14 @@
 Admin command implementations for PUBG Tracker bot.
 """
 
+import logging
 import storage
 import translations
 from pubg_api import PubgApiError
 from datetime import datetime, timezone
 import discord
+
+logger = logging.getLogger(__name__)
 
 
 class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical Anomaly"):
@@ -121,11 +124,18 @@ async def reportcheater_impl(interaction, pubg, _detect_statistical_anomalies):
 async def askfeedback_impl(interaction, channel, secret_key, BOT_ADMIN_KEY):
     """Implementation of askfeedback command."""
     from modules.config import SUPPORT_FEEDBACK_CHANNEL_ID, SUPPORT_SERVER_ID
-    
+
     if secret_key != BOT_ADMIN_KEY:
         await interaction.response.send_message("❌ Invalid secret key", ephemeral=True)
         return
-    
+
+    # Defer after key check
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     if not channel:
         # Use support server channel
         target_guild = interaction.client.get_guild(SUPPORT_SERVER_ID)
@@ -138,10 +148,10 @@ async def askfeedback_impl(interaction, channel, secret_key, BOT_ADMIN_KEY):
                     "Please share any suggestions, bug reports, or feature requests.\n\n"
                     "Thank you for helping us improve!"
                 )
-                await interaction.response.send_message("✅ Feedback prompt posted to support server")
+                await interaction.followup.send("✅ Feedback prompt posted to support server")
                 return
-    
-    await interaction.response.send_message("❌ Could not find target channel", ephemeral=True)
+
+    await interaction.followup.send("❌ Could not find target channel", ephemeral=True)
 
 
 async def botservers_impl(interaction, bot, ADMIN_USER_IDS):
@@ -149,15 +159,22 @@ async def botservers_impl(interaction, bot, ADMIN_USER_IDS):
     if interaction.user.id not in ADMIN_USER_IDS:
         await interaction.response.send_message("You do not have permission to use this command.", ephemeral=True)
         return
-    
+
+    # Defer after auth check
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     servers = []
     for guild in bot.guilds:
         servers.append(f"**{guild.name}** (ID: {guild.id}, Members: {guild.member_count})")
-    
+
     import discord
     embed = discord.Embed(
         title=f"Bot Servers ({len(bot.guilds)})",
         description="\n".join(servers) or "No servers",
         color=discord.Color.blue(),
     )
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)

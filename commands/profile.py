@@ -2,6 +2,7 @@
 Player profile command - flagship command showing comprehensive player info.
 """
 
+import logging
 import discord
 from discord import app_commands
 from discord.ui import Button, View
@@ -10,6 +11,8 @@ import storage
 import history
 import translations
 from modules.utils import normalize_player_name
+
+logger = logging.getLogger(__name__)
 
 
 class ProfileView(View):
@@ -23,7 +26,12 @@ class ProfileView(View):
 
 async def profile_impl(interaction: discord.Interaction, player_name: str):
     """Show comprehensive player profile."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

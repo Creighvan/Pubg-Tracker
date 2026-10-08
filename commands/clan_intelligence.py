@@ -2,6 +2,7 @@
 Clan intelligence commands - clan-wide analytics and team synergy.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -10,10 +11,17 @@ import history
 import translations
 from modules.utils import normalize_player_name
 
+logger = logging.getLogger(__name__)
+
 
 async def clantrend_impl(interaction: discord.Interaction, days: int = 7):
     """Show clan-wide trend analysis over the last N days."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
@@ -134,7 +142,12 @@ async def clantrend_impl(interaction: discord.Interaction, days: int = 7):
 
 async def rosterhealth_impl(interaction: discord.Interaction):
     """Show clan health dashboard with activity and inactivity status."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

@@ -2,6 +2,7 @@
 Analytics commands for trend tracking and player comparison.
 """
 
+import logging
 import discord
 from discord import app_commands
 from discord.ext import commands
@@ -11,10 +12,17 @@ import history
 import translations
 from modules.utils import normalize_player_name
 
+logger = logging.getLogger(__name__)
+
 
 async def playertrend_impl(interaction: discord.Interaction, player_name: str, days: int = 7):
     """Show 7-day trend for a player."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
@@ -126,7 +134,12 @@ async def playertrend_impl(interaction: discord.Interaction, player_name: str, d
 
 async def compare_impl(interaction: discord.Interaction, player1: str, player2: str):
     """Compare two tracked players."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

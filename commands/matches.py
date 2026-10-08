@@ -2,6 +2,7 @@
 Match history explorer - view recent matches for a player.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -9,10 +10,17 @@ import storage
 import translations
 from modules.utils import normalize_player_name
 
+logger = logging.getLogger(__name__)
+
 
 async def matches_impl(interaction: discord.Interaction, player: str):
     """Show recent matches for a player."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

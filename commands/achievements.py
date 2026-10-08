@@ -2,6 +2,7 @@
 Achievement system for tracking player milestones.
 """
 
+import logging
 import discord
 from discord import app_commands
 
@@ -12,6 +13,8 @@ from modules.utils import normalize_player_name
 
 # Import achievement definitions from history module
 from history import ACHIEVEMENTS
+
+logger = logging.getLogger(__name__)
 
 
 async def check_achievements(guild_id: int, player_name: str, stats: dict) -> list:
@@ -91,7 +94,12 @@ async def record_achievement(guild_id: int, player_name: str, achievement_id: st
 
 async def achievements_impl(interaction: discord.Interaction, player: str = None):
     """Show achievements for a player (or all players if none specified)."""
-    await interaction.response.defer()
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")

@@ -2,17 +2,27 @@
 Report command implementations for PUBG Tracker bot.
 """
 
+import logging
 import storage
 import translations
 from pubg_api import PubgApiError
+import discord
+
+logger = logging.getLogger(__name__)
 
 
 async def clanstats_impl(interaction, pubg):
     """Implementation of clanstats command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
-    await interaction.response.defer()
     try:
         result = await pubg.get_clan_report(interaction.guild_id)
     except PubgApiError as e:
@@ -33,16 +43,22 @@ async def postnow_impl(interaction, pubg):
 
 async def leaderboard_impl(interaction, pubg, sort_by):
     """Implementation of leaderboard command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     stat_key = sort_by.value if sort_by else "kills"
     
     if not guild_cfg["players"]:
-        await interaction.response.send_message(translations.get_translation(lang, "no_players_tracked"))
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked"))
         return
     
-    await interaction.response.defer()
     try:
         players, not_found = await pubg.get_players_and_stats(guild_cfg["players"], game_mode=guild_cfg["game_mode"])
     except PubgApiError as e:
@@ -65,12 +81,18 @@ async def leaderboard_impl(interaction, pubg, sort_by):
 
 async def lastactive_impl(interaction, pubg):
     """Implementation of lastactive command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
     from modules.reports import fetch_last_active_report
     
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
-    await interaction.response.defer()
     try:
         result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
