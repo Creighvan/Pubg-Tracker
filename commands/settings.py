@@ -14,39 +14,43 @@ logger = logging.getLogger(__name__)
 
 async def setgamemode_impl(interaction, mode):
     """Implementation of setgamemode command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["game_mode"] = mode.value
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "mode_set").format(mode=mode.value))
+    await interaction.followup.send(translations.get_translation(lang, "mode_set").format(mode=mode.value))
 
 
 async def setchannel_impl(interaction):
     """Implementation of setchannel command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["post_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "channel_set"))
 
 
 async def setinterval_impl(interaction, hours):
     """Implementation of setinterval command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["post_interval_hours"] = hours
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "interval_set").format(hours=hours))
+    await interaction.followup.send(translations.get_translation(lang, "interval_set").format(hours=hours))
 
 
 async def setdigesttime_impl(interaction, hour, minute):
     """Implementation of setdigesttime command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -54,11 +58,12 @@ async def setdigesttime_impl(interaction, hour, minute):
         guild_cfg["digest_hour_utc"] = hour
         guild_cfg["digest_minute_utc"] = minute
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "digest_time_set").format(hour=hour, minute=minute))
+    await interaction.followup.send(translations.get_translation(lang, "digest_time_set").format(hour=hour, minute=minute))
 
 
 async def setactivitychannel_impl(interaction):
     """Implementation of setactivitychannel command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -68,12 +73,12 @@ async def setactivitychannel_impl(interaction):
         guild_cfg["last_activity_message_id"] = None
     await storage.modify_guild(interaction.guild_id, modifier)
     
-    await interaction.response.defer()
     await interaction.followup.send(translations.get_translation(lang, "activity_channel_set"))
 
 
 async def setrankedchannel_impl(interaction):
     """Implementation of setrankedchannel command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -81,18 +86,19 @@ async def setrankedchannel_impl(interaction):
         guild_cfg["ranked_channel_id"] = interaction.channel_id
         guild_cfg["ranked_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "ranked_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "ranked_channel_set"))
 
 
 async def setrankedqueue_impl(interaction, queue):
     """Implementation of setrankedqueue command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
         guild_cfg["ranked_queue"] = queue.value
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "ranked_queue_set").format(queue=queue.value))
+    await interaction.followup.send(translations.get_translation(lang, "ranked_queue_set").format(queue=queue.value))
 
 
 async def sethighlightschannel_impl(interaction):
@@ -204,6 +210,7 @@ async def showauditconfig_impl(interaction, admin_ids):
 
 async def setlanguage_impl(interaction, language):
     """Implementation of setlanguage command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     current_lang = guild_cfg.get("language", "en")
     
@@ -223,7 +230,7 @@ async def setlanguage_impl(interaction, language):
     
     language = language.lower()
     if language not in VALID_LANGUAGES:
-        await interaction.response.send_message(
+        await interaction.followup.send(
             f"❌ {translations.get_translation(current_lang, 'invalid_language').format(languages=', '.join(VALID_LANGUAGES))}\n"
             f"Example: English (en), Spanish (es), Chinese (zh)"
         )
@@ -232,15 +239,16 @@ async def setlanguage_impl(interaction, language):
     success = await storage.set_language(interaction.guild_id, language)
     if success:
         language_name = LANGUAGE_NAMES[language]
-        await interaction.response.send_message(
+        await interaction.followup.send(
             translations.get_translation(language, "language_set").format(language=language_name)
         )
     else:
-        await interaction.response.send_message(f"❌ {translations.get_translation(current_lang, 'language_set_failed')}")
+        await interaction.followup.send(f"❌ {translations.get_translation(current_lang, 'language_set_failed')}")
 
 
 async def language_impl(interaction):
     """Implementation of language command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -259,11 +267,12 @@ async def language_impl(interaction):
     }
     
     language_name = LANGUAGE_NAMES.get(lang, lang)
-    await interaction.response.send_message(translations.get_translation(lang, "language_current").format(language=language_name))
+    await interaction.followup.send(translations.get_translation(lang, "language_current").format(language=language_name))
 
 
 async def reportstatus_impl(interaction):
     """Implementation of reportstatus command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -288,11 +297,12 @@ async def reportstatus_impl(interaction):
         embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=translations.get_translation(lang, "disabled"), inline=False)
     
     # Other reports...
-    await interaction.response.send_message(embed=embed)
+    await interaction.followup.send(embed=embed)
 
 
 async def reporttoggle_impl(interaction, report):
     """Implementation of reporttoggle command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -305,11 +315,12 @@ async def reporttoggle_impl(interaction, report):
     
     new_state = await storage.modify_guild(interaction.guild_id, modifier)
     status = translations.get_translation(lang, "enabled") if new_state else translations.get_translation(lang, "disabled")
-    await interaction.response.send_message(f"{report.value} {status}")
+    await interaction.followup.send(f"{report.value} {status}")
 
 
 async def donate_impl(interaction):
     """Implementation of donate command."""
+    await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
@@ -318,4 +329,4 @@ async def donate_impl(interaction):
         donation_url=DONATION_URL,
         coffee_url=BUY_ME_A_COFFEE_URL
     )
-    await interaction.response.send_message(message)
+    await interaction.followup.send(message)
