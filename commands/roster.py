@@ -8,19 +8,28 @@ import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
+import discord
 
 logger = logging.getLogger(__name__)
 
 
 async def addplayer_impl(interaction, name, send_audit_log):
     """Implementation of addplayer command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        logger.warning("addplayer_impl: Interaction expired before defer")
+        return
+
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
 
         added = await storage.add_player(interaction.guild_id, name)
         if added:
-            await interaction.response.send_message(translations.get_translation(lang, "player_added_success").format(name=name))
+            await interaction.followup.send(translations.get_translation(lang, "player_added_success").format(name=name))
             await send_audit_log(
                 interaction.guild_id,
                 "Player Added",
@@ -29,28 +38,33 @@ async def addplayer_impl(interaction, name, send_audit_log):
                 details={"Player": name}
             )
         else:
-            await interaction.response.send_message(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
+            await interaction.followup.send(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in addplayer_impl: {e}", exc_info=True)
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def addplayers_impl(interaction, names, send_audit_log):
     """Implementation of addplayers command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        logger.warning("addplayers_impl: Interaction expired before defer")
+        return
+
     raw = names.replace("\n", ",").split(",")
     candidates = [n.strip() for n in raw if n.strip()]
     if not candidates:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
-        await interaction.response.send_message(translations.get_translation(lang, "no_names_found"), ephemeral=True)
+        await interaction.followup.send(translations.get_translation(lang, "no_names_found"), ephemeral=True)
         return
 
     try:
-        await interaction.response.defer()
         added, duplicates = await storage.add_players(interaction.guild_id, candidates)
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
@@ -66,27 +80,29 @@ async def addplayers_impl(interaction, names, send_audit_log):
             lines.append(translations.get_translation(lang, "skipped_duplicates").format(count=len(duplicates)) + ", ".join(duplicates))
         await interaction.followup.send("\n".join(lines))
     except DatabaseCorruptionError as e:
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-        else:
-            await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in addplayers_impl: {e}", exc_info=True)
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
-        else:
-            await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def removeplayer_impl(interaction, name, send_audit_log):
     """Implementation of removeplayer command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        logger.warning("removeplayer_impl: Interaction expired before defer")
+        return
+
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
 
         removed = await storage.remove_player(interaction.guild_id, name)
         if removed:
-            await interaction.response.send_message(translations.get_translation(lang, "player_removed_success").format(name=name))
+            await interaction.followup.send(translations.get_translation(lang, "player_removed_success").format(name=name))
             await send_audit_log(
                 interaction.guild_id,
                 "Player Removed",
@@ -95,20 +111,25 @@ async def removeplayer_impl(interaction, name, send_audit_log):
                 details={"Player": name}
             )
         else:
-            await interaction.response.send_message(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
+            await interaction.followup.send(translations.get_translation(lang, "player_not_on_roster").format(name=name), ephemeral=True)
     except DatabaseCorruptionError as e:
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in removeplayer_impl: {e}", exc_info=True)
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
 
 
 async def roster_impl(interaction):
     """Implementation of roster command."""
+    # Defer immediately to prevent timeout
     try:
         await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        logger.warning("roster_impl: Interaction expired before defer")
+        return
+
+    try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
         players = guild_cfg["players"]
@@ -119,13 +140,7 @@ async def roster_impl(interaction):
             translations.get_translation(lang, "tracked_roster").format(count=len(players)) + "\n" + ", ".join(players)
         )
     except DatabaseCorruptionError as e:
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ {str(e)}", ephemeral=True)
-        else:
-            await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
         logger.error(f"Error in roster_impl: {e}", exc_info=True)
-        if not interaction.response.is_done():
-            await interaction.response.send_message(f"❌ An error occurred: {str(e)}", ephemeral=True)
-        else:
-            await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
