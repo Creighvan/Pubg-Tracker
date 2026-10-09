@@ -535,6 +535,14 @@ async def on_ready():
         # every auto-post if this step threw, since the task-start code
         # was unreachable after an unhandled exception here.
         logger.warning(f"[on_ready] Command sync failed (scheduled reports will still start): {e}", exc_info=e)
+
+    # Fix invalid snapshot data (one-time migration)
+    try:
+        import history
+        await history.fix_invalid_snapshots()
+    except Exception as e:
+        logger.warning(f"[on_ready] Failed to fix invalid snapshots: {e}", exc_info=True)
+
     if not auto_digest.is_running():
         start_all_scheduled_tasks(bot)
         # Wire up the audit log function so scheduler uses our implementation
@@ -544,7 +552,7 @@ async def on_ready():
     if not _bot_ready_once:
         _bot_ready_once = True
         await _record_status_event("Bot started and connected to Discord")
-    
+
     # Wire up the PUBG rate limit callback
     pubg.on_rate_limit_hit = lambda delay: _record_status_event(f"⏳ PUBG API rate-limited us — pausing {delay:.0f}s then retrying")
 
