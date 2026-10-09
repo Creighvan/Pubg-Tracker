@@ -539,7 +539,7 @@ async def on_ready():
     # Fix invalid snapshot data (one-time migration)
     try:
         import history
-        await history.fix_invalid_snapshots()
+        history.fix_invalid_snapshots()
     except Exception as e:
         logger.warning(f"[on_ready] Failed to fix invalid snapshots: {e}", exc_info=True)
 

@@ -737,13 +737,13 @@ async def get_guild_matches(
         return matches
 
 
-async def fix_invalid_snapshots():
+def fix_invalid_snapshots():
     """
     Fix invalid win_rate and kd values in existing snapshots.
     This is a one-time migration to correct data where matches or deaths were 0
     but wins/kills were non-zero, causing infinite ratios.
     """
-    data = await _load()
+    data = _load_history()
 
     for guild_id in data.keys():
         if guild_id == "snapshots":
@@ -774,7 +774,7 @@ async def fix_invalid_snapshots():
                 else:
                     player_stats["kd"] = 0.0
 
-    await _save(data)
+    _save_history(data)
     print("[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json")
 
 
