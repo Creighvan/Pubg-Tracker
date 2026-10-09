@@ -742,8 +742,11 @@ def fix_invalid_snapshots():
     Fix invalid win_rate and kd values in existing snapshots.
     This is a one-time migration to correct data where matches or deaths were 0
     but wins/kills were non-zero, causing infinite ratios.
+    Also removes invalid snapshots to prevent trend calculation issues.
     """
     data = _load_history()
+
+    deleted_count = 0
 
     for guild_id in data.keys():
         if guild_id == "snapshots":
@@ -752,8 +755,12 @@ def fix_invalid_snapshots():
         guild_data = data.get(guild_id, {})
         daily_snapshots = guild_data.get("daily_snapshots", {})
 
+        dates_to_delete = []
+
         for date in daily_snapshots:
             snapshot = daily_snapshots[date]
+            all_invalid = True
+
             for player_name in snapshot:
                 player_stats = snapshot[player_name]
 
@@ -762,20 +769,36 @@ def fix_invalid_snapshots():
                 kills = player_stats.get("kills", 0)
                 deaths = player_stats.get("deaths", 0)
 
-                # Fix win_rate
-                if matches > 0:
-                    player_stats["win_rate"] = round(wins / matches * 100, 2)
+                # Check if this snapshot has invalid data
+                if (matches == 0 and wins > 0) or (deaths == 0 and kills > 0):
+                    # Invalid snapshot for this player
+                    continue
                 else:
-                    player_stats["win_rate"] = 0.0
+                    # At least one player has valid data
+                    all_invalid = False
 
-                # Fix kd
-                if deaths > 0:
-                    player_stats["kd"] = round(kills / deaths, 2)
-                else:
-                    player_stats["kd"] = 0.0
+                    # Fix win_rate
+                    if matches > 0:
+                        player_stats["win_rate"] = round(wins / matches * 100, 2)
+                    else:
+                        player_stats["win_rate"] = 0.0
+
+                    # Fix kd
+                    if deaths > 0:
+                        player_stats["kd"] = round(kills / deaths, 2)
+                    else:
+                        player_stats["kd"] = 0.0
+
+            # If all players in this snapshot have invalid data, delete the entire snapshot
+            if all_invalid:
+                dates_to_delete.append(date)
+
+        for date in dates_to_delete:
+            del daily_snapshots[date]
+            deleted_count += 1
 
     _save_history(data)
-    print("[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json")
+    print(f"[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json, deleted {deleted_count} invalid snapshots")
 
 
 async def calculate_trend(
@@ -794,14 +817,28 @@ async def calculate_trend(
     """
     snapshots = await get_player_snapshots(guild_id, player_name, days)
 
-    if len(snapshots) < 2:
+    # Filter out invalid snapshots (where matches=0 or deaths=0 but has wins/kills)
+    valid_snapshots = []
+    for snapshot in snapshots:
+        stats = snapshot["stats"]
+        matches = stats.get("matches", 0)
+        deaths = stats.get("deaths", 0)
+        wins = stats.get("wins", 0)
+        kills = stats.get("kills", 0)
+
+        # Skip snapshots with invalid data (0 matches but wins, or 0 deaths but kills)
+        if (matches == 0 and wins > 0) or (deaths == 0 and kills > 0):
+            continue
+        valid_snapshots.append(snapshot)
+
+    if len(valid_snapshots) < 2:
         return {
             "error": "insufficient_data",
-            "message": f"Need at least 2 snapshots over {days} days to calculate trend",
+            "message": f"Need at least 2 valid snapshots over {days} days to calculate trend (skipped {len(snapshots) - len(valid_snapshots)} invalid snapshots)",
         }
 
-    stats_start = snapshots[0]["stats"]
-    stats_end = snapshots[-1]["stats"]
+    stats_start = valid_snapshots[0]["stats"]
+    stats_end = valid_snapshots[-1]["stats"]
 
     delta = {}
     percent_change = {}
@@ -840,7 +877,7 @@ async def calculate_trend(
         "delta": delta,
         "percent_change": percent_change,
         "period_days": days,
-        "snapshots_count": len(snapshots),
+        "snapshots_count": len(valid_snapshots),
     }
 
 

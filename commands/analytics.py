@@ -43,8 +43,9 @@ async def playertrend_impl(interaction: discord.Interaction, player_name: str, d
         trend = await history.calculate_trend(interaction.guild_id, player_name, days)
 
         if "error" in trend:
+            error_msg = trend.get("message", translations.get_translation(lang, "insufficient_history").format(days=days))
             await interaction.followup.send(
-                translations.get_translation(lang, "insufficient_history").format(days=days),
+                error_msg,
                 ephemeral=True
             )
             return
@@ -180,9 +181,31 @@ async def compare_impl(interaction: discord.Interaction, player1: str, player2: 
         snapshots1 = await history.get_player_snapshots(interaction.guild_id, player1, days=7)
         snapshots2 = await history.get_player_snapshots(interaction.guild_id, player2, days=7)
 
+        # Filter out invalid snapshots
+        def filter_valid(snapshots):
+            valid = []
+            for snapshot in snapshots:
+                stats = snapshot["stats"]
+                matches = stats.get("matches", 0)
+                deaths = stats.get("deaths", 0)
+                wins = stats.get("wins", 0)
+                kills = stats.get("kills", 0)
+                if (matches == 0 and wins > 0) or (deaths == 0 and kills > 0):
+                    continue
+                valid.append(snapshot)
+            return valid
+
+        snapshots1 = filter_valid(snapshots1)
+        snapshots2 = filter_valid(snapshots2)
+
         if not snapshots1 or not snapshots2:
+            msg = translations.get_translation(lang, "insufficient_history_compare")
+            if not snapshots1:
+                msg = f"{player1} has insufficient valid history data"
+            elif not snapshots2:
+                msg = f"{player2} has insufficient valid history data"
             await interaction.followup.send(
-                translations.get_translation(lang, "insufficient_history_compare"),
+                msg,
                 ephemeral=True
             )
             return
