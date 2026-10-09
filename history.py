@@ -737,6 +737,47 @@ async def get_guild_matches(
         return matches
 
 
+async def fix_invalid_snapshots():
+    """
+    Fix invalid win_rate and kd values in existing snapshots.
+    This is a one-time migration to correct data where matches or deaths were 0
+    but wins/kills were non-zero, causing infinite ratios.
+    """
+    data = await _load()
+
+    for guild_id in data.keys():
+        if guild_id == "snapshots":
+            continue  # Skip old structure if present
+
+        guild_data = data.get(guild_id, {})
+        daily_snapshots = guild_data.get("daily_snapshots", {})
+
+        for date in daily_snapshots:
+            snapshot = daily_snapshots[date]
+            for player_name in snapshot:
+                player_stats = snapshot[player_name]
+
+                matches = player_stats.get("matches", 0)
+                wins = player_stats.get("wins", 0)
+                kills = player_stats.get("kills", 0)
+                deaths = player_stats.get("deaths", 0)
+
+                # Fix win_rate
+                if matches > 0:
+                    player_stats["win_rate"] = round(wins / matches * 100, 2)
+                else:
+                    player_stats["win_rate"] = 0.0
+
+                # Fix kd
+                if deaths > 0:
+                    player_stats["kd"] = round(kills / deaths, 2)
+                else:
+                    player_stats["kd"] = 0.0
+
+    await _save(data)
+    print("[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json")
+
+
 async def calculate_trend(
     guild_id: int,
     player_name: str,
@@ -765,6 +806,7 @@ async def calculate_trend(
     delta = {}
     percent_change = {}
 
+    # For raw cumulative stats, calculate percentage change
     for key in ["matches", "wins", "kills", "deaths", "damage", "top10"]:
         start_val = stats_start.get(key, 0)
         end_val = stats_end.get(key, 0)
@@ -775,13 +817,19 @@ async def calculate_trend(
         else:
             percent_change[key] = None
 
-    # For rate-based stats, compare the values directly
+    # For rate-based stats (already percentages/ratios), calculate percentage change correctly
+    # win_rate is already a percentage (0-100), kd is a ratio, avg_placement is a number
     for key in ["win_rate", "kd", "avg_placement"]:
         start_val = stats_start.get(key, 0)
         end_val = stats_end.get(key, 0)
         delta[key] = end_val - start_val
 
-        if start_val > 0:
+        # For rate-based stats, use absolute change in percentage points for win_rate
+        # For kd and avg_placement, calculate relative percentage change
+        if key == "win_rate":
+            # win_rate change in percentage points (e.g., 5.0% -> 6.0% = +1.0%)
+            percent_change[key] = delta[key]  # Already in percentage points
+        elif start_val > 0:
             percent_change[key] = ((end_val - start_val) / start_val) * 100
         else:
             percent_change[key] = None

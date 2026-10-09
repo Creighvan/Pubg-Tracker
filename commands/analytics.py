@@ -56,14 +56,18 @@ async def playertrend_impl(interaction: discord.Interaction, player_name: str, d
         percent_change = trend["percent_change"]
 
         # Format trend arrows
-        def format_change(value, is_good_higher=True):
+        def format_change(value, is_good_higher=True, is_percentage_points=False):
             if value is None:
                 return "N/A"
             if value > 0:
                 arrow = "▲" if is_good_higher else "▼"
+                if is_percentage_points:
+                    return f"{arrow} {abs(value):.1f}pp"  # percentage points
                 return f"{arrow} {abs(value):.1f}%"
             elif value < 0:
                 arrow = "▼" if is_good_higher else "▲"
+                if is_percentage_points:
+                    return f"{arrow} {abs(value):.1f}pp"  # percentage points
                 return f"{arrow} {abs(value):.1f}%"
             else:
                 return "–"
@@ -75,7 +79,7 @@ async def playertrend_impl(interaction: discord.Interaction, player_name: str, d
 
         # Key metrics with trend
         kd_change = format_change(percent_change.get("kd"), is_good_higher=True)
-        win_rate_change = format_change(percent_change.get("win_rate"), is_good_higher=True)
+        win_rate_change = format_change(percent_change.get("win_rate"), is_good_higher=True, is_percentage_points=True)
         avg_placement_change = format_change(percent_change.get("avg_placement"), is_good_higher=False)
         kills_change = format_change(percent_change.get("kills"), is_good_higher=True)
 

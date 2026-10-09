@@ -931,15 +931,31 @@ async def run_daily_snapshot():
                     ranked = ranked_stats.get(player_id)
                     status = ranked_status.get(normalized, "no_data")
 
+                    # Calculate win_rate and kd only if we have valid data
+                    matches = stats.get("matches", 0)
+                    wins = stats.get("wins", 0)
+                    kills = stats.get("kills", 0)
+                    deaths = stats.get("deaths", 0)
+
+                    if matches > 0:
+                        win_rate = round(wins / matches * 100, 2)
+                    else:
+                        win_rate = 0.0
+
+                    if deaths > 0:
+                        kd = round(kills / deaths, 2)
+                    else:
+                        kd = 0.0
+
                     player_stats[normalized] = {
-                        "matches": stats.get("matches", 0),
-                        "wins": stats.get("wins", 0),
-                        "kills": stats.get("kills", 0),
-                        "deaths": stats.get("deaths", 0),
+                        "matches": matches,
+                        "wins": wins,
+                        "kills": kills,
+                        "deaths": deaths,
                         "damage": stats.get("damageDealt", 0),
                         "top10": stats.get("top10s", 0),
-                        "win_rate": round(stats.get("wins", 0) / max(stats.get("matches", 1), 1) * 100, 2),
-                        "kd": round(stats.get("kills", 0) / max(stats.get("deaths", 1), 1), 2),
+                        "win_rate": win_rate,
+                        "kd": kd,
                         "avg_placement": stats.get("avgPlacement", 0),
                         # Only store ranked data if it's valid (ok status)
                         "ranked_points": ranked.get("currentTierPoint") if ranked and status == "ok" else None,
