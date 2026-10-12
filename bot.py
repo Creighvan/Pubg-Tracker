@@ -1284,6 +1284,20 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
+@bot.tree.command(description="[Admin] Reset database corruption flag")
+@app_commands.describe(secret_key="Optional admin secret key to unlock this command")
+@app_commands.default_permissions(administrator=True)
+async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
+    if not await _is_admin_authorized(interaction, secret_key):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+
+    storage.reset_corruption_state()
+    await interaction.followup.send("✅ Database corruption flag has been reset. Writes are now enabled.", ephemeral=True)
+
+
 # build_feedback_prompt_embed - moved to bot/embeds.py
 
 
