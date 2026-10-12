@@ -1289,10 +1289,7 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
 @app_commands.default_permissions(administrator=True)
 async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
     if not await _is_admin_authorized(interaction, secret_key):
-        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
         return
-
-    await interaction.response.defer(ephemeral=True)
 
     storage.reset_corruption_state()
     await interaction.followup.send("✅ Database corruption flag has been reset. Writes are now enabled.", ephemeral=True)
