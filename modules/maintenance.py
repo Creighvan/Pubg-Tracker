@@ -246,7 +246,7 @@ async def schedule_october_14_maintenance():
     
     # October 14, 2026 at 00:00 UTC
     maintenance_start = datetime(2026, 10, 14, 0, 0, tzinfo=timezone.utc)
-    maintenance_end = maintenance_start + timedelta(hours=8.5)
+    maintenance_end = maintenance_start + timedelta(hours=float(8.5))
     
     now = datetime.now(timezone.utc)
     

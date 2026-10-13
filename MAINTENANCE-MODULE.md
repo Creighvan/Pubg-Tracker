@@ -86,7 +86,7 @@ For planned maintenance windows, you can schedule advance notices:
 ```
 - `<date>`: Start date in YYYY-MM-DD format (UTC)
 - `<hour>`: Start hour 0-23 (UTC)
-- `<duration>`: Duration in hours (1-24)
+- `<duration>`: Duration in hours (supports decimals, e.g., 8.5)
 
 Example:
 ```
