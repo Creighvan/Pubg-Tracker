@@ -225,6 +225,26 @@ async def setmaintenancechannel_impl(interaction):
                                     f"and post notifications here.")
 
 
+async def setscheduledmaintenancechannel_impl(interaction):
+    """Implementation of setscheduledmaintenancechannel command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
+    def modifier(guild_cfg):
+        guild_cfg["scheduled_maintenance_channel_id"] = interaction.channel_id
+    await storage.modify_guild(interaction.guild_id, modifier)
+    await interaction.followup.send(f"✅ Scheduled maintenance notices will be posted to {interaction.channel.mention}\n"
+                                    f"This is where advance warning announcements for planned maintenance will appear.\n"
+                                    f"Use /setmaintenancechannel for actual maintenance status updates (when servers go down/up).")
+
+
 async def schedulemaintenance_impl(interaction, start_date, start_hour, duration_hours):
     """Implementation of schedulemaintenance command."""
     # Defer immediately to prevent timeout
