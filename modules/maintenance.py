@@ -9,6 +9,7 @@ This module monitors PUBG server status by combining multiple signals:
 Uses debounce logic to avoid false positives from transient errors.
 Posts embed notifications when servers go into/out of maintenance.
 Integrates with the existing scheduler to pause other tasks during maintenance.
+When servers come back online, immediately triggers all skipped scheduled tasks.
 """
 
 from datetime import datetime, timezone
@@ -135,7 +136,7 @@ async def build_back_online_embed(maintenance_start: datetime, downtime: str, pl
     """Build an embed for back online notification."""
     embed = discord.Embed(
         title="✅ PUBG Servers Back Online",
-        description="PUBG game servers are back online. Scheduled reports will resume.",
+        description="PUBG game servers are back online. Running all paused scheduled reports now.",
         color=0x00FF00,
         timestamp=datetime.now(timezone.utc)
     )
@@ -145,7 +146,7 @@ async def build_back_online_embed(maintenance_start: datetime, downtime: str, pl
     
     embed.add_field(name="Status", value="🟢 Online", inline=True)
     embed.add_field(name="Downtime", value=downtime, inline=True)
-    embed.add_field(name="Scheduled Reports", value="▶️ Resuming", inline=True)
+    embed.add_field(name="Scheduled Reports", value="▶️ Running now", inline=True)
     embed.set_footer(text="Automatic monitoring")
     
     return embed
@@ -265,6 +266,14 @@ async def auto_maintenance_check():
             # Post notification
             embed = await build_back_online_embed(MAINTENANCE_STATE["down_since"], downtime, steam_count)
             await post_maintenance_notification(embed)
+            
+            # Trigger all paused scheduled tasks immediately
+            print(f"[maintenance] Triggering paused scheduled tasks...")
+            try:
+                from modules.scheduler import trigger_maintenance_recovery
+                await trigger_maintenance_recovery()
+            except ImportError:
+                print(f"[maintenance] Warning: trigger_maintenance_recovery not available")
             
             # Reset downtime
             MAINTENANCE_STATE["down_since"] = None
