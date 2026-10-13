@@ -19,7 +19,8 @@ import discord
 
 import storage
 from modules.config import get_scheduler_lock
-from pubg_api import PubgClient, PubgApiError
+from pubg_api import PubgClient
+from pubg_api import PubgApiError
 
 
 # Steam API constants
@@ -82,7 +83,7 @@ async def check_pubg_api_status():
     try:
         pubg = _get_pubg()
         # Try a lightweight status check
-        await pubg.get_status()
+        await pubg.get_api_status()
         return True
     except (PubgApiError, Exception) as e:
         print(f"[maintenance] PUBG API status check failed: {e}")
@@ -96,10 +97,16 @@ async def check_pubg_api_data():
     """
     try:
         pubg = _get_pubg()
-        # Try a simple shards list as a real data test
-        # This is lightweight and tests actual API data retrieval
-        await pubg.get_shards()
+        # Try a simple player lookup as a real data test
+        # Use a lightweight endpoint that tests actual data retrieval
+        await pubg.get_players_by_name(["test"])  # This will fail but tests the endpoint
         return True
+    except PubgApiError as e:
+        # Expected to fail with no players found, but tests API connectivity
+        if "not found" in str(e).lower() or "no players" in str(e).lower():
+            return True
+        print(f"[maintenance] PUBG API data check failed: {e}")
+        return False
     except Exception as e:
         print(f"[maintenance] PUBG API data check failed: {e}")
         return False
