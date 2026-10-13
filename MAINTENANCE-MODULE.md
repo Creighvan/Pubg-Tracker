@@ -33,6 +33,10 @@ This prevents transient errors from triggering false maintenance alerts.
 - ✅ **Immediately runs all paused scheduled tasks when servers come back online**
 - ✅ Per-guild channel configuration
 - ✅ Multi-signal approach for reliability
+- ✅ **Scheduled maintenance notices for advance warning**
+- ✅ **Manual scheduling with `/schedulemaintenance` command**
+- ✅ **Auto-scheduling for known maintenance events**
+- ✅ **30-minute advance warning before scheduled maintenance**
 
 ## Setup
 
@@ -56,7 +60,51 @@ Once the maintenance channel is set, the bot will automatically:
 - Pause scheduled reports (digest, chicken dinner, etc.) during maintenance
 - **Immediately run all paused scheduled tasks when servers come back online**
 
+### 3. Scheduled Maintenance Notices
+
+For planned maintenance windows, you can schedule advance notices:
+
+**Manual Scheduling:**
+```
+/schedulemaintenance <date> <hour> <duration>
+```
+- `<date>`: Start date in YYYY-MM-DD format (UTC)
+- `<hour>`: Start hour 0-23 (UTC)
+- `<duration>`: Duration in hours (1-24)
+
+Example:
+```
+/schedulemaintenance 2026-10-14 0 8.5
+```
+
+This will:
+- Post a yellow embed 30 minutes before the scheduled start time
+- Show expected start/end times and duration
+- Display the source (Manual or Auto-scheduled)
+- Continue automatic detection to confirm actual maintenance
+
+**Clear Scheduled Notice:**
+```
+/clearmaintenance
+```
+
+**Auto-Scheduling:**
+The bot automatically schedules known maintenance events when running within 48 hours of the event. For example, the October 14, 2026 maintenance (00:00 UTC, 8.5 hours) will be auto-scheduled if the bot is running between October 12 and October 14.
+
 ## Notification Examples
+
+### Scheduled Maintenance (30-minute warning)
+
+```
+📅 Scheduled PUBG Server Maintenance
+PUBG servers will undergo maintenance starting soon.
+
+Start Time: 2026-10-14 00:00:00 UTC
+Expected End: 2026-10-14 08:30:00 UTC
+Duration: 8.5 hours
+Source: Auto-scheduled (Oct 14)
+Status: ⏳ Scheduled
+```
 
 ### Maintenance Started
 
