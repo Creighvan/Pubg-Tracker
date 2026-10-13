@@ -260,7 +260,7 @@ async def schedulemaintenance_impl(interaction, start_date, start_hour, duration
         
         # Parse the date and time
         start_time = datetime.strptime(f"{start_date} {start_hour}", "%Y-%m-%d %H").replace(tzinfo=timezone.utc)
-        end_time = start_time + timedelta(hours=duration_hours)
+        end_time = start_time + timedelta(hours=float(duration_hours))
         
         # Validate times
         now = datetime.now(timezone.utc)

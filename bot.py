@@ -1075,8 +1075,8 @@ async def setscheduledmaintenancechannel(interaction: discord.Interaction):
 
 @bot.tree.command(description="Schedule a PUBG server maintenance notice")
 @app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.describe(start_date="Start date (YYYY-MM-DD UTC)", start_hour="Start hour (0-23 UTC)", duration_hours="Duration in hours")
-async def schedulemaintenance(interaction: discord.Interaction, start_date: str, start_hour: app_commands.Range[int, 0, 23], duration_hours: app_commands.Range[int, 1, 24]):
+@app_commands.describe(start_date="Start date (YYYY-MM-DD UTC)", start_hour="Start hour (0-23 UTC)", duration_hours="Duration in hours (e.g., 8.5)")
+async def schedulemaintenance(interaction: discord.Interaction, start_date: str, start_hour: app_commands.Range[int, 0, 23], duration_hours: float):
     await schedulemaintenance_impl(interaction, start_date, start_hour, duration_hours)
 
 
