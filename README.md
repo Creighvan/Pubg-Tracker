@@ -339,8 +339,8 @@ No manual match recording is required — historical data accumulates in the bac
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
 | `/setmaintenancechannel` | Set this channel for automatic PUBG server maintenance status updates (servers down/back online) |
 | `/setscheduledmaintenancechannel` | Set this channel for scheduled maintenance notices (advance warnings) |
-| `/schedulemaintenance <date> <hour> <duration>` | **Admin**: Schedule a maintenance notice for advance warning (admin only) |
-| `/clearmaintenance` | **Admin**: Clear scheduled maintenance notice (admin only) |
+| `/schedulemaintenance <date> <hour> <duration>` | Schedule a maintenance notice for advance warning |
+| `/clearmaintenance` | Clear scheduled maintenance notice |
 | `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |
 | `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
 | `/setdonationtime <0-23>` | Choose the Sunday UTC donation post time (defaults to noon) |
