@@ -5,6 +5,7 @@ This module monitors PUBG server status by combining multiple signals:
 1. Steam concurrent player count (app ID 578080)
 2. PUBG API /status endpoint
 3. PUBG API actual data calls
+4. Scheduled maintenance notices (manual or Steam news)
 
 Uses debounce logic to avoid false positives from transient errors.
 Posts embed notifications when servers go into/out of maintenance.
@@ -12,7 +13,7 @@ Integrates with the existing scheduler to pause other tasks during maintenance.
 When servers come back online, immediately triggers all skipped scheduled tasks.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import asyncio
 import aiohttp
 from discord.ext import tasks
@@ -27,6 +28,7 @@ from pubg_api import PubgApiError
 # Steam API constants
 STEAM_APP_ID = "578080"
 STEAM_PLAYER_COUNT_URL = f"https://api.steampowered.com/ISteamUserStats/GetNumberOfCurrentPlayers/v1/?appid={STEAM_APP_ID}"
+STEAM_NEWS_URL = f"https://api.steampowered.com/ISteamNews/GetNewsForApp/v2/?appid={STEAM_APP_ID}&count=3&maxlength=300"
 
 # Maintenance state
 MAINTENANCE_STATE = {
@@ -35,6 +37,7 @@ MAINTENANCE_STATE = {
     "consecutive_failures": 0,
     "consecutive_successes": 0,
     "last_check": None,
+    "scheduled_maintenance": None,  # {start_time, end_time, announced}
 }
 
 # Debounce thresholds
@@ -152,6 +155,113 @@ async def build_back_online_embed(maintenance_start: datetime, downtime: str, pl
     return embed
 
 
+async def build_scheduled_maintenance_embed(start_time: datetime, end_time: datetime, source: str = "Manual"):
+    """Build an embed for scheduled maintenance announcement."""
+    duration = end_time - start_time
+    duration_str = f"{duration.total_seconds() / 3600:.1f} hours"
+    
+    embed = discord.Embed(
+        title="📅 Scheduled PUBG Server Maintenance",
+        description=f"PUBG servers will undergo maintenance starting soon.",
+        color=0xFFAA00,
+        timestamp=datetime.now(timezone.utc)
+    )
+    
+    embed.add_field(name="Start Time", value=start_time.strftime("%Y-%m-%d %H:%M:%S UTC"), inline=True)
+    embed.add_field(name="Expected End", value=end_time.strftime("%Y-%m-%d %H:%M:%S UTC"), inline=True)
+    embed.add_field(name="Duration", value=duration_str, inline=True)
+    embed.add_field(name="Source", value=source, inline=True)
+    embed.add_field(name="Status", value="⏳ Scheduled", inline=True)
+    embed.set_footer(text="Automatic monitoring will confirm when maintenance actually starts")
+    
+    return embed
+
+
+async def check_steam_news():
+    """
+    Check Steam news for PUBG maintenance announcements.
+    Returns (has_maintenance, start_time, end_time, title) if found, else (False, None, None, None).
+    Note: This is optional and unverified - PUBG may not always post to Steam news.
+    """
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(STEAM_NEWS_URL, timeout=10) as response:
+                if response.status != 200:
+                    return False, None, None, None
+                
+                data = await response.json()
+                news_items = data.get("appnews", {}).get("newsitems", [])
+                
+                for item in news_items:
+                    title = item.get("title", "").lower()
+                    feed_label = item.get("feedlabel", "").lower()
+                    
+                    # Look for maintenance-related keywords
+                    keywords = ["maintenance", "downtime", "server", "patch", "update"]
+                    if any(keyword in title or keyword in feed_label for keyword in keywords):
+                        # Try to extract time from title or description
+                        # This is basic - could be enhanced with regex
+                        print(f"[maintenance] Found potential maintenance news: {title}")
+                        return True, None, None, title
+                
+                return False, None, None, None
+    except Exception as e:
+        print(f"[maintenance] Steam news check failed: {e}")
+        return False, None, None, None
+
+
+async def set_scheduled_maintenance(start_time: datetime, end_time: datetime, source: str = "Manual"):
+    """
+    Set a scheduled maintenance notice.
+    Posts notification to all configured maintenance channels.
+    """
+    global MAINTENANCE_STATE
+    
+    MAINTENANCE_STATE["scheduled_maintenance"] = {
+        "start_time": start_time,
+        "end_time": end_time,
+        "announced": True,
+        "source": source
+    }
+    
+    embed = await build_scheduled_maintenance_embed(start_time, end_time, source)
+    await post_maintenance_notification(embed)
+    
+    print(f"[maintenance] Scheduled maintenance announced: {start_time} UTC to {end_time} UTC")
+
+
+async def clear_scheduled_maintenance():
+    """Clear any scheduled maintenance notice."""
+    global MAINTENANCE_STATE
+    MAINTENANCE_STATE["scheduled_maintenance"] = None
+    print(f"[maintenance] Scheduled maintenance cleared")
+
+
+async def schedule_october_14_maintenance():
+    """
+    Schedule the October 14, 2026 maintenance (00:00 UTC, 8.5 hours).
+    This is called automatically on bot startup if the date is approaching.
+    """
+    from datetime import datetime, timezone, timedelta
+    
+    # October 14, 2026 at 00:00 UTC
+    maintenance_start = datetime(2026, 10, 14, 0, 0, tzinfo=timezone.utc)
+    maintenance_end = maintenance_start + timedelta(hours=8.5)
+    
+    now = datetime.now(timezone.utc)
+    
+    # Only schedule if we're within 48 hours of the maintenance
+    if now >= maintenance_start - timedelta(hours=48) and now < maintenance_start:
+        await set_scheduled_maintenance(maintenance_start, maintenance_end, "Auto-scheduled (Oct 14)")
+        print(f"[maintenance] Auto-scheduled October 14 maintenance: {maintenance_start} UTC")
+    elif now >= maintenance_start:
+        # Maintenance has already passed, don't schedule
+        print(f"[maintenance] October 14 maintenance already passed, skipping auto-schedule")
+    else:
+        # Too early to schedule
+        print(f"[maintenance] October 14 maintenance is more than 48 hours away, skipping auto-schedule")
+
+
 async def post_maintenance_notification(embed: discord.Embed):
     """Post maintenance notification to all configured channels."""
     bot = _get_bot()
@@ -231,6 +341,14 @@ async def auto_maintenance_check():
     
     print(f"[auto_maintenance_check] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
+    # Check if scheduled maintenance is starting soon (within 30 minutes)
+    scheduled = MAINTENANCE_STATE.get("scheduled_maintenance")
+    if scheduled and not scheduled.get("announced"):
+        start_time = scheduled["start_time"]
+        if now >= start_time - timedelta(minutes=30) and now < start_time:
+            # Post reminder that maintenance is starting soon
+            await set_scheduled_maintenance(start_time, scheduled["end_time"], scheduled["source"])
+    
     # Check current status
     is_down, steam_count = await check_maintenance_status()
     
@@ -293,6 +411,12 @@ async def start_maintenance_monitor():
     """Start the maintenance monitoring task."""
     print("[maintenance] Starting maintenance monitor...")
     auto_maintenance_check.start()
+    
+    # Auto-schedule known maintenance events
+    try:
+        await schedule_october_14_maintenance()
+    except Exception as e:
+        print(f"[maintenance] Failed to auto-schedule October 14 maintenance: {e}")
 
 
 async def stop_maintenance_monitor():
