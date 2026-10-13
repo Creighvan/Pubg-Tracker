@@ -225,6 +225,69 @@ async def setmaintenancechannel_impl(interaction):
                                     f"and post notifications here.")
 
 
+async def schedulemaintenance_impl(interaction, start_date, start_hour, duration_hours):
+    """Implementation of schedulemaintenance command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
+    try:
+        from datetime import datetime, timezone, timedelta
+        from modules.maintenance import set_scheduled_maintenance
+        
+        # Parse the date and time
+        start_time = datetime.strptime(f"{start_date} {start_hour}", "%Y-%m-%d %H").replace(tzinfo=timezone.utc)
+        end_time = start_time + timedelta(hours=duration_hours)
+        
+        # Validate times
+        now = datetime.now(timezone.utc)
+        if start_time < now:
+            await interaction.followup.send("❌ Start time must be in the future.", ephemeral=True)
+            return
+        
+        if end_time > now + timedelta(days=7):
+            await interaction.followup.send("❌ Maintenance duration cannot exceed 7 days.", ephemeral=True)
+            return
+        
+        # Schedule the maintenance
+        await set_scheduled_maintenance(start_time, end_time, "Manual")
+        
+        await interaction.followup.send(
+            f"✅ Maintenance scheduled for {start_time.strftime('%Y-%m-%d %H:%M UTC')} "
+            f"to {end_time.strftime('%Y-%m-%d %H:%M UTC')} ({duration_hours} hours)\n"
+            f"Announcement will be posted 30 minutes before start time."
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in schedulemaintenance_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
+
+
+async def clearmaintenance_impl(interaction):
+    """Implementation of clearmaintenance command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
+    try:
+        from modules.maintenance import clear_scheduled_maintenance
+        
+        await clear_scheduled_maintenance()
+        await interaction.followup.send("✅ Scheduled maintenance notice cleared.")
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in clearmaintenance_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
+
+
 async def setstatuschannel_impl(interaction):
     """Implementation of setstatuschannel command."""
     # Defer immediately to prevent timeout
