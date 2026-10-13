@@ -30,6 +30,7 @@ This prevents transient errors from triggering false maintenance alerts.
 - ✅ Downtime duration calculation
 - ✅ Automatic "back online" notifications
 - ✅ Pauses scheduled reports during maintenance
+- ✅ **Immediately runs all paused scheduled tasks when servers come back online**
 - ✅ Per-guild channel configuration
 - ✅ Multi-signal approach for reliability
 
@@ -53,6 +54,7 @@ Once the maintenance channel is set, the bot will automatically:
 - Post a green embed when servers come back online
 - Show downtime duration in the back online notification
 - Pause scheduled reports (digest, chicken dinner, etc.) during maintenance
+- **Immediately run all paused scheduled tasks when servers come back online**
 
 ## Notification Examples
 
@@ -71,12 +73,12 @@ Scheduled Reports: ⏸️ Paused
 
 ```
 ✅ PUBG Servers Back Online
-PUBG game servers are back online. Scheduled reports will resume.
+PUBG game servers are back online. Running all paused scheduled reports now.
 
 Steam Players: 326,004
 Status: 🟢 Online
 Downtime: 2h 15m
-Scheduled Reports: ▶️ Resuming
+Scheduled Reports: ▶️ Running now
 ```
 
 ## Configuration
