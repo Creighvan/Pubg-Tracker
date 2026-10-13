@@ -47,6 +47,33 @@ from modules.reports import (
 from modules.embeds import build_report_status_embed, build_feedback_prompt_embed
 from modules.utils import _is_due, _is_weekly_due, get_current_pubg_day
 
+
+# Maintenance state tracking
+MAINTENANCE_SKIPPED_DIGEST = False
+MAINTENANCE_SKIPPED_CHICKEN_DINNER = False
+
+
+async def trigger_maintenance_recovery():
+    """
+    Trigger all scheduled tasks that were skipped during maintenance.
+    Called when the maintenance module detects servers are back online.
+    """
+    global MAINTENANCE_SKIPPED_DIGEST, MAINTENANCE_SKIPPED_CHICKEN_DINNER
+    
+    print(f"[scheduler] Maintenance recovery - triggering skipped tasks")
+    
+    # Trigger auto_digest if it was skipped
+    if MAINTENANCE_SKIPPED_DIGEST:
+        print(f"[scheduler] Triggering auto_digest (was skipped during maintenance)")
+        MAINTENANCE_SKIPPED_DIGEST = False
+        asyncio.create_task(auto_digest())
+    
+    # Trigger auto_chicken_dinner if it was skipped
+    if MAINTENANCE_SKIPPED_CHICKEN_DINNER:
+        print(f"[scheduler] Triggering auto_chicken_dinner (was skipped during maintenance)")
+        MAINTENANCE_SKIPPED_CHICKEN_DINNER = False
+        asyncio.create_task(auto_chicken_dinner())
+
 # Late-binding helpers to avoid stale imports at module load time
 # These re-read the values from config on each call to get the real instances
 def _get_bot():
@@ -69,6 +96,8 @@ async def auto_digest():
     try:
         from modules.maintenance import is_in_maintenance
         if is_in_maintenance():
+            global MAINTENANCE_SKIPPED_DIGEST
+            MAINTENANCE_SKIPPED_DIGEST = True
             print(f"[auto_digest] Skipped - servers in maintenance")
             return
     except ImportError:
@@ -560,6 +589,8 @@ async def auto_chicken_dinner():
     try:
         from modules.maintenance import is_in_maintenance
         if is_in_maintenance():
+            global MAINTENANCE_SKIPPED_CHICKEN_DINNER
+            MAINTENANCE_SKIPPED_CHICKEN_DINNER = True
             print(f"[auto_chicken_dinner] Skipped - servers in maintenance")
             return
     except ImportError:
