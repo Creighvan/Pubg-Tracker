@@ -19,10 +19,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tracks which scheduled tasks were skipped during maintenance
   - Automatically triggers skipped tasks (digest, chicken dinner) when servers recover
   - No waiting for next scheduled interval
+- Scheduled maintenance notices
+  - Manual scheduling with `/schedulemaintenance` command (admin only)
+  - Clear scheduled notices with `/clearmaintenance` command (admin only)
+  - Auto-scheduling for known maintenance events (October 14, 2026)
+  - 30-minute advance warning before scheduled maintenance starts
+  - Steam news check (optional, unverified) for automatic detection
+  - Displays expected start/end times and duration
+  - Source tracking (Manual, Auto-scheduled, Steam News)
 - Comprehensive documentation
   - MAINTENANCE-MODULE.md - Complete maintenance detection guide
   - CONTRIBUTING.md - Development and contribution guidelines
   - CHANGELOG.md - This changelog file
+  - LICENSE - MIT License for open source use
 
 ### Fixed
 - Maintenance module API method calls
