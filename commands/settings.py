@@ -205,6 +205,26 @@ async def setsurvivaltime_impl(interaction, day, hour, minute):
     await interaction.followup.send(translations.get_translation(lang, "survival_time_set").format(day=day, hour=hour, minute=minute))
 
 
+async def setmaintenancechannel_impl(interaction):
+    """Implementation of setmaintenancechannel command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
+    def modifier(guild_cfg):
+        guild_cfg["maintenance_channel_id"] = interaction.channel_id
+    await storage.modify_guild(interaction.guild_id, modifier)
+    await interaction.followup.send(f"✅ Maintenance notifications will be posted to {interaction.channel.mention}\n"
+                                    f"The bot will automatically detect when PUBG servers go into or come out of maintenance "
+                                    f"and post notifications here.")
+
+
 async def setstatuschannel_impl(interaction):
     """Implementation of setstatuschannel command."""
     # Defer immediately to prevent timeout

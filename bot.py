@@ -253,6 +253,7 @@ from commands.settings import (
     sethighlightschannel_impl,
     setsurvivalchannel_impl,
     setsurvivaltime_impl,
+    setmaintenancechannel_impl,
     setstatuschannel_impl,
     setauditchannel_impl,
     clearauditchannel_impl,
@@ -547,6 +548,15 @@ async def on_ready():
         start_all_scheduled_tasks(bot)
         # Wire up the audit log function so scheduler uses our implementation
         _set_audit_log_func(send_audit_log)
+        
+        # Start maintenance monitoring
+        try:
+            from modules.maintenance import start_maintenance_monitor
+            await start_maintenance_monitor()
+            logger.info("[on_ready] Maintenance monitoring started")
+        except Exception as e:
+            logger.warning(f"[on_ready] Failed to start maintenance monitor: {e}", exc_info=True)
+    
     bot.add_view(FeedbackPromptView())
     logger.info(f"Logged in as {bot.user} (id={bot.user.id})")
     if not _bot_ready_once:
@@ -1046,6 +1056,12 @@ async def setsurvivaltime(
     await interaction.response.send_message(
         translations.get_translation(lang, "survival_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
     )
+
+
+@bot.tree.command(description="Set this channel for automatic PUBG server maintenance notifications")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def setmaintenancechannel(interaction: discord.Interaction):
+    await setmaintenancechannel_impl(interaction)
 
 
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
