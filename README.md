@@ -337,7 +337,8 @@ No manual match recording is required — historical data accumulates in the bac
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
-| `/setmaintenancechannel` | Set this channel for automatic PUBG server maintenance notifications |
+| `/setmaintenancechannel` | Set this channel for automatic PUBG server maintenance status updates (servers down/back online) |
+| `/setscheduledmaintenancechannel` | Set this channel for scheduled maintenance notices (advance warnings) |
 | `/schedulemaintenance <date> <hour> <duration>` | **Admin**: Schedule a maintenance notice for advance warning (admin only) |
 | `/clearmaintenance` | **Admin**: Clear scheduled maintenance notice (admin only) |
 | `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |

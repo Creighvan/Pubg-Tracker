@@ -254,6 +254,7 @@ from commands.settings import (
     setsurvivalchannel_impl,
     setsurvivaltime_impl,
     setmaintenancechannel_impl,
+    setscheduledmaintenancechannel_impl,
     schedulemaintenance_impl,
     clearmaintenance_impl,
     setstatuschannel_impl,
@@ -1064,6 +1065,12 @@ async def setsurvivaltime(
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setmaintenancechannel(interaction: discord.Interaction):
     await setmaintenancechannel_impl(interaction)
+
+
+@bot.tree.command(description="Set this channel for scheduled maintenance notices (advance warnings)")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def setscheduledmaintenancechannel(interaction: discord.Interaction):
+    await setscheduledmaintenancechannel_impl(interaction)
 
 
 @bot.tree.command(description="Schedule a PUBG server maintenance notice (admin only)")

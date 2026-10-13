@@ -42,13 +42,29 @@ This prevents transient errors from triggering false maintenance alerts.
 
 ### 1. Set Maintenance Channel
 
-Use the `/setmaintenancechannel` command in the Discord channel where you want notifications:
+Use the `/setmaintenancechannel` command in the Discord channel where you want actual maintenance status updates (when servers go down/up):
 
 ```
 /setmaintenancechannel
 ```
 
 This command requires `Manage Server` permissions.
+
+### 2. Set Scheduled Maintenance Channel (Optional)
+
+Use the `/setscheduledmaintenancechannel` command in the Discord channel where you want advance warning announcements for planned maintenance:
+
+```
+/setscheduledmaintenancechannel
+```
+
+This command requires `Manage Server` permissions.
+
+**Channel Separation:**
+- **Maintenance Channel**: For actual status updates (servers down/back online)
+- **Scheduled Maintenance Channel**: For advance warnings (30 minutes before planned maintenance)
+
+If you only set one channel, both types of notifications will go to that channel. If you set both, they will be separated appropriately.
 
 ### 2. Automatic Operation
 

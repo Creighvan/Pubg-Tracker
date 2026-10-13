@@ -225,7 +225,7 @@ async def set_scheduled_maintenance(start_time: datetime, end_time: datetime, so
     }
     
     embed = await build_scheduled_maintenance_embed(start_time, end_time, source)
-    await post_maintenance_notification(embed)
+    await post_maintenance_notification(embed, scheduled=True)
     
     print(f"[maintenance] Scheduled maintenance announced: {start_time} UTC to {end_time} UTC")
 
@@ -262,13 +262,21 @@ async def schedule_october_14_maintenance():
         print(f"[maintenance] October 14 maintenance is more than 48 hours away, skipping auto-schedule")
 
 
-async def post_maintenance_notification(embed: discord.Embed):
+async def post_maintenance_notification(embed: discord.Embed, scheduled: bool = False):
     """Post maintenance notification to all configured channels."""
     bot = _get_bot()
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
-        channel_id = guild_cfg.get("maintenance_channel_id")
+        
+        # Use scheduled maintenance channel for scheduled notices, regular channel for status updates
+        if scheduled:
+            channel_id = guild_cfg.get("scheduled_maintenance_channel_id")
+            # Fall back to regular maintenance channel if scheduled channel not set
+            if channel_id is None:
+                channel_id = guild_cfg.get("maintenance_channel_id")
+        else:
+            channel_id = guild_cfg.get("maintenance_channel_id")
         
         if channel_id is None:
             continue
@@ -281,7 +289,7 @@ async def post_maintenance_notification(embed: discord.Embed):
         
         try:
             await channel.send(embed=embed)
-            print(f"[maintenance] Posted notification to guild {guild_id}")
+            print(f"[maintenance] Posted notification to guild {guild_id} (scheduled={scheduled})")
         except Exception as e:
             print(f"[maintenance] Failed to post notification to guild {guild_id}: {e}")
 
@@ -367,7 +375,7 @@ async def auto_maintenance_check():
             
             # Post notification
             embed = await build_maintenance_embed(now, steam_count)
-            await post_maintenance_notification(embed)
+            await post_maintenance_notification(embed, scheduled=False)
     else:
         # Potentially back online - increment success counter
         MAINTENANCE_STATE["consecutive_successes"] += 1
@@ -383,7 +391,7 @@ async def auto_maintenance_check():
             
             # Post notification
             embed = await build_back_online_embed(MAINTENANCE_STATE["down_since"], downtime, steam_count)
-            await post_maintenance_notification(embed)
+            await post_maintenance_notification(embed, scheduled=False)
             
             # Trigger all paused scheduled tasks immediately
             print(f"[maintenance] Triggering paused scheduled tasks...")
