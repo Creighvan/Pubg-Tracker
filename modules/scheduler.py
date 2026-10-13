@@ -65,6 +65,15 @@ async def auto_digest():
     a fixed UTC hour (digest_hour_utc) or the older interval-based
     behavior (post_interval_hours), depending on what's configured.
     """
+    # Skip if maintenance is active
+    try:
+        from modules.maintenance import is_in_maintenance
+        if is_in_maintenance():
+            print(f"[auto_digest] Skipped - servers in maintenance")
+            return
+    except ImportError:
+        pass  # Maintenance module not available, continue normally
+    
     now = datetime.now(timezone.utc)
     print(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     for guild_id in await storage.all_guild_ids():
@@ -547,6 +556,15 @@ async def auto_chicken_dinner():
     Counts wins in all game modes (squad, duo, solo).
     Displays the 25 most recent wins to avoid Discord embed character limits.
     """
+    # Skip if maintenance is active
+    try:
+        from modules.maintenance import is_in_maintenance
+        if is_in_maintenance():
+            print(f"[auto_chicken_dinner] Skipped - servers in maintenance")
+            return
+    except ImportError:
+        pass  # Maintenance module not available, continue normally
+    
     utc = timezone.utc
     now_utc = datetime.now(utc)
     print(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
