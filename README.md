@@ -9,6 +9,7 @@ A comprehensive PUBG clan analytics bot that tracks roster statistics, accumulat
 - **Team Intelligence** - Chemistry analysis (who plays well together), team relationships
 - **Roster Management** - Inactivity tracking, protected player lists, automated cleanup
 - **Scheduled Reports** - Daily highlights, ranked standings, chicken dinner alerts
+- **Automatic Maintenance Detection** - Detects PUBG server maintenance, pauses reports, auto-resumes when servers recover
 
 **Original Purpose:**
 Track inactive clan members who have been removed from the actual PUBG clan but still have Discord server access. This feature remains fully functional through the protected player list and inactivity tracking system.
@@ -336,6 +337,7 @@ No manual match recording is required — historical data accumulates in the bac
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
+| `/setmaintenancechannel` | Set this channel for automatic PUBG server maintenance notifications |
 | `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |
 | `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
 | `/setdonationtime <0-23>` | Choose the Sunday UTC donation post time (defaults to noon) |
@@ -531,3 +533,71 @@ The `/dailyhighlights` command includes fun achievement awards based on matches 
 
 **Note:** The "Tactical Shrub" award was previously known as "Bush Wookiee"
 and has been renamed for a more tactical-sounding designation.
+
+## Automatic Maintenance Detection
+
+The bot automatically detects when PUBG game servers go into or come out of maintenance and adjusts its behavior accordingly.
+
+### How It Works
+
+The maintenance detection system uses multiple signals with debounce logic:
+
+- **Steam Player Count**: Monitors concurrent players via Steam API (app ID 578080)
+  - Normal: 50,000+ players
+  - Suspicious: 10,000-50,000 players
+  - Maintenance: <10,000 players
+- **PUBG API Status**: Checks the `/status` endpoint
+- **PUBG API Data Calls**: Tests actual data retrieval
+
+**Debounce Logic:**
+- Maintenance declared after **3 consecutive failures** (6 minutes)
+- Back online declared after **2 consecutive successes** (4 minutes)
+- Prevents false positives from transient errors
+
+### Setup
+
+Use the `/setmaintenancechannel` command in the Discord channel where you want maintenance notifications:
+
+```
+/setmaintenancechannel
+```
+
+This command requires `Manage Server` permissions.
+
+### Behavior
+
+**During Maintenance:**
+- Bot posts a red embed notification with timestamp
+- Pauses scheduled reports (digest, chicken dinner, etc.)
+- Tracks which tasks were skipped
+
+**When Servers Come Back Online:**
+- Bot posts a green embed notification
+- Shows downtime duration
+- **Immediately runs all paused scheduled tasks** (no waiting for next interval)
+- Resumes normal scheduling
+
+### Notification Examples
+
+**Maintenance Started:**
+```
+⚠️ PUBG Servers Under Maintenance
+PUBG game servers are currently under maintenance. Scheduled reports are paused.
+
+Steam Players: 8,234
+Status: 🔴 Maintenance
+Scheduled Reports: ⏸️ Paused
+```
+
+**Back Online:**
+```
+✅ PUBG Servers Back Online
+PUBG game servers are back online. Running all paused scheduled reports now.
+
+Steam Players: 326,004
+Status: 🟢 Online
+Downtime: 2h 15m
+Scheduled Reports: ▶️ Running now
+```
+
+For detailed documentation, see [MAINTENANCE-MODULE.md](MAINTENANCE-MODULE.md).
