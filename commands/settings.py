@@ -308,6 +308,49 @@ async def clearmaintenance_impl(interaction):
         await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 
+async def forcemaintenance_impl(interaction, status):
+    """Implementation of forcemaintenance command."""
+    # Defer immediately to prevent timeout
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        # Interaction already expired, nothing we can do
+        return
+
+    try:
+        from modules.maintenance import send_maintenance_notification
+        from datetime import datetime, timezone
+        
+        # Post manual maintenance status update
+        if status.lower() == "down":
+            await send_maintenance_notification(
+                is_down=True,
+                steam_players=18009,
+                api_status=True,
+                api_data=True,
+                down_since=datetime.now(timezone.utc),
+                message="CORRECTION: PUBG servers are still under maintenance. The earlier \"back online\" notification was incorrect due to a detection threshold issue. Maintenance detection has been corrected and will now remain active until player counts recover to normal levels."
+            )
+            await interaction.followup.send("✅ Maintenance status correction posted.")
+        elif status.lower() == "online":
+            await send_maintenance_notification(
+                is_down=False,
+                steam_players=500000,
+                api_status=True,
+                api_data=True,
+                down_since=None,
+                message="CORRECTION: PUBG servers are back online."
+            )
+            await interaction.followup.send("✅ Back online status correction posted.")
+        else:
+            await interaction.followup.send("❌ Invalid status. Use 'down' or 'online'.", ephemeral=True)
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error in forcemaintenance_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
+
+
 async def setstatuschannel_impl(interaction):
     """Implementation of setstatuschannel command."""
     # Defer immediately to prevent timeout
