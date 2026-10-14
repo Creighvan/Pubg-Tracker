@@ -680,27 +680,7 @@ async def addprotectedbulk(interaction: discord.Interaction, players: str):
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
 async def setinactivedate(interaction: discord.Interaction, name: str, days_ago: app_commands.Range[int, 1, 365]):
-    from datetime import datetime, timedelta, timezone
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
-    
-    def modifier(guild_cfg):
-        guild_cfg["manual_inactive_dates"][normalize_player_name(name)] = {
-            "date": inactive_date,
-            "set_at": datetime.now(timezone.utc).isoformat()
-        }
-    
-    await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.response.send_message(translations.get_translation(lang, "inactive_date_set").format(name=name, date=days_ago))
-    await send_audit_log(
-        interaction.guild_id,
-        "Manual Inactive Date Set",
-        f"Set {name} to {days_ago} days inactive",
-        user=interaction.user,
-        details={"Player": name, "Days Ago": days_ago}
-    )
+    await setinactivedate_impl(interaction, name, days_ago)
 
 
 @bot.tree.command(description="Remove manual inactive date for a player")
