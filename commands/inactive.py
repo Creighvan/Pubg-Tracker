@@ -22,14 +22,18 @@ async def setinactivedate_impl(interaction, name, days_ago):
         return
 
     from datetime import datetime, timedelta, timezone
+    
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
-    inactive_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
     
     def modifier(guild_cfg):
-        guild_cfg["inactive_dates"] = guild_cfg.get("inactive_dates", {})
-        guild_cfg["inactive_dates"][name] = inactive_date.isoformat()
+        guild_cfg["manual_inactive_dates"] = guild_cfg.get("manual_inactive_dates", {})
+        guild_cfg["manual_inactive_dates"][name.lower().replace(" ", "")] = {
+            "date": inactive_date,
+            "set_at": datetime.now(timezone.utc).isoformat()
+        }
     
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(
