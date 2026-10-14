@@ -257,6 +257,7 @@ from commands.settings import (
     setscheduledmaintenancechannel_impl,
     schedulemaintenance_impl,
     clearmaintenance_impl,
+    forcemaintenance_impl,
     setstatuschannel_impl,
     setauditchannel_impl,
     clearauditchannel_impl,
@@ -1084,6 +1085,13 @@ async def schedulemaintenance(interaction: discord.Interaction, start_date: str,
 @app_commands.checks.has_permissions(manage_guild=True)
 async def clearmaintenance(interaction: discord.Interaction):
     await clearmaintenance_impl(interaction)
+
+
+@bot.tree.command(description="Force post a maintenance status correction (down/online)")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.describe(status="Status to post: 'down' or 'online'")
+async def forcemaintenance(interaction: discord.Interaction, status: str):
+    await forcemaintenance_impl(interaction, status)
 
 
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
