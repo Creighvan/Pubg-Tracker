@@ -46,8 +46,8 @@ SUCCESS_THRESHOLD = 2  # consecutive successes before declaring back online
 CHECK_INTERVAL_SECONDS = 120  # check every 2 minutes
 
 # Player count thresholds for maintenance detection
-NORMAL_PLAYER_COUNT_MIN = 50000  # below this is suspicious
-MAINTENANCE_PLAYER_COUNT_MAX = 10000  # at or below this is definitely maintenance
+NORMAL_PLAYER_COUNT_MIN = 100000  # below this is suspicious (raised from 50k)
+MAINTENANCE_PLAYER_COUNT_MAX = 50000  # at or below this is definitely maintenance (raised from 10k)
 
 
 def _get_bot():
@@ -327,8 +327,10 @@ async def check_maintenance_status():
     api_data_ok = await check_pubg_api_data()
     
     # Combine signals
-    # Maintenance if: player count very low OR (player count suspicious AND API not working)
-    is_down = steam_signal_low or (steam_signal_suspicious and not (api_status_ok and api_data_ok))
+    # Maintenance if: player count very low OR player count suspicious
+    # Changed to be more conservative - treat any count below 50k as maintenance
+    # even if API is working, to avoid false "back online" during partial recovery
+    is_down = steam_signal_low or steam_signal_suspicious
     
     print(f"[maintenance] Check: steam={steam_count}, api_status={api_status_ok}, api_data={api_data_ok}, is_down={is_down}")
     
