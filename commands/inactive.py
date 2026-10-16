@@ -37,7 +37,7 @@ async def setinactivedate_impl(interaction, name, days_ago):
     
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(
-        translations.get_translation(lang, "inactive_date_set").format(name=name, days=days_ago)
+        translations.get_translation(lang, "inactive_date_set").format(name=name, date=days_ago)
     )
 
 
