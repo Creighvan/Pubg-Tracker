@@ -291,6 +291,7 @@ from commands.admin import (
     reportcheater_impl,
     askfeedback_impl,
     botservers_impl,
+    runallreports_impl,
 )
 from commands.analytics import (
     playertrend_impl,
@@ -711,6 +712,12 @@ async def roster(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def reportcheater(interaction: discord.Interaction):
     await reportcheater_impl(interaction, pubg, _detect_statistical_anomalies)
+
+
+@bot.tree.command(description="Run all active scheduled reports immediately")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def runallreports(interaction: discord.Interaction):
+    await runallreports_impl(interaction)
 
 @bot.tree.command(description="Post aggregated clan stats right now")
 async def clanstats(interaction: discord.Interaction):
