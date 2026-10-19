@@ -265,31 +265,43 @@ async def auto_ranked():
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
-        if not guild_cfg.get("ranked_enabled", True):
+        ranked_enabled = guild_cfg.get("ranked_enabled", True)
+        print(f"[auto_ranked] Guild {guild_id}: ranked_enabled={ranked_enabled}")
+        if not ranked_enabled:
+            print(f"[auto_ranked] Guild {guild_id}: ranked_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
+        print(f"[auto_ranked] Guild {guild_id}: channel_id={channel_id}")
         if channel_id is None:
+            print(f"[auto_ranked] Guild {guild_id}: No channel configured, skipping")
             continue
         
         # Get configured time (defaults to 04:30 UTC if not set)
         ranked_hour = guild_cfg.get("ranked_hour_utc", 4)
         ranked_minute = guild_cfg.get("ranked_minute_utc", 30)
+        print(f"[auto_ranked] Guild {guild_id}: scheduled time {ranked_hour:02d}:{ranked_minute:02d} UTC")
         
         # Calculate reset time for today
         reset_time_utc = now_utc.replace(hour=ranked_hour, minute=ranked_minute, second=0, microsecond=0)
         if now_utc < reset_time_utc:
             reset_time_utc -= timedelta(days=1)
+        print(f"[auto_ranked] Guild {guild_id}: reset_time={reset_time_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
         
         # Check if we've already posted since the most recent reset
         posted_at = guild_cfg.get("ranked_posted_at")
+        print(f"[auto_ranked] Guild {guild_id}: ranked_posted_at={posted_at}")
         if posted_at:
             posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
+            print(f"[auto_ranked] Guild {guild_id}: posted_date={posted_date.strftime('%Y-%m-%d %H:%M:%S UTC')}")
             if posted_date >= reset_time_utc:
+                print(f"[auto_ranked] Guild {guild_id}: Already posted since reset, skipping")
                 continue  # Already posted since the most recent reset
         
         # Only run during or after the configured time window
         if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
+            print(f"[auto_ranked] Guild {guild_id}: Current time {now_utc.hour:02d}:{now_utc.minute:02d} UTC is before scheduled time, skipping")
             continue  # Not yet at scheduled time
+        print(f"[auto_ranked] Guild {guild_id}: Time check passed, proceeding to generate report")
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
