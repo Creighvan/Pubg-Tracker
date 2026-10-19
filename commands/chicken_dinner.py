@@ -22,18 +22,42 @@ async def chickendinner_impl(interaction, pubg):
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
+    players = guild_cfg.get("players", [])
+    
+    if not players:
+        await interaction.followup.send(translations.get_translation(lang, "no_players_tracked_short"), ephemeral=True)
+        return
     
     try:
-        result = await pubg.get_chicken_dinner_report(interaction.guild_id)
+        from datetime import datetime, timezone
+        wins, not_found = await pubg.get_squad_wins(players, matches_to_check=5)
+        
+        if not wins:
+            await interaction.followup.send(translations.get_translation(lang, "no_chicken_dinner"))
+            return
+        
+        # Create embed with recent wins
+        embed = discord.Embed(
+            title="🍗 Recent Chicken Dinners",
+            description=f"Last 50 matches per player, all game modes",
+            color=discord.Color.gold()
+        )
+        
+        for win in wins[:10]:  # Show up to 10 most recent
+            player_name = win.get("name", "Unknown")
+            match_time = win.get("match_time", "Unknown time")
+            embed.add_field(
+                name=player_name,
+                value=f"🏆 {match_time}",
+                inline=False
+            )
+        
+        embed.set_footer(text=f"Updates every 15 minutes • {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
+        await interaction.followup.send(embed=embed)
+        
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
-    
-    if result:
-        embed, _ = result
-        await interaction.followup.send(embed=embed)
-    else:
-        await interaction.followup.send(translations.get_translation(lang, "no_chicken_dinner"))
 
 
 async def setchickendinnerchannel_impl(interaction):
