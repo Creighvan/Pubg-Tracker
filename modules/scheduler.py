@@ -931,7 +931,7 @@ async def run_daily_snapshot():
             next_run += timedelta(days=1)
 
         sleep_seconds = (next_run - now).total_seconds()
-        print(f"[auto_daily_snapshot] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
+        print(f"[auto_daily_snapshot] Sleeping {sleep_seconds / 3600:.1f} hours until 03:05 UTC")
         await asyncio.sleep(sleep_seconds)
 
         today = datetime.now(utc).strftime("%Y-%m-%d")
