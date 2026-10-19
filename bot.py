@@ -537,31 +537,15 @@ def _detect_statistical_anomalies(stats: dict) -> list[str]:
 
 # ---------- lifecycle ----------
 
-async def _sync_guild_commands(guild: discord.Guild) -> int:
-    """Replace one guild's command set with the current command templates."""
-    bot.tree.clear_commands(guild=guild)
-    for command in _command_templates or []:
-        bot.tree.add_command(command, guild=guild, override=True)
-    synced = await bot.tree.sync(guild=guild)
-    return len(synced)
-
 @bot.event
 async def on_ready():
     global _commands_synced_once, _command_templates, _bot_ready_once
     try:
         if not _commands_synced_once:
-            # Guild commands are available immediately. Each sync bulk-replaces
-            # that guild's command list, so stale commands cannot accumulate.
+            # Sync commands globally once. Discord propagates to all guilds automatically.
             _command_templates = bot.tree.get_commands()
-            for guild in bot.guilds:
-                count = await _sync_guild_commands(guild)
-                logger.info(f"Instantly synced {count} commands to guild {guild.name} ({guild.id})")
-
-            # Remove the old global command set. Keeping it alongside the
-            # immediate guild commands can make old/global command versions
-            # appear in Discord while propagation catches up.
-            bot.tree.clear_commands(guild=None)
-            await bot.tree.sync()
+            synced = await bot.tree.sync()
+            logger.info(f"Synced {len(synced)} commands globally")
             _commands_synced_once = True
     except Exception as e:
         # A sync hiccup here should NEVER prevent the scheduled reports
@@ -621,13 +605,7 @@ async def on_guild_join(guild: discord.Guild):
         is_automated=True,
         details={"Server Name": guild.name, "Member Count": guild.member_count}
     )
-    if not _commands_synced_once:
-        return
-    try:
-        count = await _sync_guild_commands(guild)
-        logger.info(f"Instantly synced {count} commands to newly joined guild {guild.name} ({guild.id})")
-    except Exception as e:
-        logger.error(f"[on_guild_join] Command sync failed for guild {guild.id}: {e}", exc_info=e)
+    # Commands are synced globally once at startup, no per-guild sync needed
 
 
 @bot.event
