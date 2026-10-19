@@ -326,7 +326,7 @@ from commands.chemistry import (
 )
 
 # Initialize bot and pubg instances
-bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree)
+bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree, allowed_mentions=discord.AllowedMentions.none())
 pubg = PubgClient(PUBG_API_KEY, shard=PUBG_SHARD)
 
 # Set bot and pubg instances in config for use by other modules
@@ -632,6 +632,13 @@ async def on_guild_join(guild: discord.Guild):
 
 @bot.event
 async def on_guild_remove(guild: discord.Guild):
+    # Purge guild data when bot is removed (privacy compliance)
+    try:
+        await storage.delete_guild(guild.id)
+        logger.info(f"Purged data for guild {guild.id} ({guild.name}) after bot removal")
+    except Exception as e:
+        logger.error(f"Failed to purge data for guild {guild.id}: {e}", exc_info=True)
+
     await send_audit_log(
         guild.id,
         "Bot Left Server",

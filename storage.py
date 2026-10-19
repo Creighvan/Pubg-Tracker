@@ -199,6 +199,17 @@ def reset_corruption_state():
     logger.info("Database corruption state reset - writes re-enabled")
 
 
+async def modify_data(modifier):
+    """
+    Atomically read, modify, and save the entire data dict.
+    Used for operations that affect multiple guilds or the global structure.
+    """
+    async with _lock:
+        data = _load()
+        modifier(data)
+        _save(data)
+
+
 def _save(data: dict):
     global _CORRUPTION_DETECTED
     if _CORRUPTION_DETECTED:
@@ -415,9 +426,30 @@ async def all_guild_ids() -> list[int]:
         return [int(g) for g in guilds.keys() if g != "guilds"]
 
 
-async def add_player(guild_id: int, name: str) -> bool:
+async def delete_guild(guild_id: int):
+    """Delete a guild's data entirely (privacy compliance)."""
+    def modifier(data):
+        guild_key = str(guild_id)
+        # Remove from guilds key if present
+        if "guilds" in data and guild_key in data["guilds"]:
+            del data["guilds"][guild_key]
+        # Remove from top level if present (legacy format)
+        if guild_key in data:
+            del data[guild_key]
+    await modify_data(modifier)
+    # Validate player name (PUBG names are 3-16 chars, alphanumeric + hyphens/underscores)
+    name = name.strip()
+    if len(name) < 3 or len(name) > 16:
+        raise ValueError("Player name must be 3-16 characters")
+    if not all(c.isalnum() or c in "-_" for c in name):
+        raise ValueError("Player name can only contain letters, numbers, hyphens, and underscores")
+
     result = {"added": False}
     def modifier(guild):
+        # Check roster cap (max 200 players)
+        if len(guild["players"]) >= 200:
+            result["added"] = False
+            return
         normalized = normalize_player_name(name)
         lowered = [normalize_player_name(p) for p in guild["players"]]
         if normalized in lowered:
@@ -430,14 +462,14 @@ async def add_player(guild_id: int, name: str) -> bool:
     return result["added"]
 
 
-async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str]]:
+async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[str], list[str]]:
     """
     Bulk-add many players in a single save. Returns (added, duplicates).
     Preserves the casing of the first occurrence for duplicates within the
     input list itself.
     """
-    result = {"added": [], "duplicates": []}
-    
+    result = {"added": [], "duplicates": [], "invalid": []}
+
     def modifier(guild):
         existing_lower = {normalize_player_name(p) for p in guild["players"]}
         seen_this_batch: set[str] = set()
@@ -445,6 +477,17 @@ async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[
         for name in names:
             name = name.strip()
             if not name:
+                continue
+            # Validate player name
+            if len(name) < 3 or len(name) > 16:
+                result["invalid"].append(name)
+                continue
+            if not all(c.isalnum() or c in "-_" for c in name):
+                result["invalid"].append(name)
+                continue
+            # Check roster cap
+            if len(guild["players"]) >= 200:
+                result["invalid"].append(name)
                 continue
             normalized = normalize_player_name(name)
             if normalized in existing_lower or normalized in seen_this_batch:
@@ -457,9 +500,9 @@ async def add_players(guild_id: int, names: list[str]) -> tuple[list[str], list[
 
         if result["added"]:
             guild["ranked_known_players"] = {}
-    
+
     await modify_guild(guild_id, modifier)
-    return result["added"], result["duplicates"]
+    return result["added"], result["duplicates"], result["invalid"]
 
 
 async def remove_player(guild_id: int, name: str) -> bool:

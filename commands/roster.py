@@ -39,6 +39,8 @@ async def addplayer_impl(interaction, name, send_audit_log):
             )
         else:
             await interaction.followup.send(translations.get_translation(lang, "player_already_on_roster").format(name=name), ephemeral=True)
+    except ValueError as e:
+        await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except DatabaseCorruptionError as e:
         await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
     except Exception as e:
@@ -65,7 +67,7 @@ async def addplayers_impl(interaction, names, send_audit_log):
         return
 
     try:
-        added, duplicates = await storage.add_players(interaction.guild_id, candidates)
+        added, duplicates, invalid = await storage.add_players(interaction.guild_id, candidates)
         guild_cfg = await storage.get_guild(interaction.guild_id)
         lang = guild_cfg.get("language", "en")
 
@@ -78,6 +80,8 @@ async def addplayers_impl(interaction, names, send_audit_log):
             lines.append(", ".join(added))
         if duplicates:
             lines.append(translations.get_translation(lang, "skipped_duplicates").format(count=len(duplicates)) + ", ".join(duplicates))
+        if invalid:
+            lines.append(f"⚠️ Skipped {len(invalid)} invalid names (must be 3-16 alphanumeric chars, hyphens, underscores): " + ", ".join(invalid))
         await interaction.followup.send("\n".join(lines))
     except DatabaseCorruptionError as e:
         await interaction.followup.send(f"❌ {str(e)}", ephemeral=True)
