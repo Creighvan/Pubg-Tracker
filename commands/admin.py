@@ -155,8 +155,13 @@ async def reportcheater_impl(interaction, pubg, _detect_statistical_anomalies):
 async def askfeedback_impl(interaction, channel, secret_key, BOT_ADMIN_KEY):
     """Implementation of askfeedback command."""
     from modules.config import SUPPORT_FEEDBACK_CHANNEL_ID, SUPPORT_SERVER_ID
+    import hmac
 
-    if secret_key != BOT_ADMIN_KEY:
+    if not BOT_ADMIN_KEY or secret_key is None:
+        await interaction.response.send_message("❌ Admin key not configured", ephemeral=True)
+        return
+    
+    if not hmac.compare_digest(secret_key.encode(), BOT_ADMIN_KEY.encode()):
         await interaction.response.send_message("❌ Invalid secret key", ephemeral=True)
         return
 

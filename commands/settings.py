@@ -46,7 +46,7 @@ async def setchannel_impl(interaction):
     def modifier(guild_cfg):
         guild_cfg["post_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "digest_channel_set").format(channel=interaction.channel.mention, schedule="at the configured time"))
 
 
 async def setinterval_impl(interaction, hours):
