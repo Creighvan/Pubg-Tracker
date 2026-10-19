@@ -304,7 +304,12 @@ def _cleanup_old_backups(backup_dir: str, base_name: str):
 async def get_guild(guild_id: int) -> dict:
     async with _lock:
         data = _load()
-        guild = data.get(str(guild_id))
+        # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
+        if "guilds" in data:
+            guilds = data["guilds"]
+        else:
+            guilds = data
+        guild = guilds.get(str(guild_id))
         # deepcopy, not a plain dict() copy: the defaults contain mutable
         # lists/dicts (players, discord_links, ranked_known_players). A
         # shallow copy shares those with _DEFAULT_GUILD itself, so the first
@@ -323,7 +328,15 @@ async def get_guild(guild_id: int) -> dict:
 async def save_guild(guild_id: int, guild_data: dict):
     async with _lock:
         data = _load()
-        data[str(guild_id)] = guild_data
+        # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
+        if "guilds" not in data:
+            data["guilds"] = {}
+            # Migrate existing guilds to the new format
+            for key, value in list(data.items()):
+                if key != "guilds":
+                    data["guilds"][key] = value
+                    del data[key]
+        data["guilds"][str(guild_id)] = guild_data
         _save(data)
 
 
@@ -344,7 +357,16 @@ async def modify_guild(guild_id: int, modifier):
     """
     async with _lock:
         data = _load()
-        guild = data.get(str(guild_id))
+        # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
+        if "guilds" not in data:
+            data["guilds"] = {}
+            # Migrate existing guilds to the new format
+            for key, value in list(data.items()):
+                if key != "guilds":
+                    data["guilds"][key] = value
+                    del data[key]
+        guilds = data["guilds"]
+        guild = guilds.get(str(guild_id))
         if guild is None:
             guild = copy.deepcopy(_DEFAULT_GUILD)
         else:
@@ -352,7 +374,7 @@ async def modify_guild(guild_id: int, modifier):
             merged.update(guild)
             guild = merged
         result = modifier(guild)
-        data[str(guild_id)] = guild
+        guilds[str(guild_id)] = guild
         _save(data)
         return result
 
@@ -360,7 +382,12 @@ async def modify_guild(guild_id: int, modifier):
 async def all_guild_ids() -> list[int]:
     async with _lock:
         data = _load()
-        return [int(g) for g in data.keys()]
+        # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
+        if "guilds" in data:
+            guilds = data["guilds"]
+        else:
+            guilds = data
+        return [int(g) for g in guilds.keys() if g != "guilds"]
 
 
 async def add_player(guild_id: int, name: str) -> bool:
