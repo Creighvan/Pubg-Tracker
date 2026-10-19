@@ -518,11 +518,10 @@ async def reportstatus_impl(interaction):
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     # Build status embed
-    import discord
     from modules.utils import _next_daily_report, _next_interval_report, _next_weekly_report
-    
+
     embed = discord.Embed(
         title=translations.get_translation(lang, "report_status_title"),
         color=discord.Color.blue(),

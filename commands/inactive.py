@@ -21,11 +21,11 @@ async def setinactivedate_impl(interaction, name, days_ago):
         # Interaction already expired, nothing we can do
         return
 
-    from datetime import datetime, timedelta, timezone
-    
+    from datetime import datetime, timezone, timedelta
+
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     inactive_date = (datetime.now(timezone.utc) - timedelta(days=days_ago)).isoformat()
     
     def modifier(guild_cfg):

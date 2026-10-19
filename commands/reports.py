@@ -68,8 +68,7 @@ async def leaderboard_impl(interaction, pubg, sort_by):
     
     ranked = sorted(players, key=lambda p: p["stats"].get(stat_key, 0), reverse=True)
     lines = [f"{i}. **{p['name']}** — {p['stats'].get(stat_key, 0):,}" for i, p in enumerate(ranked, start=1)]
-    
-    import discord
+
     embed = discord.Embed(
         title=f"Leaderboard — {stat_key} ({guild_cfg['game_mode']})",
         description="\n".join(lines) or "No data.",

@@ -437,6 +437,9 @@ async def delete_guild(guild_id: int):
         if guild_key in data:
             del data[guild_key]
     await modify_data(modifier)
+
+
+async def add_player(guild_id: int, name: str) -> bool:
     # Validate player name (PUBG names are 3-16 chars, alphanumeric + hyphens/underscores)
     name = name.strip()
     if len(name) < 3 or len(name) > 16:

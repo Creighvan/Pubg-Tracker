@@ -120,15 +120,15 @@ def validate_placeholder_consistency():
                     'locale': locale,
                     'key': key,
                     'english': english_placeholders,
-                    'locale': locale_placeholders,
+                    'found': locale_placeholders,
                 })
-    
+
     if placeholder_mismatches:
         print(f"[X] Placeholder mismatches found: {len(placeholder_mismatches)}")
         for mismatch in placeholder_mismatches[:10]:  # Show first 10
             print(f"  {mismatch['locale']} / {mismatch['key']}")
             print(f"    English: {mismatch['english']}")
-            print(f"    {mismatch['locale']}: {mismatch['locale']}")
+            print(f"    {mismatch['locale']}: {mismatch['found']}")
         if len(placeholder_mismatches) > 10:
             print(f"  ... and {len(placeholder_mismatches) - 10} more")
     else:
