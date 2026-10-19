@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 async def runallreports_impl(interaction):
-    """Run all active scheduled reports immediately."""
+    """Reset all report timestamps so they run on next cycle."""
     # Defer immediately to prevent timeout
     try:
         await interaction.response.defer()
@@ -22,101 +22,19 @@ async def runallreports_impl(interaction):
         return
 
     try:
-        from modules.scheduler import (
-            auto_digest,
-            auto_last_active,
-            auto_ranked,
-            auto_highlights,
-            auto_clan_level,
-            auto_survival_mastery,
-            auto_chicken_dinner,
-            auto_feedback_prompt,
-            run_daily_backup,
-            run_cache_cleanup,
-            run_daily_snapshot
-        )
+        guild_cfg = await storage.get_guild(interaction.guild_id)
         
-        results = []
+        def modifier(g):
+            g["last_post_at"] = None
+            g["last_activity_posted_at"] = None
+            g["ranked_posted_at"] = None
+            g["highlights_posted_at"] = None
+            g["clan_posted_at"] = None
+            g["survival_posted_at"] = None
         
-        # Run digest
-        try:
-            await auto_digest()
-            results.append("✅ Digest")
-        except Exception as e:
-            results.append(f"❌ Digest: {str(e)[:50]}")
+        await storage.modify_guild(interaction.guild_id, modifier)
         
-        # Run last active
-        try:
-            await auto_last_active()
-            results.append("✅ Last Active")
-        except Exception as e:
-            results.append(f"❌ Last Active: {str(e)[:50]}")
-        
-        # Run ranked
-        try:
-            await auto_ranked()
-            results.append("✅ Ranked")
-        except Exception as e:
-            results.append(f"❌ Ranked: {str(e)[:50]}")
-        
-        # Run highlights
-        try:
-            await auto_highlights()
-            results.append("✅ Highlights")
-        except Exception as e:
-            results.append(f"❌ Highlights: {str(e)[:50]}")
-        
-        # Run clan level
-        try:
-            await auto_clan_level()
-            results.append("✅ Clan Level")
-        except Exception as e:
-            results.append(f"❌ Clan Level: {str(e)[:50]}")
-        
-        # Run survival mastery
-        try:
-            await auto_survival_mastery()
-            results.append("✅ Survival Mastery")
-        except Exception as e:
-            results.append(f"❌ Survival Mastery: {str(e)[:50]}")
-        
-        # Run chicken dinner
-        try:
-            await auto_chicken_dinner()
-            results.append("✅ Chicken Dinner")
-        except Exception as e:
-            results.append(f"❌ Chicken Dinner: {str(e)[:50]}")
-        
-        # Run feedback prompt
-        try:
-            await auto_feedback_prompt()
-            results.append("✅ Feedback Prompt")
-        except Exception as e:
-            results.append(f"❌ Feedback Prompt: {str(e)[:50]}")
-        
-        # Run daily backup
-        try:
-            await run_daily_backup()
-            results.append("✅ Daily Backup")
-        except Exception as e:
-            results.append(f"❌ Daily Backup: {str(e)[:50]}")
-        
-        # Run cache cleanup
-        try:
-            await run_cache_cleanup()
-            results.append("✅ Cache Cleanup")
-        except Exception as e:
-            results.append(f"❌ Cache Cleanup: {str(e)[:50]}")
-        
-        # Run daily snapshot
-        try:
-            await run_daily_snapshot()
-            results.append("✅ Daily Snapshot")
-        except Exception as e:
-            results.append(f"❌ Daily Snapshot: {str(e)[:50]}")
-        
-        result_text = "\n".join(results)
-        await interaction.followup.send(f"**All Reports Run:**\n{result_text}")
+        await interaction.followup.send("✅ All report timestamps reset. Reports will run on their next scheduled cycle (digest at 04:30 UTC, highlights at 02:00 UTC, etc.)")
         
     except Exception as e:
         import logging
