@@ -282,11 +282,6 @@ from commands.chicken_dinner import (
 from commands.highlights import (
     dailyhighlights_impl,
 )
-from commands.leaderboard import (
-    leaderboardstats_impl,
-    setleaderboardregion_impl,
-    setleaderboardqueue_impl,
-)
 from commands.admin import (
     reportcheater_impl,
     askfeedback_impl,
@@ -1141,35 +1136,6 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     embed, found = result
     await interaction.followup.send(embed=embed)
 
-
-@bot.tree.command(description="Set the platform-region shard used for leaderboard lookups (default pc-na)")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.choices(
-    region=[
-        app_commands.Choice(name="NA", value="pc-na"),
-        app_commands.Choice(name="EU", value="pc-eu"),
-        app_commands.Choice(name="AS (Asia)", value="pc-as"),
-        app_commands.Choice(name="OC (Oceania)", value="pc-oc"),
-        app_commands.Choice(name="SA (South America)", value="pc-sa"),
-        app_commands.Choice(name="SEA", value="pc-sea"),
-        app_commands.Choice(name="KRJP (Korea/Japan)", value="pc-krjp"),
-        app_commands.Choice(name="Kakao", value="pc-kakao"),
-    ]
-)
-async def setleaderboardregion(interaction: discord.Interaction, region: app_commands.Choice[str]):
-    await setleaderboardregion_impl(interaction, region)
-
-@bot.tree.command(description="Set which queue the leaderboard check looks at (squad, duo, or solo TPP)")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.choices(
-    queue=[
-        app_commands.Choice(name="Squad TPP", value="squad"),
-        app_commands.Choice(name="Duo TPP", value="duo"),
-        app_commands.Choice(name="Solo TPP", value="solo"),
-    ]
-)
-async def setleaderboardqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
-    await setleaderboardqueue_impl(interaction, queue)
 
 @bot.tree.command(description="Link your Discord account to a PUBG name (shows as a mention on the official leaderboard report)")
 @app_commands.describe(pubg_name="Your exact PUBG in-game name")
