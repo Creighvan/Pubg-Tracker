@@ -325,9 +325,6 @@ No manual match recording is required — historical data accumulates in the bac
 | `/clanstats` | Post aggregated stats right now |
 | `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |
-| `/leaderboardstats [pages]` | Check the official PUBG leaderboard for roster placements (top ladder only — most players won't appear; default checks top 2000) |
-| `/setleaderboardregion` | Platform/region shard the leaderboard check uses (default `pc-na`) |
-| `/setleaderboardqueue` | squad / duo / solo — TPP queue for the leaderboard check |
 | `/setgamemode <mode>` | squad-fpp, squad, duo-fpp, duo, solo-fpp, solo |
 | `/setclan <member_name>` | Choose the clan through the exact PUBG name of one of its current members |
 | `/clanlevel` | Show current clan level, member count, and weekly change |
@@ -342,8 +339,6 @@ No manual match recording is required — historical data accumulates in the bac
 | `/schedulemaintenance <date> <hour> <duration>` | Schedule a maintenance notice for advance warning |
 | `/clearmaintenance` | Clear scheduled maintenance notice |
 | `/donate` | Show the optional donation links (Ko-Fi and Buy Me a Coffee) |
-| `/setdonationchannel` | Enable the optional weekly Sunday donation post in the current channel |
-| `/setdonationtime <0-23>` | Choose the Sunday UTC donation post time (defaults to noon) |
 | `/setchannel` | Set current channel as the auto-post destination |
 | `/setinterval <1-24>` | How often (hours) the digest auto-posts — ignored if `/setdigesttime` is set |
 | `/setdigesttime <0-23>` | Post the digest once/day at a fixed UTC hour instead |
@@ -357,11 +352,8 @@ No manual match recording is required — historical data accumulates in the bac
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/dailyhighlights` | Show daily-reset fun-title awards + top 10 + human/bot kills, right now |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
-| `/sethighlightstime <0-23>` | Fixed UTC hour for the highlights report |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
-| `/linkme <pubg_name>` | Link your Discord account to a PUBG name (shows as a mention on `/leaderboardstats` results) |
 | `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (requires Manage Server) |
-| `/unlinkme <pubg_name>` | Remove a Discord-to-PUBG-name link |
 | `/links` | Show every PUBG-name-to-Discord link currently set for this server |
 | `/chickendinner` | Check the roster's most recent matches for wins right now |
 | `/setchickendinnerchannel` | Set the channel for automatic Chicken Dinner win alerts (defaults to the digest channel; checks every 15 minutes) |
@@ -415,15 +407,9 @@ than triggering one edit per event.
 ### Player identity in reports
 
 Reports never post a separate per-player message and never @mention or
-ping anyone by default. Linking affects one thing: on `/leaderboardstats`, a
-linked player's name is shown as a non-pinging `@mention` instead of the
-plain PUBG name.
+ping anyone by default. Linking shows a linked player's name as a non-pinging `@mention` instead of the plain PUBG name.
 
-- `/linkme <pubg_name>` — link your own Discord account (self-asserted; use `/linkplayer` for verified linking).
-- `/linkplayer <member> <pubg_name>` — link someone else's account for
-  them (requires Manage Server permission).
-- `/unlinkme <pubg_name>` — remove a link (your own, or — for a server
-  manager — anyone's).
+- `/linkplayer <member> <pubg_name>` — link someone else's account for them (requires Manage Server permission).
 - `/links` — list every current PUBG-name-to-Discord link for the server (requires Manage Server permission).
 - `/pingtoggle <on/off>` — enable or disable mention notifications for achievement awards in reports (default: on). Avatar links still work regardless of this setting.
 

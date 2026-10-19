@@ -61,7 +61,6 @@ EXPECTED_COMMANDS = {
     "commands.reports": [
         "clanstats_impl",
         "postnow_impl",
-        "leaderboard_impl",
         "lastactive_impl",
     ],
     "commands.ranked": [
@@ -73,11 +72,6 @@ EXPECTED_COMMANDS = {
         "rankedsolofpp_impl",
         "refreshranked_impl",
         "updateranked_impl",
-    ],
-    "commands.leaderboard": [
-        "leaderboardstats_impl",
-        "setleaderboardregion_impl",
-        "setleaderboardqueue_impl",
     ],
     "commands.chicken_dinner": [
         "chickendinner_impl",
@@ -101,9 +95,7 @@ EXPECTED_COMMANDS = {
         "resetinactivecount_impl",
     ],
     "commands.links": [
-        "linkme_impl",
         "linkplayer_impl",
-        "unlinkme_impl",
         "links_impl",
     ],
     "commands.analytics": [

@@ -890,8 +890,11 @@ async def run_daily_backup():
 
         # Create the backup
         print(f"[daily_backup] Creating daily backup at {datetime.now(utc)}")
-        storage.create_daily_backup()
-        print(f"[daily_backup] Daily backup complete")
+        try:
+            storage.create_daily_backup()
+            print(f"[daily_backup] Daily backup complete")
+        except Exception as e:
+            print(f"[daily_backup] Error creating backup: {e}")
 
 
 async def run_cache_cleanup():
@@ -915,7 +918,7 @@ async def run_cache_cleanup():
 async def run_daily_snapshot():
     """
     Background task that records historical daily snapshots for all tracked players.
-    Runs once daily at 03:00 UTC (after the daily backup).
+    Runs once daily at 03:05 UTC (5 minutes after the daily backup to avoid contention).
     """
     await _get_bot().wait_until_ready()
     utc = timezone.utc
@@ -923,7 +926,7 @@ async def run_daily_snapshot():
 
     while True:
         now = datetime.now(utc)
-        next_run = now.replace(hour=3, minute=0, second=0, microsecond=0)
+        next_run = now.replace(hour=3, minute=5, second=0, microsecond=0)
         if now >= next_run:
             next_run += timedelta(days=1)
 

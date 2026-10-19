@@ -2,7 +2,7 @@
 
 ## Deployment Instructions
 
-Since SSH connection is currently failing, deploy manually:
+Deploy manually via SSH:
 
 ```bash
 ssh ubuntu@YOUR_SERVER_IP
@@ -21,7 +21,7 @@ pm2 logs pubg-bot --lines 50
 - All have defer() with NotFound handling
 - All use followup.send() after defer
 
-## Testing Checklist for Channel YOUR_CHANNEL_ID
+## Testing Checklist
 
 ### Roster Commands (Test These First)
 - [ ] `/roster` - Display tracked players
@@ -65,7 +65,6 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/lastactive` - Last active report
 - [ ] `/dailyhighlights` - **(Should work immediately)**
 - [ ] `/clanstats` - Clan statistics
-- [ ] `/leaderboard <sort>` - Leaderboard
 
 ### Ranked Commands
 - [ ] `/rankedsquad` - Squad ranked
@@ -97,9 +96,6 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/chickendinner` - Chicken dinner report
 - [ ] `/setchickendinnerchannel` - Set chicken dinner channel
 - [ ] `/pingtoggle` - Toggle ping notifications
-- [ ] `/leaderboardstats` - Leaderboard stats
-- [ ] `/setleaderboardregion <region>` - Set leaderboard region
-- [ ] `/setleaderboardqueue <queue>` - Set leaderboard queue
 - [ ] `/masterystats` - Mastery stats
 - [ ] `/survivalstats` - Survival stats
 - [ ] `/setclan <name>` - Set clan
@@ -109,9 +105,7 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/setinactivedate <name> <days>` - Set inactive date
 - [ ] `/removeinactivedate <name>` - Remove inactive date
 - [ ] `/resetinactivecount <name>` - Reset inactive count
-- [ ] `/linkme <pubg_name>` - Link your account
 - [ ] `/linkplayer <user> <pubg_name>` - Link player
-- [ ] `/unlinkme <pubg_name>` - Unlink
 - [ ] `/links` - List links
 
 ## Expected Behavior After Fix

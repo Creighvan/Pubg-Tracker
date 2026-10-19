@@ -5,11 +5,17 @@ Test the historical data storage system.
 import asyncio
 import sys
 import os
+import tempfile
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import history
+
+# Use a temporary history file for testing to avoid state leakage
+original_history_path = history.HISTORY_PATH
+test_history_path = os.path.join(tempfile.gettempdir(), "test_history.json")
+history.HISTORY_PATH = test_history_path
 
 
 async def test_daily_snapshot():
@@ -178,6 +184,10 @@ async def main():
     print("Testing Historical Data Storage")
     print("=" * 40)
 
+    # Clean up any existing test history file
+    if os.path.exists(test_history_path):
+        os.remove(test_history_path)
+
     tests = [
         test_daily_snapshot,
         test_trend_calculation,
@@ -190,6 +200,10 @@ async def main():
     passed = sum(results)
     total = len(results)
     print(f"Results: {passed}/{total} tests passed")
+
+    # Clean up test history file
+    if os.path.exists(test_history_path):
+        os.remove(test_history_path)
 
     if passed == total:
         print("[OK] All history tests passed!")
