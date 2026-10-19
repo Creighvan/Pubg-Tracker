@@ -159,7 +159,6 @@ async def before_auto_digest():
 async def auto_last_active():
     """Posts the 'last active' report every 24 hours, per guild.
     Runs once per day after 02:00 UTC daily reset. Recovers if bot was offline."""
-    from modules.utils import get_current_pubg_day
     utc = timezone.utc
     now_utc = datetime.now(utc)
     reset_time_utc = get_current_pubg_day(now_utc)
@@ -367,7 +366,6 @@ async def auto_highlights():
     human/bot kill split) every 24 hours at 02:00 UTC.
     Edits existing message instead of posting new ones.
     """
-    from modules.utils import get_current_pubg_day
     print("[auto_highlights] Starting highlights loop")
     while True:
         # Wait until 02:00 UTC

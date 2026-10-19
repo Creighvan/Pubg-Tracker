@@ -6,6 +6,7 @@ import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
+from pubg_api import PubgApiError
 import discord
 
 logger = logging.getLogger(__name__)
