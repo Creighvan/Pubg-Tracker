@@ -7,6 +7,7 @@ import storage
 import translations
 from pubg_api import PubgApiError
 import discord
+from modules.reports import fetch_clan_report
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,9 @@ async def clanstats_impl(interaction, pubg):
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
     try:
-        result = await pubg.get_clan_report(interaction.guild_id)
+        result = await fetch_clan_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return

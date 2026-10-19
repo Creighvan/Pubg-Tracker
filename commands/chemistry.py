@@ -132,7 +132,7 @@ async def chemistry_impl(interaction: discord.Interaction, player1: str, player2
             else:
                 time_str = f"{days_ago} days ago"
             embed.set_footer(text=f"Last played together: {time_str}")
-        except:
+        except (ValueError, AttributeError):
             embed.set_footer(text="Last played together: Unknown")
     else:
         embed.set_footer(text="Last played together: Unknown")

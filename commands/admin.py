@@ -202,7 +202,6 @@ async def botservers_impl(interaction, bot, ADMIN_USER_IDS):
     for guild in bot.guilds:
         servers.append(f"**{guild.name}** (ID: {guild.id}, Members: {guild.member_count})")
 
-    import discord
     embed = discord.Embed(
         title=f"Bot Servers ({len(bot.guilds)})",
         description="\n".join(servers) or "No servers",

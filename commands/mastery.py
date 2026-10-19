@@ -7,6 +7,7 @@ import storage
 import translations
 from pubg_api import PubgApiError
 import discord
+from modules.reports import fetch_survival_mastery_report
 
 logger = logging.getLogger(__name__)
 
@@ -49,13 +50,13 @@ async def survivalstats_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
 
     try:
-        result = await pubg.get_survival_mastery_report(interaction.guild_id)
+        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
 
     if result:
-        embed, _ = result
-        await interaction.followup.send(embed=embed)
+        embeds, files = result
+        await interaction.followup.send(embeds=embeds[:10], files=files)
     else:
         await interaction.followup.send(translations.get_translation(lang, "no_survival_data"))

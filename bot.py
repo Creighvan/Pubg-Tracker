@@ -473,6 +473,34 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
 
 
 # ---------- helpers ----------
+
+def _detect_statistical_anomalies(stats: dict) -> list[str]:
+    """Return human-readable flags for statistically implausible lifetime stats."""
+    flags: list[str] = []
+    rounds = stats.get("roundsPlayed", 0)
+    if rounds <= 0:
+        return flags
+    kills = stats.get("kills", 0)
+    deaths = stats.get("deaths", 0)
+    wins = stats.get("wins", 0)
+    headshots = stats.get("headshotKills", 0)
+    damage = stats.get("damageDealt", 0)
+    kd = kills / max(deaths, 1)
+    kills_per_round = kills / rounds
+    hs_rate = (headshots / kills * 100) if kills else 0
+    avg_damage = damage / rounds
+    if kd > 10:
+        flags.append(f"Extremely high K/D: {kd:.2f}")
+    if kills_per_round > 8:
+        flags.append(f"Very high kills per round: {kills_per_round:.2f}")
+    if hs_rate > 80 and kills >= 50:
+        flags.append(f"Very high headshot rate: {hs_rate:.1f}%")
+    if avg_damage > 2000:
+        flags.append(f"Very high average damage: {avg_damage:.0f}")
+    if rounds > 10 and wins / rounds > 0.5:
+        flags.append(f"Very high win rate: {wins / rounds * 100:.1f}%")
+    return flags
+
 # (Moved to bot/utils.py)
 
 
