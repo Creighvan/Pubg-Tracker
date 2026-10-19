@@ -304,12 +304,18 @@ def _cleanup_old_backups(backup_dir: str, base_name: str):
 async def get_guild(guild_id: int) -> dict:
     async with _lock:
         data = _load()
+        guild_key = str(guild_id)
         # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
         if "guilds" in data:
             guilds = data["guilds"]
+            # If guild also exists at top level, merge that data (top level takes precedence)
+            if guild_key in data and guild_key != "guilds":
+                if guild_key not in guilds:
+                    guilds[guild_key] = {}
+                guilds[guild_key].update(data[guild_key])
         else:
             guilds = data
-        guild = guilds.get(str(guild_id))
+        guild = guilds.get(guild_key)
         # deepcopy, not a plain dict() copy: the defaults contain mutable
         # lists/dicts (players, discord_links, ranked_known_players). A
         # shallow copy shares those with _DEFAULT_GUILD itself, so the first
@@ -336,7 +342,15 @@ async def save_guild(guild_id: int, guild_data: dict):
                 if key != "guilds":
                     data["guilds"][key] = value
                     del data[key]
-        data["guilds"][str(guild_id)] = guild_data
+        # If guild also exists at top level, merge that data into guilds key
+        guild_key = str(guild_id)
+        if guild_key in data and guild_key != "guilds":
+            # Merge top-level data into guilds key (top level takes precedence)
+            if guild_key not in data["guilds"]:
+                data["guilds"][guild_key] = {}
+            data["guilds"][guild_key].update(data[guild_key])
+            del data[guild_key]
+        data["guilds"][guild_key] = guild_data
         _save(data)
 
 
@@ -366,7 +380,14 @@ async def modify_guild(guild_id: int, modifier):
                     data["guilds"][key] = value
                     del data[key]
         guilds = data["guilds"]
-        guild = guilds.get(str(guild_id))
+        guild_key = str(guild_id)
+        # If guild also exists at top level, merge that data into guilds key
+        if guild_key in data and guild_key != "guilds":
+            if guild_key not in guilds:
+                guilds[guild_key] = {}
+            guilds[guild_key].update(data[guild_key])
+            del data[guild_key]
+        guild = guilds.get(guild_key)
         if guild is None:
             guild = copy.deepcopy(_DEFAULT_GUILD)
         else:
@@ -374,7 +395,7 @@ async def modify_guild(guild_id: int, modifier):
             merged.update(guild)
             guild = merged
         result = modifier(guild)
-        guilds[str(guild_id)] = guild
+        guilds[guild_key] = guild
         _save(data)
         return result
 
@@ -385,6 +406,10 @@ async def all_guild_ids() -> list[int]:
         # Handle both old format (guilds at top level) and new format (guilds in a 'guilds' key)
         if "guilds" in data:
             guilds = data["guilds"]
+            # Also include any guilds at top level (merge for now)
+            for key in data.keys():
+                if key != "guilds" and key.isdigit() and key not in guilds:
+                    guilds[key] = data[key]
         else:
             guilds = data
         return [int(g) for g in guilds.keys() if g != "guilds"]
