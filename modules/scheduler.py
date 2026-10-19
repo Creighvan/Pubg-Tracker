@@ -261,6 +261,7 @@ async def auto_ranked():
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
+    print(f"[auto_ranked] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -341,7 +342,9 @@ async def auto_ranked():
 
 @auto_ranked.before_loop
 async def before_auto_ranked():
+    print("[auto_ranked] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
+    print("[auto_ranked] Bot ready, starting loop (every 15 minutes)")
 
 
 async def _wait_until_time(target_hour: int, target_minute: int):
