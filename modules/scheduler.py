@@ -261,64 +261,46 @@ async def auto_ranked():
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    print(f"[auto_ranked] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
-        ranked_enabled = guild_cfg.get("ranked_enabled", True)
-        print(f"[auto_ranked] Guild {guild_id}: ranked_enabled={ranked_enabled}")
-        if not ranked_enabled:
-            print(f"[auto_ranked] Guild {guild_id}: ranked_enabled=False, skipping")
+        if not guild_cfg.get("ranked_enabled", True):
             continue
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
-        print(f"[auto_ranked] Guild {guild_id}: channel_id={channel_id}")
         if channel_id is None:
-            print(f"[auto_ranked] Guild {guild_id}: No channel configured, skipping")
             continue
         
         # Get configured time (defaults to 04:30 UTC if not set)
         ranked_hour = guild_cfg.get("ranked_hour_utc", 4)
         ranked_minute = guild_cfg.get("ranked_minute_utc", 30)
-        print(f"[auto_ranked] Guild {guild_id}: scheduled time {ranked_hour:02d}:{ranked_minute:02d} UTC")
         
         # Calculate reset time for today
         reset_time_utc = now_utc.replace(hour=ranked_hour, minute=ranked_minute, second=0, microsecond=0)
         if now_utc < reset_time_utc:
             reset_time_utc -= timedelta(days=1)
-        print(f"[auto_ranked] Guild {guild_id}: reset_time={reset_time_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
         
         # Check if we've already posted since the most recent reset
         posted_at = guild_cfg.get("ranked_posted_at")
-        print(f"[auto_ranked] Guild {guild_id}: ranked_posted_at={posted_at}")
         if posted_at:
             posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
-            print(f"[auto_ranked] Guild {guild_id}: posted_date={posted_date.strftime('%Y-%m-%d %H:%M:%S UTC')}")
             if posted_date >= reset_time_utc:
-                print(f"[auto_ranked] Guild {guild_id}: Already posted since reset, skipping")
                 continue  # Already posted since the most recent reset
         
         # Only run during or after the configured time window
         if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
-            print(f"[auto_ranked] Guild {guild_id}: Current time {now_utc.hour:02d}:{now_utc.minute:02d} UTC is before scheduled time, skipping")
             continue  # Not yet at scheduled time
-        print(f"[auto_ranked] Guild {guild_id}: Time check passed, proceeding to generate report")
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        print(f"[auto_ranked] Guild {guild_id}: guild={guild is not None}, channel={channel is not None}")
         if guild is None or channel is None:
-            print(f"[auto_ranked] Guild {guild_id}: guild or channel is None, skipping")
             continue
         
         try:
-            print(f"[auto_ranked] Guild {guild_id}: Acquiring scheduler lock and fetching ranked report")
             async with get_scheduler_lock():
                 result = await fetch_ranked_report(guild_id, guild.name)
-            print(f"[auto_ranked] Guild {guild_id}: fetch_ranked_report returned {result is not None}")
             if result:
                 embed, players = result
                 message_id = guild_cfg.get("ranked_message_id")
-                print(f"[auto_ranked] Guild {guild_id}: message_id={message_id}")
                 
                 # Edit existing message or post new one
                 if message_id:
@@ -335,13 +317,11 @@ async def auto_ranked():
                 
                 # Mark as posted today and save atomically
                 guild_cfg["ranked_posted_at"] = now_utc.isoformat()
-                print(f"[auto_ranked] Guild {guild_id}: Message posted successfully, saving data")
 
                 def modifier(g):
                     g["ranked_message_id"] = guild_cfg["ranked_message_id"]
                     g["ranked_posted_at"] = guild_cfg["ranked_posted_at"]
                 await storage.modify_guild(guild_id, modifier)
-                print(f"[auto_ranked] Guild {guild_id}: Data saved successfully")
 
                 await send_audit_log(
                     guild_id,
@@ -351,7 +331,6 @@ async def auto_ranked():
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
                 )
-                print(f"[auto_ranked] Guild {guild_id}: Audit log sent")
         except PubgApiError as e:
             print(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])
@@ -362,9 +341,7 @@ async def auto_ranked():
 
 @auto_ranked.before_loop
 async def before_auto_ranked():
-    print("[auto_ranked] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
-    print("[auto_ranked] Bot ready, starting loop (every 15 minutes)")
 
 
 async def _wait_until_time(target_hour: int, target_minute: int):

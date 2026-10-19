@@ -461,9 +461,14 @@ async def on_app_command_error(interaction: discord.Interaction, error: app_comm
             await interaction.followup.send(message, ephemeral=True)
         else:
             await interaction.response.send_message(message, ephemeral=True)
+    except discord.NotFound:
+        # Interaction expired - nothing we can do
+        logger.warning(f"[app_command_error] Interaction expired for /{cmd_name}, cannot notify user")
+    except discord.HTTPException as e:
+        # Other HTTP errors (e.g., already acknowledged, rate limits)
+        logger.warning(f"[app_command_error] Failed to notify user for /{cmd_name}: {e}")
     except Exception as e:
-        # The interaction token may already be expired/invalid at this
-        # point — nothing more we can do but log it.
+        # Unexpected error
         logger.error(f"[app_command_error] Also failed to notify the user: {e}", exc_info=e)
 
 
