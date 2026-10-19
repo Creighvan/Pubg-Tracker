@@ -305,15 +305,20 @@ async def auto_ranked():
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
+        print(f"[auto_ranked] Guild {guild_id}: guild={guild is not None}, channel={channel is not None}")
         if guild is None or channel is None:
+            print(f"[auto_ranked] Guild {guild_id}: guild or channel is None, skipping")
             continue
         
         try:
+            print(f"[auto_ranked] Guild {guild_id}: Acquiring scheduler lock and fetching ranked report")
             async with get_scheduler_lock():
                 result = await fetch_ranked_report(guild_id, guild.name)
+            print(f"[auto_ranked] Guild {guild_id}: fetch_ranked_report returned {result is not None}")
             if result:
                 embed, players = result
                 message_id = guild_cfg.get("ranked_message_id")
+                print(f"[auto_ranked] Guild {guild_id}: message_id={message_id}")
                 
                 # Edit existing message or post new one
                 if message_id:
@@ -330,12 +335,14 @@ async def auto_ranked():
                 
                 # Mark as posted today and save atomically
                 guild_cfg["ranked_posted_at"] = now_utc.isoformat()
-                
+                print(f"[auto_ranked] Guild {guild_id}: Message posted successfully, saving data")
+
                 def modifier(g):
                     g["ranked_message_id"] = guild_cfg["ranked_message_id"]
                     g["ranked_posted_at"] = guild_cfg["ranked_posted_at"]
                 await storage.modify_guild(guild_id, modifier)
-                
+                print(f"[auto_ranked] Guild {guild_id}: Data saved successfully")
+
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
@@ -344,6 +351,7 @@ async def auto_ranked():
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
                 )
+                print(f"[auto_ranked] Guild {guild_id}: Audit log sent")
         except PubgApiError as e:
             print(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])

@@ -172,10 +172,14 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
 
 async def fetch_ranked_report(guild_id: int, guild_name: str, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch ranked standings report for a guild and game mode."""
+    print(f"[fetch_ranked_report] Starting for guild {guild_id}")
     guild_cfg = await storage.get_guild(guild_id)
+    print(f"[fetch_ranked_report] Guild has {len(guild_cfg.get('players', []))} players")
     if not guild_cfg["players"]:
+        print(f"[fetch_ranked_report] No players, returning None")
         return None
     game_mode = game_mode or guild_cfg.get("ranked_queue", "squad")
+    print(f"[fetch_ranked_report] Game mode: {game_mode}")
     known_by_mode = guild_cfg.get("ranked_known_players", {})
     # The first report for a queue must scan the roster because PUBG has no
     # ranked-player filter. Later reports only recheck players previously
@@ -183,16 +187,20 @@ async def fetch_ranked_report(guild_id: int, guild_name: str, game_mode: str | N
     names_to_check = known_by_mode.get(game_mode)
     if names_to_check is None:
         names_to_check = guild_cfg["players"]
+    print(f"[fetch_ranked_report] Checking {len(names_to_check)} players")
     players, not_found = await _get_pubg().get_ranked_report(names_to_check, game_mode)
+    print(f"[fetch_ranked_report] Got {len(players)} ranked players, {len(not_found)} not found")
     if game_mode not in known_by_mode:
         known_by_mode[game_mode] = [
             p["name"] for p in players if p.get("ranked", {}).get("currentTier") is not None
         ]
-        
+        print(f"[fetch_ranked_report] Found {len(known_by_mode[game_mode])} ranked players for mode {game_mode}")
+
         def modifier(g):
             g["ranked_known_players"] = known_by_mode
         await storage.modify_guild(guild_id, modifier)
     embed = build_ranked_embed(guild_name, guild_cfg, players, not_found, game_mode)
+    print(f"[fetch_ranked_report] Returning embed and {len(players)} players")
     return embed, players
 
 
