@@ -254,16 +254,13 @@ async def before_auto_last_active():
 @tasks.loop(minutes=15)
 async def auto_ranked():
     """
-    Updates the ranked standings report daily at 04:30 UTC.
+    Updates the ranked standings report daily at configured UTC time.
     Edits a single message in place instead of posting new messages.
     Uses a posted_at timestamp to ensure it runs once per day even if
-    the bot is offline during the 04:30 UTC window.
+    the bot is offline during the scheduled window.
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    reset_time_utc = now_utc.replace(hour=4, minute=30, second=0, microsecond=0)
-    if now_utc < reset_time_utc:
-        reset_time_utc -= timedelta(days=1)
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -273,16 +270,25 @@ async def auto_ranked():
         if channel_id is None:
             continue
         
-        # Check if we've already posted since the most recent 04:30 UTC reset
+        # Get configured time (defaults to 04:30 UTC if not set)
+        ranked_hour = guild_cfg.get("ranked_hour_utc", 4)
+        ranked_minute = guild_cfg.get("ranked_minute_utc", 30)
+        
+        # Calculate reset time for today
+        reset_time_utc = now_utc.replace(hour=ranked_hour, minute=ranked_minute, second=0, microsecond=0)
+        if now_utc < reset_time_utc:
+            reset_time_utc -= timedelta(days=1)
+        
+        # Check if we've already posted since the most recent reset
         posted_at = guild_cfg.get("ranked_posted_at")
         if posted_at:
             posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
             if posted_date >= reset_time_utc:
                 continue  # Already posted since the most recent reset
         
-        # Only run during or after the 04:30 UTC window
-        if now_utc.hour < 4 or (now_utc.hour == 4 and now_utc.minute < 30):
-            continue  # Not yet 04:30 UTC
+        # Only run during or after the configured time window
+        if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
+            continue  # Not yet at scheduled time
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
