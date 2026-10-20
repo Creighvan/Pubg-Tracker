@@ -856,17 +856,21 @@ def start_all_scheduled_tasks(bot_instance):
     auto_last_active.start()
     auto_ranked.start()
     # Start auto_highlights as a background task (custom 24-hour schedule)
-    bot_instance.loop.create_task(run_auto_highlights())
+    task_highlights = bot_instance.loop.create_task(run_auto_highlights())
+    task_highlights.add_done_callback(lambda t: logger.error(f"auto_highlights task failed: {t.exception()}") if t.exception() else None)
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
     # Start daily backup task
-    bot_instance.loop.create_task(run_daily_backup())
+    task_backup = bot_instance.loop.create_task(run_daily_backup())
+    task_backup.add_done_callback(lambda t: logger.error(f"run_daily_backup task failed: {t.exception()}") if t.exception() else None)
     # Start cache cleanup task
-    bot_instance.loop.create_task(run_cache_cleanup())
+    task_cleanup = bot_instance.loop.create_task(run_cache_cleanup())
+    task_cleanup.add_done_callback(lambda t: logger.error(f"run_cache_cleanup task failed: {t.exception()}") if t.exception() else None)
     # Start daily snapshot task
-    bot_instance.loop.create_task(run_daily_snapshot())
+    task_snapshot = bot_instance.loop.create_task(run_daily_snapshot())
+    task_snapshot.add_done_callback(lambda t: logger.error(f"run_daily_snapshot task failed: {t.exception()}") if t.exception() else None)
 
 
 async def run_daily_backup():
