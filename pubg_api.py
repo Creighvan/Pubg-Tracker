@@ -19,6 +19,7 @@ Notes:
 
 import asyncio
 import json
+import logging
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -26,6 +27,8 @@ from typing import Any
 import aiohttp
 
 from modules.utils import normalize_player_name
+
+logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.pubg.com"
 
@@ -194,7 +197,7 @@ class RateLimiter:
             now = time.monotonic()
             sleep_for = self._next_allowed - now
             if sleep_for > 0:
-                print(f"[pubg] Pacing API requests; waiting {sleep_for:.0f}s before the next request")
+                logger.info(f"[pubg] Pacing API requests; waiting {sleep_for:.0f}s before the next request")
                 await asyncio.sleep(sleep_for)
             self._next_allowed = time.monotonic() + self._minimum_gap
 
@@ -288,7 +291,7 @@ class PubgClient:
                                 pass  # a status-reporting hook must never break the actual request
                         # Always retry on 429, even for non-rate-limited calls (telemetry/match details)
                         if attempt < 3:
-                            print(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
+                            logger.info(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
                             if rate_limited:
                                 await self._limiter.cool_down(delay)
                             else:
@@ -854,7 +857,7 @@ class PubgClient:
                 try:
                     created_dt = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
                 except (ValueError, AttributeError) as e:
-                    print(f"[pubg] Malformed timestamp for match {match_id}: {created_at} - {e}")
+                    logger.warning(f"[pubg] Malformed timestamp for match {match_id}: {created_at} - {e}")
                     continue
                 if created_dt < cutoff:
                     break  # newest-first assumption: nothing after this is in-window either
@@ -925,9 +928,9 @@ class PubgClient:
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
 
         elapsed = time.monotonic() - start_time
-        print(f"[daily_highlights] Report completed in {elapsed:.1f}s - "
-              f"{matches_examined} matches examined, {telemetry_downloaded} telemetry files "
-              f"({telemetry_bytes / 1024:.1f} KB), {len(found)} players")
+        logger.info(f"[daily_highlights] Report completed in {elapsed:.1f}s - "
+                    f"{matches_examined} matches examined, {telemetry_downloaded} telemetry files "
+                    f"({telemetry_bytes / 1024:.1f} KB), {len(found)} players")
 
         return found, not_found
 

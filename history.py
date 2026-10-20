@@ -798,7 +798,7 @@ def fix_invalid_snapshots():
             deleted_count += 1
 
     _save_history(data)
-    print(f"[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json, deleted {deleted_count} invalid snapshots")
+    logger.info(f"[fix_invalid_snapshots] Fixed invalid win_rate and kd values in history.json, deleted {deleted_count} invalid snapshots")
 
 
 async def calculate_trend(
