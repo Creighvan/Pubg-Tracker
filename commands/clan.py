@@ -5,7 +5,6 @@ Clan management command implementations for PUBG Tracker bot.
 import logging
 import storage
 import translations
-from storage import DatabaseCorruptionError
 from pubg_api import PubgApiError
 import discord
 
@@ -111,7 +110,7 @@ async def setclanchannel_impl(interaction, send_audit_log):
             await send_audit_log(
                 interaction.guild_id,
                 "Channel Configured & Report Posted",
-                f"Clan level report channel set and initial report posted",
+                "Clan level report channel set and initial report posted",
                 user=interaction.user,
                 details={"Channel": interaction.channel_id, "Clan": clan["name"]},
                 report_embed=embed

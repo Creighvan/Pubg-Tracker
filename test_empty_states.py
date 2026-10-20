@@ -86,7 +86,7 @@ async def test_audit_channel_translations():
         central_msg = translations.get_translation(lang, "using_central_audit")
 
         if unknown_msg and custom_msg and central_msg:
-            print(f"  Audit translations work")
+            print("  Audit translations work")
             return True
         print("  FAIL: Translation lookup failed")
         return False
@@ -107,7 +107,7 @@ async def test_report_status_translations():
         clan_digest = translations.get_translation(lang, "clan_digest")
 
         if enabled and disabled and next_str and clan_digest:
-            print(f"  Report status translations work")
+            print("  Report status translations work")
             return True
         print("  FAIL: Translation lookup failed")
         return False

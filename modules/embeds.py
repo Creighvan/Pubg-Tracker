@@ -32,7 +32,7 @@ from datetime import datetime, timezone
 
 import discord
 
-from modules.config import RANKED_MODE_LABELS, VALID_GAME_MODES
+from modules.config import RANKED_MODE_LABELS
 from modules.utils import _channel_mention, _safe_div, normalize_player_name
 import translations
 
@@ -145,7 +145,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
         disabled_reports.append("Donation Message")
 
     if disabled_reports:
-        embed.add_field(name="⛔ Disabled", value=f", ".join(disabled_reports), inline=False)
+        embed.add_field(name="⛔ Disabled", value=", ".join(disabled_reports), inline=False)
 
     if not embed.fields:
         embed.description = translations.get_translation(lang, "no_reports_configured")

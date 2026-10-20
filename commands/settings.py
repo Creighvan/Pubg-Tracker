@@ -5,9 +5,6 @@ Settings command implementations for PUBG Tracker bot.
 import logging
 import storage
 import translations
-from storage import DatabaseCorruptionError
-from discord import app_commands
-from modules.config import bot
 import discord
 
 logger = logging.getLogger(__name__)
@@ -520,7 +517,7 @@ async def reportstatus_impl(interaction):
     lang = guild_cfg.get("language", "en")
 
     # Build status embed
-    from modules.utils import _next_daily_report, _next_interval_report, _next_weekly_report
+    from modules.utils import _next_daily_report, _next_interval_report
 
     embed = discord.Embed(
         title=translations.get_translation(lang, "report_status_title"),

@@ -27,8 +27,7 @@ import asyncio
 import logging
 
 import storage
-from pubg_api import PubgApiError, PubgClient
-import translations
+from pubg_api import PubgApiError
 
 logger = logging.getLogger(__name__)
 
@@ -55,19 +54,16 @@ import history
 from commands.achievements import check_achievements, record_achievement, ACHIEVEMENTS
 from commands.streaks import update_streaks
 
-from modules.config import get_scheduler_lock, _record_status_event, _bot_started_at, SUPPORT_SERVER_ID, RANKED_MODE_LABELS
-from storage import modify_guild
+from modules.config import get_scheduler_lock, _record_status_event, SUPPORT_SERVER_ID
 from modules.reports import (
     fetch_clan_report,
     fetch_clan_level_report,
     fetch_last_active_report,
     fetch_ranked_report,
     fetch_highlights_report,
-    fetch_mastery_report,
     fetch_survival_mastery_report,
-    fetch_leaderboard_report,
 )
-from modules.embeds import build_report_status_embed, build_feedback_prompt_embed
+from modules.embeds import build_feedback_prompt_embed
 from modules.utils import _is_due, _is_weekly_due, get_current_pubg_day
 
 
@@ -82,18 +78,18 @@ async def trigger_maintenance_recovery():
     Called when the maintenance module detects servers are back online.
     """
     global MAINTENANCE_SKIPPED_DIGEST, MAINTENANCE_SKIPPED_CHICKEN_DINNER
-    
-    print(f"[scheduler] Maintenance recovery - triggering skipped tasks")
-    
+
+    logger.info("[scheduler] Maintenance recovery - triggering skipped tasks")
+
     # Trigger auto_digest if it was skipped
     if MAINTENANCE_SKIPPED_DIGEST:
-        print(f"[scheduler] Triggering auto_digest (was skipped during maintenance)")
+        logger.info("[scheduler] Triggering auto_digest (was skipped during maintenance)")
         MAINTENANCE_SKIPPED_DIGEST = False
         _spawn(auto_digest(), "auto_digest_recovery")
-    
+
     # Trigger auto_chicken_dinner if it was skipped
     if MAINTENANCE_SKIPPED_CHICKEN_DINNER:
-        print(f"[scheduler] Triggering auto_chicken_dinner (was skipped during maintenance)")
+        logger.info("[scheduler] Triggering auto_chicken_dinner (was skipped during maintenance)")
         MAINTENANCE_SKIPPED_CHICKEN_DINNER = False
         _spawn(auto_chicken_dinner(), "auto_chicken_dinner_recovery")
 
@@ -121,13 +117,13 @@ async def auto_digest():
         if is_in_maintenance():
             global MAINTENANCE_SKIPPED_DIGEST
             MAINTENANCE_SKIPPED_DIGEST = True
-            print(f"[auto_digest] Skipped - servers in maintenance")
+            logger.info("[auto_digest] Skipped - servers in maintenance")
             return
     except ImportError:
         pass  # Maintenance module not available, continue normally
     
     now = datetime.now(timezone.utc)
-    print(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    logger.info(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("digest_enabled", True):
@@ -158,24 +154,24 @@ async def auto_digest():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Posted",
-                    f"Clan digest posted automatically",
+                    "Clan digest posted automatically",
                     is_automated=True,
                     details={"Report Type": "Clan Digest", "Players": len(players)},
                     report_embed=embed
                 )
         except PubgApiError as e:
-            print(f"[auto_digest] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_digest] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_digest report failed for guild {guild_id}: {e}"[:200])
         except Exception as e:
-            print(f"[auto_digest] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_digest] Unexpected error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_digest report failed for guild {guild_id}: {e}"[:200])
 
 
 @auto_digest.before_loop
 async def before_auto_digest():
-    print("[auto_digest] Waiting for bot to be ready...")
+    logger.info("[auto_digest] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
-    print("[auto_digest] Bot ready, starting loop (every 15 minutes)")
+    logger.info("[auto_digest] Bot ready, starting loop (every 15 minutes)")
 
 
 @tasks.loop(minutes=15)
@@ -185,46 +181,46 @@ async def auto_last_active():
     utc = timezone.utc
     now_utc = datetime.now(utc)
     reset_time_utc = get_current_pubg_day(now_utc)
-    print(f"[auto_last_active] Running at {now_utc}")
+    logger.info(f"[auto_last_active] Running at {now_utc}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("activity_enabled", True):
-            print(f"[auto_last_active] Guild {guild_id}: activity_enabled=False, skipping")
+            logger.info(f"[auto_last_active] Guild {guild_id}: activity_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("last_activity_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
-            print(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
+            logger.info(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
         # Check if we've already posted since the most recent 02:00 UTC reset
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
-            print(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
+            logger.info(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
             if last_posted_date >= reset_time_utc:
-                print(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:00 UTC reset, skipping")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:00 UTC reset, skipping")
                 continue  # Already posted since the most recent reset
             else:
                 # Bot was offline (or this is the first tick since the reset) - proceed to update
-                print(f"[auto_last_active] Guild {guild_id}: Last post was before {reset_time_utc}, updating")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Last post was before {reset_time_utc}, updating")
         else:
-            print(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
+            logger.info(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
             # Only run after the 02:00 UTC daily reset for first run
             if now_utc.hour < 2:
-                print(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
                 continue
 
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None:
-            print(f"[auto_last_active] Guild {guild_id}: Guild not found (bot may have been removed), skipping")
+            logger.info(f"[auto_last_active] Guild {guild_id}: Guild not found (bot may have been removed), skipping")
             continue
         if channel is None:
-            print(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found (may have been deleted or bot lacks permission), skipping")
+            logger.info(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found (may have been deleted or bot lacks permission), skipping")
             continue
-        
-        print(f"[auto_last_active] Guild {guild_id}: All checks passed, posting report")
+
+        logger.info(f"[auto_last_active] Guild {guild_id}: All checks passed, posting report")
         try:
             async with get_scheduler_lock():
                 result = await fetch_last_active_report(guild_id, guild.name)
@@ -249,22 +245,22 @@ async def auto_last_active():
                 def save_config(guild):
                     guild["last_activity_posted_at"] = datetime.now(timezone.utc).isoformat()
                 await storage.modify_guild(guild_id, save_config)
-                
-                print(f"[auto_last_active] Guild {guild_id}: Report posted successfully")
+
+                logger.info(f"[auto_last_active] Guild {guild_id}: Report posted successfully")
                 
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Last active report updated at 02:00 UTC daily reset",
+                    "Last active report updated at 02:00 UTC daily reset",
                     is_automated=True,
                     details={"Report Type": "Last Active", "Players": len(players)},
                     report_embed=embed
                 )
         except PubgApiError as e:
-            print(f"[auto_last_active] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_last_active] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_last_active report failed for guild {guild_id}: {e}"[:200])
         except Exception as e:
-            print(f"[auto_last_active] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_last_active] Unexpected error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_last_active report failed for guild {guild_id}: {e}"[:200])
 
 
@@ -348,16 +344,16 @@ async def auto_ranked():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    f"Ranked standings report updated at 04:30 UTC daily",
+                    "Ranked standings report updated at 04:30 UTC daily",
                     is_automated=True,
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
                 )
         except PubgApiError as e:
-            print(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])
         except Exception as e:
-            print(f"[auto_ranked] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_ranked] Unexpected error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])
 
 
@@ -378,7 +374,7 @@ async def _wait_until_time(target_hour: int, target_minute: int):
             target += timedelta(days=1)
         
         sleep_seconds = (target - now).total_seconds()
-        print(f"[scheduler] Sleeping {sleep_seconds/3600:.1f} hours until {target_hour}:{target_minute:02d} UTC")
+        logger.info(f"[scheduler] Sleeping {sleep_seconds/3600:.1f} hours until {target_hour}:{target_minute:02d} UTC")
         await asyncio.sleep(sleep_seconds)
         break
 
@@ -389,12 +385,12 @@ async def auto_highlights():
     human/bot kill split) every 24 hours at 02:00 UTC.
     Edits existing message instead of posting new ones.
     """
-    print("[auto_highlights] Starting highlights loop")
+    logger.info("[auto_highlights] Starting highlights loop")
     while True:
         # Wait until 02:00 UTC
-        print("[auto_highlights] Waiting until 02:00 UTC")
+        logger.info("[auto_highlights] Waiting until 02:00 UTC")
         await _wait_until_time(2, 0)
-        print(f"[auto_highlights] Reached 02:00 UTC, processing guilds")
+        logger.info("[auto_highlights] Reached 02:00 UTC, processing guilds")
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -454,7 +450,7 @@ async def auto_highlights():
                         await send_audit_log(
                             guild_id,
                             "Scheduled Report Updated",
-                            f"Highlights report updated at 02:00 UTC daily",
+                            "Highlights report updated at 02:00 UTC daily",
                             is_automated=True,
                             details={"Report Type": "Highlights", "Players": len(players)},
                             report_embed=embed
@@ -462,11 +458,11 @@ async def auto_highlights():
                     except Exception as audit_error:
                         pass  # Audit log failure is non-critical
             except PubgApiError as e:
-                print(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
+                logger.error(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
                 continue  # Continue with next guild
             except Exception as e:
-                print(f"[auto_highlights] Unexpected error for guild {guild_id}: {e}")
+                logger.error(f"[auto_highlights] Unexpected error for guild {guild_id}: {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
                 continue  # Continue with next guild
 
@@ -474,11 +470,11 @@ async def auto_highlights():
 async def run_auto_highlights():
     """Wrapper to start auto_highlights as a background task."""
     await _get_bot().wait_until_ready()
-    print("[auto_highlights] Starting highlights background task")
+    logger.info("[auto_highlights] Starting highlights background task")
     try:
         await auto_highlights()
     except Exception as e:
-        print(f"[auto_highlights] Fatal error in highlights task: {e}")
+        logger.error(f"[auto_highlights] Fatal error in highlights task: {e}")
         import traceback
         traceback.print_exc()
 
@@ -531,10 +527,10 @@ async def auto_clan_level():
                 g["clan_last_member_count"] = guild_cfg["clan_last_member_count"]
             await storage.modify_guild(guild_id, modifier)
         except PubgApiError as e:
-            print(f"[auto_clan_level] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_clan_level] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_clan_level report failed for guild {guild_id}: {e}"[:200])
         except Exception as e:
-            print(f"[auto_clan_level] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_clan_level] Unexpected error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_clan_level report failed for guild {guild_id}: {e}"[:200])
 
 
@@ -591,10 +587,10 @@ async def auto_survival_mastery():
                 g["survival_posted_at"] = guild_cfg["survival_posted_at"]
             await storage.modify_guild(guild_id, modifier)
         except PubgApiError as e:
-            print(f"[auto_survival_mastery] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_survival_mastery] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_survival_mastery report failed for guild {guild_id}: {e}"[:200])
         except Exception as e:
-            print(f"[auto_survival_mastery] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_survival_mastery] Unexpected error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_survival_mastery report failed for guild {guild_id}: {e}"[:200])
 
 
@@ -618,14 +614,14 @@ async def auto_chicken_dinner():
         if is_in_maintenance():
             global MAINTENANCE_SKIPPED_CHICKEN_DINNER
             MAINTENANCE_SKIPPED_CHICKEN_DINNER = True
-            print(f"[auto_chicken_dinner] Skipped - servers in maintenance")
+            logger.info("[auto_chicken_dinner] Skipped - servers in maintenance")
             return
     except ImportError:
         pass  # Maintenance module not available, continue normally
     
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    print(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    logger.info(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
 
     guilds_processed = 0
     guilds_skipped = 0
@@ -635,43 +631,43 @@ async def auto_chicken_dinner():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("chicken_dinner_enabled", True):
             guilds_skipped += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: chicken_dinner_enabled=False, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: chicken_dinner_enabled=False, skipping")
             continue
         channel_id = guild_cfg.get("chicken_dinner_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
             guilds_skipped += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: No channel configured, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No channel configured, skipping")
             continue
         if not guild_cfg["players"]:
             guilds_skipped += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
         guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
         if guild is None:
             guilds_skipped += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: Guild not found, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Guild not found, skipping")
             continue
         if channel is None:
             guilds_skipped += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
 
         # No daily reset filter - show all recent wins
 
         try:
-            print(f"[auto_chicken_dinner] Guild {guild_id}: Fetching wins for {len(guild_cfg['players'])} players")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Fetching wins for {len(guild_cfg['players'])} players")
             async with get_scheduler_lock():
                 wins, _ = await _get_pubg().get_squad_wins(guild_cfg["players"], matches_to_check=50)
-            print(f"[auto_chicken_dinner] Guild {guild_id}: Found {len(wins)} wins")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Found {len(wins)} wins")
         except PubgApiError as e:
             guilds_failed += 1
-            print(f"[auto_chicken_dinner] PUBG API error for guild {guild_id}: {e}")
+            logger.error(f"[auto_chicken_dinner] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_chicken_dinner API error for guild {guild_id}: {e}"[:200])
             continue
         except Exception as e:
             guilds_failed += 1
-            print(f"[auto_chicken_dinner] Unexpected error for guild {guild_id}: {e}")
+            logger.error(f"[auto_chicken_dinner] Unexpected error for guild {guild_id}: {e}")
             import traceback
             traceback.print_exc()
             await _record_status_event(f"⚠️ auto_chicken_dinner error for guild {guild_id}: {e}"[:200])
@@ -728,7 +724,7 @@ async def auto_chicken_dinner():
             if not all_winners:
                 # No recent wins, skip update
                 guilds_skipped += 1
-                print(f"[auto_chicken_dinner] Guild {guild_id}: No recent wins, skipping")
+                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No recent wins, skipping")
                 continue
 
             embed = build_chicken_dinner_embed(all_winners, is_automated=True, total_wins=total_wins)
@@ -740,16 +736,16 @@ async def auto_chicken_dinner():
                 try:
                     message = await channel.fetch_message(message_id)
                 except (discord.NotFound, discord.Forbidden, discord.HTTPException) as e:
-                    print(f"[auto_chicken_dinner] Guild {guild_id}: Could not fetch message {message_id}: {e}")
+                    logger.error(f"[auto_chicken_dinner] Guild {guild_id}: Could not fetch message {message_id}: {e}")
                     message = None
 
             if message is not None:
                 await message.edit(embed=embed)
-                print(f"[auto_chicken_dinner] Guild {guild_id}: Updated existing message")
+                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Updated existing message")
             else:
                 new_message = await channel.send(embed=embed)
                 guild_cfg["chicken_dinner_message_id"] = new_message.id
-                print(f"[auto_chicken_dinner] Guild {guild_id}: Posted new message")
+                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Posted new message")
 
             # Only record match IDs to track what we've seen
             guild_cfg["chicken_dinner_posted_matches"] = updated_matches
@@ -762,32 +758,32 @@ async def auto_chicken_dinner():
             await storage.modify_guild(guild_id, modifier)
 
             guilds_processed += 1
-            print(f"[auto_chicken_dinner] Guild {guild_id}: Report posted successfully ({new_match_count} new wins, {total_wins} total)")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Report posted successfully ({new_match_count} new wins, {total_wins} total)")
 
             if new_wins:
                 await send_audit_log(
                     guild_id,
                     "Automated Event",
-                    f"Chicken dinner report updated",
+                    "Chicken dinner report updated",
                     is_automated=True,
                     details={"Event Type": "Chicken Dinner", "New Wins": new_match_count, "Total Wins": total_wins},
                     report_embed=embed
                 )
         except Exception as e:
             guilds_failed += 1
-            print(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
+            logger.error(f"[auto_chicken_dinner] Could not post for guild {guild_id}: {e}")
             import traceback
             traceback.print_exc()
             await _record_status_event(f"⚠️ auto_chicken_dinner post failed for guild {guild_id}: {e}"[:200])
 
-    print(f"[auto_chicken_dinner] Completed: {guilds_processed} processed, {guilds_skipped} skipped, {guilds_failed} failed")
+    logger.info(f"[auto_chicken_dinner] Completed: {guilds_processed} processed, {guilds_skipped} skipped, {guilds_failed} failed")
 
 
 @auto_chicken_dinner.before_loop
 async def before_auto_chicken_dinner():
-    print("[auto_chicken_dinner] Waiting for bot to be ready...")
+    logger.info("[auto_chicken_dinner] Waiting for bot to be ready...")
     await _get_bot().wait_until_ready()
-    print("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
+    logger.info("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
 
 
 @tasks.loop(minutes=30)
@@ -834,15 +830,15 @@ async def auto_feedback_prompt():
             import bot as bot_module
             FeedbackPromptView = bot_module.FeedbackPromptView
             await channel.send(embed=embed, view=FeedbackPromptView())
-            print(f"[auto_feedback] Posted 14-day feedback prompt to {guild.name} (#{channel.name})")
-            
+            logger.info(f"[auto_feedback] Posted 14-day feedback prompt to {guild.name} (#{channel.name})")
+
             # Only mark as posted after successful send
             guild_cfg["last_feedback_prompt_at"] = now.isoformat()
             def modifier(g):
                 g["last_feedback_prompt_at"] = guild_cfg["last_feedback_prompt_at"]
             await storage.modify_guild(guild_id, modifier)
         except Exception as e:
-            print(f"[auto_feedback] Failed to send prompt in {guild.name}: {e}")
+            logger.error(f"[auto_feedback] Failed to send prompt in {guild.name}: {e}")
 
 
 @auto_feedback_prompt.before_loop
@@ -868,7 +864,7 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
     # We map title->event_type and pass None for user since scheduled events have no user
     if _audit_log_func:
         return await _audit_log_func(guild_id, title, description, None, details, is_automated, report_embed)
-    print(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
+    logger.info(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
 
 
 
@@ -908,16 +904,16 @@ async def run_daily_backup():
             next_run = next_run + timedelta(days=1)
 
         sleep_seconds = (next_run - now).total_seconds()
-        print(f"[daily_backup] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
+        logger.info(f"[daily_backup] Sleeping {sleep_seconds / 3600:.1f} hours until 03:00 UTC")
         await asyncio.sleep(sleep_seconds)
 
         # Create the backup
-        print(f"[daily_backup] Creating daily backup at {datetime.now(utc)}")
+        logger.info(f"[daily_backup] Creating daily backup at {datetime.now(utc)}")
         try:
             storage.create_daily_backup()
-            print(f"[daily_backup] Daily backup complete")
+            logger.info("[daily_backup] Daily backup complete")
         except Exception as e:
-            print(f"[daily_backup] Error creating backup: {e}")
+            logger.error(f"[daily_backup] Error creating backup: {e}")
 
 
 async def run_cache_cleanup():
@@ -926,16 +922,16 @@ async def run_cache_cleanup():
     Runs every hour to prevent unbounded cache growth.
     """
     await _get_bot().wait_until_ready()
-    print("[cache_cleanup] Starting cache cleanup task")
+    logger.info("[cache_cleanup] Starting cache cleanup task")
 
     while True:
         await asyncio.sleep(3600)  # Run every hour
         try:
             pubg = _get_pubg()
             await pubg._cache.clear_expired()
-            print("[cache_cleanup] Expired cache entries cleared")
+            logger.info("[cache_cleanup] Expired cache entries cleared")
         except Exception as e:
-            print(f"[cache_cleanup] Error clearing cache: {e}")
+            logger.error(f"[cache_cleanup] Error clearing cache: {e}")
 
 
 async def run_daily_snapshot():
@@ -954,11 +950,11 @@ async def run_daily_snapshot():
             next_run += timedelta(days=1)
 
         sleep_seconds = (next_run - now).total_seconds()
-        print(f"[auto_daily_snapshot] Sleeping {sleep_seconds / 3600:.1f} hours until 03:05 UTC")
+        logger.info(f"[auto_daily_snapshot] Sleeping {sleep_seconds / 3600:.1f} hours until 03:05 UTC")
         await asyncio.sleep(sleep_seconds)
 
         today = datetime.now(utc).strftime("%Y-%m-%d")
-        print(f"[auto_daily_snapshot] Recording daily snapshots for {today}")
+        logger.info(f"[auto_daily_snapshot] Recording daily snapshots for {today}")
 
         for guild_id in await storage.all_guild_ids():
             guild_cfg = await storage.get_guild(guild_id)
@@ -981,7 +977,7 @@ async def run_daily_snapshot():
                 try:
                     season_id = await pubg.get_current_season_id()
                 except Exception as e:
-                    print(f"[auto_daily_snapshot] Failed to fetch season ID: {e}")
+                    logger.error(f"[auto_daily_snapshot] Failed to fetch season ID: {e}")
 
                 # Fetch ranked stats for all players (sequential to avoid rate limit)
                 ranked_stats = {}
@@ -995,7 +991,7 @@ async def run_daily_snapshot():
                             ranked_stats[player_id] = ranked
                             ranked_status[normalized] = "ok"
                         except Exception as e:
-                            print(f"[auto_daily_snapshot] Failed to fetch ranked stats for {player['name']}: {e}")
+                            logger.error(f"[auto_daily_snapshot] Failed to fetch ranked stats for {player['name']}: {e}")
                             ranked_stats[player_id] = None
                             ranked_status[normalized] = "error"
                     else:
@@ -1048,10 +1044,10 @@ async def run_daily_snapshot():
                     for achievement_id in new_achievements:
                         await record_achievement(guild_id, player["name"], achievement_id)
                         achievement = ACHIEVEMENTS.get(achievement_id, {})
-                        print(f"[auto_daily_snapshot] {player['name']} earned achievement: {achievement.get('name', achievement_id)}")
+                        logger.info(f"[auto_daily_snapshot] {player['name']} earned achievement: {achievement.get('name', achievement_id)}")
 
                 await history.record_daily_snapshot(guild_id, today, player_stats)
-                print(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
+                logger.info(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
 
                 # Update streaks after recording snapshot
                 for player in players:
@@ -1060,6 +1056,6 @@ async def run_daily_snapshot():
                         await update_streaks(guild_id, player, player_stats[normalized])
 
             except PubgApiError as e:
-                print(f"[auto_daily_snapshot] PUBG API error for guild {guild_id}: {e}")
+                logger.error(f"[auto_daily_snapshot] PUBG API error for guild {guild_id}: {e}")
             except Exception as e:
-                print(f"[auto_daily_snapshot] Unexpected error for guild {guild_id}: {e}")
+                logger.error(f"[auto_daily_snapshot] Unexpected error for guild {guild_id}: {e}")

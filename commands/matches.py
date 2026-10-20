@@ -4,7 +4,6 @@ Match history explorer - view recent matches for a player.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import translations

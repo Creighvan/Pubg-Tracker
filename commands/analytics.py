@@ -4,8 +4,6 @@ Analytics commands for trend tracking and player comparison.
 
 import logging
 import discord
-from discord import app_commands
-from discord.ext import commands
 
 import storage
 import history

@@ -39,7 +39,7 @@ async def chickendinner_impl(interaction, pubg):
         # Create embed with recent wins
         embed = discord.Embed(
             title="🍗 Recent Chicken Dinners",
-            description=f"Last 50 matches per player, all game modes",
+            description="Last 50 matches per player, all game modes",
             color=discord.Color.gold()
         )
         

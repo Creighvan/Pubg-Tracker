@@ -8,8 +8,6 @@ import sys
 import os
 import importlib
 import inspect
-import asyncio
-from typing import List, Dict, Any
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -155,7 +153,7 @@ for module_name, expected_functions in EXPECTED_COMMANDS.items():
     try:
         # Import the module
         module = importlib.import_module(module_name)
-        print(f"  [OK] Module imported successfully")
+        print("  [OK] Module imported successfully")
 
         # Check each expected function
         for func_name in expected_functions:

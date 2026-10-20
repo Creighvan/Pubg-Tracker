@@ -5,7 +5,6 @@ Inactive date management command implementations for PUBG Tracker bot.
 import logging
 import storage
 import translations
-from storage import DatabaseCorruptionError
 from datetime import datetime, timedelta, timezone
 import discord
 

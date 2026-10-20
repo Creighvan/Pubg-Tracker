@@ -4,7 +4,6 @@ Squad chemistry - analyze team synergy and best squad combinations.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history

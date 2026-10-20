@@ -4,7 +4,6 @@ Season summary command - shows current season performance for the clan.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history
@@ -177,6 +176,6 @@ async def season_impl(interaction: discord.Interaction):
         inline=True
     )
 
-    embed.set_footer(text=f"Based on historical snapshots. Rank progression requires 7+ days of data.")
+    embed.set_footer(text="Based on historical snapshots. Rank progression requires 7+ days of data.")
 
     await interaction.followup.send(embed=embed)

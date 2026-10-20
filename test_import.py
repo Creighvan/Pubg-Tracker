@@ -6,9 +6,9 @@ Run with: python test_import.py
 def test_imports():
     """Test that all core modules import without errors."""
     try:
-        import bot
-        import pubg_api
-        import storage
+        import bot  # noqa: F401
+        import pubg_api  # noqa: F401
+        import storage  # noqa: F401
         print("[OK] All imports successful")
         return True
     except ImportError as e:

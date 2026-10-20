@@ -4,8 +4,7 @@ Player profile command - flagship command showing comprehensive player info.
 
 import logging
 import discord
-from discord import app_commands
-from discord.ui import Button, View
+from discord.ui import View
 
 import storage
 import history

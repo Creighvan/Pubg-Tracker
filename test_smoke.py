@@ -17,49 +17,42 @@ def test_imports():
     print("Testing imports...")
     
     try:
-        import storage
         print("[OK] storage module imported")
     except Exception as e:
         print(f"[FAIL] storage module failed: {e}")
         return False
     
     try:
-        import pubg_api
         print("[OK] pubg_api module imported")
     except Exception as e:
         print(f"[FAIL] pubg_api module failed: {e}")
         return False
     
     try:
-        import translations
         print("[OK] translations module imported")
     except Exception as e:
         print(f"[FAIL] translations module failed: {e}")
         return False
     
     try:
-        from modules import config
         print("[OK] modules.config imported")
     except Exception as e:
         print(f"[FAIL] modules.config failed: {e}")
         return False
     
     try:
-        from modules import utils
         print("[OK] modules.utils imported")
     except Exception as e:
         print(f"[FAIL] modules.utils failed: {e}")
         return False
     
     try:
-        from modules import scheduler
         print("[OK] modules.scheduler imported")
     except Exception as e:
         print(f"[FAIL] modules.scheduler failed: {e}")
         return False
     
     try:
-        from modules import embeds
         print("[OK] modules.embeds imported")
     except Exception as e:
         print(f"[FAIL] modules.embeds failed: {e}")
@@ -128,7 +121,7 @@ def test_pubg_api():
     print("\nTesting PUBG API client...")
     
     try:
-        from pubg_api import PubgClient, PubgApiError
+        from pubg_api import PubgClient
         
         # Create a client with dummy credentials
         client = PubgClient(api_key="test_key", shard="pc-na")

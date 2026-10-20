@@ -4,7 +4,6 @@ Weekly clan awards - weekly performance summary and awards.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history

@@ -3,7 +3,6 @@ Simple tests for the PUBG API response cache.
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
 from pubg_api import ResponseCache
 
 

@@ -1,4 +1,4 @@
 [lint]
 select = ["F"]
-# Known cleanup debt: remove these ignores as unused imports/vars are cleaned up.
-ignore = ["F401", "F541", "F841"]
+# Known cleanup debt: unused local variables that are intentionally assigned
+ignore = ["F841"]

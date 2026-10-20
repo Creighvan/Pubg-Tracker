@@ -4,12 +4,10 @@ Map analytics - map-specific performance tracking.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history
 import translations
-from modules.utils import normalize_player_name
 
 logger = logging.getLogger(__name__)
 

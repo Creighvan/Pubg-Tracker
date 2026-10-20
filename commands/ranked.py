@@ -5,7 +5,6 @@ Ranked stats command implementations for PUBG Tracker bot.
 import logging
 import storage
 import translations
-from storage import DatabaseCorruptionError
 from pubg_api import PubgApiError
 import discord
 

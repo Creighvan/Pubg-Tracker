@@ -4,12 +4,10 @@ Weapon analytics - per-weapon performance tracking.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import translations
 from modules.utils import normalize_player_name
-from pubg_api import PubgClient
 from modules.config import pubg
 
 logger = logging.getLogger(__name__)

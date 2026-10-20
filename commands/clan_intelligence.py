@@ -4,7 +4,6 @@ Clan intelligence commands - clan-wide analytics and team synergy.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history
@@ -165,9 +164,7 @@ async def rosterhealth_impl(interaction: discord.Interaction):
         return
 
     # Get latest snapshots to determine activity
-    from datetime import datetime, timezone, timedelta
-    from pubg_api import PubgClient
-    from modules.config import pubg
+    from datetime import datetime, timezone
 
     # Categorize players by activity
     active = []

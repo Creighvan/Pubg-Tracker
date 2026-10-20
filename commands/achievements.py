@@ -4,7 +4,6 @@ Achievement system for tracking player milestones.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history

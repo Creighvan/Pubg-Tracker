@@ -4,13 +4,12 @@ Streak tracking system for player performance streaks.
 
 import logging
 import discord
-from discord import app_commands
 
 import storage
 import history
 import translations
 from modules.utils import normalize_player_name
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +117,7 @@ async def streaks_impl(interaction: discord.Interaction, player: str = None):
 
         day_streak = player_streaks.get("day_streak", 0)
         embed.add_field(
-            name=f"🔥 Day Streak",
+            name="🔥 Day Streak",
             value=f"{day_streak} consecutive days with activity",
             inline=True
         )

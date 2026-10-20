@@ -69,21 +69,18 @@ Setup:
 import asyncio
 import copy
 import logging
-import os
 import random
 import string
 import hmac
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
-from modules.utils import normalize_player_name
-from storage import DatabaseCorruptionError
 
 logger = logging.getLogger(__name__)
 
@@ -110,25 +107,10 @@ from modules.config import (
     SUPPORT_FEEDBACK_CHANNEL_ID,
     AUDIT_SERVER_ID,
     AUDIT_LOG_CHANNEL_ID,
-    DONATION_URL,
-    BUY_ME_A_COFFEE_URL,
     VALID_GAME_MODES,
-    RANKED_MODE_LABELS,
     intents,
     GuildOnlyTree,
-    get_scheduler_lock,
-    mark_bot_ready,
-    has_bot_been_ready,
-    mark_commands_synced,
-    have_commands_been_synced,
-    _status_broadcast_lock,
-    _last_status_broadcast_at,
-    _STATUS_MIN_INTERVAL_SECONDS,
     _record_status_event,
-    _build_status_embed,
-    _push_status_message,
-    _refresh_all_status_messages,
-    _bot_started_at,
 )
 
 # Global state for command sync
@@ -137,62 +119,21 @@ _command_templates = None
 _bot_ready_once = False
 
 # Import utility helpers
-from modules.utils import (
-    _safe_div,
-    _is_due,
-    _is_weekly_due,
-    _as_utc,
-    _format_utc_time,
-    _next_daily_report,
-    _next_interval_report,
-    _next_weekly_report,
-    _channel_mention,
-)
 
 # Import embed builder functions
 from modules.embeds import (
-    build_report_status_embed,
-    build_clan_embed,
-    build_clan_level_embed,
-    _format_time_ago,
-    build_last_active_embed,
-    build_ranked_embed,
-    _pick_leader,
-    _compute_award_winners,
-    build_highlights_embed,
-    _friendly_weapon_name,
-    build_mastery_embed,
-    _survival_tier_number,
-    build_survival_mastery_embeds,
-    build_leaderboard_embed,
     build_feedback_prompt_embed,
-    build_chicken_dinner_embed,
 )
 
 # Import report fetcher functions
 from modules.reports import (
-    fetch_clan_report,
-    fetch_clan_level_report,
-    fetch_last_active_report,
-    fetch_ranked_report,
-    fetch_highlights_report,
-    fetch_mastery_report,
-    fetch_survival_mastery_report,
     fetch_leaderboard_report,
 )
 
 # Import scheduled task functions
 from modules.scheduler import (
     auto_digest,
-    auto_last_active,
-    auto_ranked,
-    auto_highlights,
-    auto_clan_level,
-    auto_survival_mastery,
-    auto_chicken_dinner,
-    auto_feedback_prompt,
     start_all_scheduled_tasks,
-    run_auto_highlights,
     _set_audit_log_func,
 )
 
@@ -214,13 +155,11 @@ from commands.protected import (
 from commands.inactive import (
     setinactivedate_impl,
     removeinactivedate_impl,
-    resetinactivecount_impl,
 )
 from commands.clan import (
     setclan_impl,
     clanlevel_impl,
     setclanchannel_impl,
-    setclantime_impl,
 )
 from commands.ranked import (
     rankedsquad_impl,
@@ -245,14 +184,11 @@ from commands.reports import (
 from commands.settings import (
     setgamemode_impl,
     setchannel_impl,
-    setinterval_impl,
-    setdigesttime_impl,
     setactivitychannel_impl,
     setrankedchannel_impl,
     setrankedqueue_impl,
     sethighlightschannel_impl,
     setsurvivalchannel_impl,
-    setsurvivaltime_impl,
     setmaintenancechannel_impl,
     setscheduledmaintenancechannel_impl,
     schedulemaintenance_impl,
@@ -265,7 +201,6 @@ from commands.settings import (
     setlanguage_impl,
     language_impl,
     reportstatus_impl,
-    reporttoggle_impl,
     donate_impl,
 )
 from commands.links import (
@@ -277,15 +212,12 @@ from commands.links import (
 from commands.chicken_dinner import (
     chickendinner_impl,
     setchickendinnerchannel_impl,
-    pingtoggle_impl,
 )
 from commands.highlights import (
     dailyhighlights_impl,
 )
 from commands.admin import (
     reportcheater_impl,
-    askfeedback_impl,
-    botservers_impl,
     runallreports_impl,
 )
 from commands.analytics import (

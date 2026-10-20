@@ -4,8 +4,6 @@ Admin command implementations for PUBG Tracker bot.
 
 import logging
 import storage
-import translations
-from pubg_api import PubgApiError
 from datetime import datetime, timezone
 import discord
 
