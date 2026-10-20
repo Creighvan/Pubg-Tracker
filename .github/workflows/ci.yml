@@ -32,5 +32,7 @@ jobs:
       run: python test_translations.py
     - name: Run empty state tests
       run: python test_empty_states.py
+    - name: Run history tests
+      run: python test_history.py
     - name: Run pytest
       run: pytest tests/ -v
