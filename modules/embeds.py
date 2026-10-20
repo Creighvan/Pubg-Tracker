@@ -153,12 +153,12 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     return embed
 
 
-def build_clan_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+def build_clan_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
     game_mode = guild_cfg["game_mode"]
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan"
 
     total_kills = sum(p["stats"].get("kills", 0) for p in players)
     total_wins = sum(p["stats"].get("wins", 0) for p in players)
@@ -259,11 +259,11 @@ def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str =
     return get_translation(lang, "days_ago").format(count=count, unit=unit)
 
 
-def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan" or "Clan"
     protected_lower = [normalize_player_name(p) for p in (protected_players or [])]
 
     embed = discord.Embed(
@@ -350,11 +350,11 @@ def build_last_active_embed(guild_id: int, guild_name: str, guild_cfg: dict, pla
     return embed
 
 
-def build_ranked_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str) -> discord.Embed:
+def build_ranked_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan"
     queue_label = f"{RANKED_MODE_LABELS[game_mode]} {'FPP' if game_mode.endswith('-fpp') else 'TPP'}"
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'ranked_report')} ({queue_label})",
@@ -453,11 +453,11 @@ def _compute_award_winners(active_players: list[dict]) -> list[tuple[str, str, s
     return winners
 
 
-def build_highlights_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int) -> discord.Embed:
+def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
 
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan"
     active_players = [p for p in players if p["daily"]["matches"] > 0]
 
     embed = discord.Embed(
@@ -548,11 +548,11 @@ def _friendly_weapon_name(weapon_id: str | None) -> str:
     return weapon_id.replace("Item_Weapon_", "").replace("_C", "")
 
 
-def build_mastery_embed(guild_name: str, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+def build_mastery_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan"
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'mastery_report')}",
         description=get_translation(lang, "mastery_description"),
@@ -630,9 +630,9 @@ def _survival_tier_number(value) -> int:
 
 
 def build_survival_mastery_embeds(
-    guild_cfg: dict, guild_name: str, players: list[dict], not_found: list[str]
+    guild_cfg: dict, guild_name: str | None, players: list[dict], not_found: list[str]
 ) -> tuple[list[discord.Embed], list[discord.File]]:
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan" or "Clan"
     lang = guild_cfg.get("language", "en")
     grouped = {tier: [] for tier in range(5, 0, -1)}
     unknown = []
@@ -717,7 +717,7 @@ def build_leaderboard_embed(
     guild_id: int, guild_name: str, guild_cfg: dict, found: dict[str, dict], checked: int, pages: int, queue: str,
     mentions_enabled: bool = True
 ) -> discord.Embed:
-    title = guild_cfg.get("clan_name") or guild_name
+    title = guild_cfg.get("clan_name") or guild_name or "Clan"
     lang = guild_cfg.get("language", "en")
     embed = discord.Embed(
         title=f"{title} — {translations.get_translation(lang, 'official_leaderboard')} ({queue.upper()} TPP)",

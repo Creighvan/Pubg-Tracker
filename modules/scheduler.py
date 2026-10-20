@@ -134,13 +134,12 @@ async def auto_digest():
         if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
 
-        guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None or channel is None:
+        if channel is None:
             continue
         try:
             async with get_scheduler_lock():
-                result = await fetch_clan_report(guild_id, guild.name)
+                result = await fetch_clan_report(guild_id, None)
             if result:
                 embed, players = result
                 await channel.send(embed=embed)
@@ -211,11 +210,7 @@ async def auto_last_active():
                 logger.info(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
                 continue
 
-        guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None:
-            logger.info(f"[auto_last_active] Guild {guild_id}: Guild not found (bot may have been removed), skipping")
-            continue
         if channel is None:
             logger.info(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found (may have been deleted or bot lacks permission), skipping")
             continue
@@ -223,7 +218,7 @@ async def auto_last_active():
         logger.info(f"[auto_last_active] Guild {guild_id}: All checks passed, posting report")
         try:
             async with get_scheduler_lock():
-                result = await fetch_last_active_report(guild_id, guild.name)
+                result = await fetch_last_active_report(guild_id, None)
             if result:
                 embed, players = result
                 message_id = guild_cfg.get("last_activity_message_id")
@@ -308,14 +303,13 @@ async def auto_ranked():
         if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
             continue  # Not yet at scheduled time
 
-        guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None or channel is None:
+        if channel is None:
             continue
         
         try:
             async with get_scheduler_lock():
-                result = await fetch_ranked_report(guild_id, guild.name)
+                result = await fetch_ranked_report(guild_id, None)
             if result:
                 embed, players = result
                 message_id = guild_cfg.get("ranked_message_id")
@@ -412,14 +406,13 @@ async def auto_highlights():
                 if last_posted_date >= reset_time_utc:
                     continue  # Already posted since the most recent reset
 
-            guild = _get_bot().get_guild(guild_id)
             channel = _get_bot().get_channel(channel_id)
-            if guild is None or channel is None:
+            if channel is None:
                 continue
             
             try:
                 async with get_scheduler_lock():
-                    result = await fetch_highlights_report(guild_id, guild.name)
+                    result = await fetch_highlights_report(guild_id, None)
                 if result:
                     embed, players = result
                     message_id = guild_cfg.get("highlights_message_id")
@@ -491,8 +484,7 @@ async def auto_clan_level():
             continue
 
         channel = _get_bot().get_channel(channel_id)
-        guild = _get_bot().get_guild(guild_id)
-        if channel is None or guild is None:
+        if channel is None:
             continue
         try:
             async with get_scheduler_lock():
@@ -558,12 +550,11 @@ async def auto_survival_mastery():
             continue
 
         channel = _get_bot().get_channel(channel_id)
-        guild = _get_bot().get_guild(guild_id)
-        if channel is None or guild is None:
+        if channel is None:
             continue
         try:
             async with get_scheduler_lock():
-                result = await fetch_survival_mastery_report(guild_id, guild.name)
+                result = await fetch_survival_mastery_report(guild_id, None)
             if result is None:
                 continue
             embeds, files = result
@@ -642,12 +633,7 @@ async def auto_chicken_dinner():
             guilds_skipped += 1
             logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
-        guild = _get_bot().get_guild(guild_id)
         channel = _get_bot().get_channel(channel_id)
-        if guild is None:
-            guilds_skipped += 1
-            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Guild not found, skipping")
-            continue
         if channel is None:
             guilds_skipped += 1
             logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
@@ -806,6 +792,7 @@ async def auto_feedback_prompt():
 
         guild = _get_bot().get_guild(guild_id)
         if guild is None:
+            logger.info(f"[auto_feedback] Guild {guild_id} not accessible via Discord API, skipping feedback prompt")
             continue
 
         channel_id = (
@@ -814,8 +801,8 @@ async def auto_feedback_prompt():
             or guild_cfg.get("highlights_channel_id")
             or guild_cfg.get("last_activity_channel_id")
         )
-        channel = guild.get_channel(channel_id) if channel_id else None
-        if channel is None:
+        channel = _get_bot().get_channel(channel_id) if channel_id else None
+        if channel is None and guild:
             channel = guild.system_channel or next(
                 (c for c in guild.text_channels if c.permissions_for(guild.me).send_messages),
                 None,
@@ -830,7 +817,7 @@ async def auto_feedback_prompt():
             import bot as bot_module
             FeedbackPromptView = bot_module.FeedbackPromptView
             await channel.send(embed=embed, view=FeedbackPromptView())
-            logger.info(f"[auto_feedback] Posted 14-day feedback prompt to {guild.name} (#{channel.name})")
+            logger.info(f"[auto_feedback] Posted 14-day feedback prompt to guild {guild_id} (#{channel.name})")
 
             # Only mark as posted after successful send
             guild_cfg["last_feedback_prompt_at"] = now.isoformat()
@@ -838,7 +825,7 @@ async def auto_feedback_prompt():
                 g["last_feedback_prompt_at"] = guild_cfg["last_feedback_prompt_at"]
             await storage.modify_guild(guild_id, modifier)
         except Exception as e:
-            logger.error(f"[auto_feedback] Failed to send prompt in {guild.name}: {e}")
+            logger.error(f"[auto_feedback] Failed to send prompt in guild {guild_id}: {e}")
 
 
 @auto_feedback_prompt.before_loop

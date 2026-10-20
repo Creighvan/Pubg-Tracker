@@ -48,7 +48,7 @@ from modules.embeds import (
 )
 
 
-async def fetch_clan_report(guild_id: int, guild_name: str) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_clan_report(guild_id: int, guild_name: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch clan statistics report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
@@ -68,7 +68,7 @@ async def fetch_clan_level_report(guild_id: int) -> tuple[discord.Embed, dict] |
     return build_clan_level_embed(guild_cfg, clan), clan
 
 
-async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_last_active_report(guild_id: int, guild_name: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch player last active times report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
@@ -167,7 +167,7 @@ async def fetch_last_active_report(guild_id: int, guild_name: str) -> tuple[disc
     return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
 
 
-async def fetch_ranked_report(guild_id: int, guild_name: str, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_ranked_report(guild_id: int, guild_name: str | None = None, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch ranked standings report for a guild and game mode."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
@@ -193,7 +193,7 @@ async def fetch_ranked_report(guild_id: int, guild_name: str, game_mode: str | N
     return embed, players
 
 
-async def fetch_highlights_report(guild_id: int, guild_name: str, hours: int = 24) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, hours: int = 24) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch daily highlights report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
@@ -225,7 +225,7 @@ async def fetch_mastery_report(guild_id: int, guild_name: str) -> tuple[discord.
 
 
 async def fetch_survival_mastery_report(
-    guild_id: int, guild_name: str
+    guild_id: int, guild_name: str | None
 ) -> tuple[list[discord.Embed], list[discord.File]] | None:
     """Fetch survival mastery report grouped by tier for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
@@ -236,7 +236,7 @@ async def fetch_survival_mastery_report(
 
 
 async def fetch_leaderboard_report(
-    guild_id: int, guild_name: str, max_pages: int = 4
+    guild_id: int, guild_name: str | None, max_pages: int = 4
 ) -> tuple[discord.Embed, dict[str, dict]] | None:
     """Fetch official leaderboard placements for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
