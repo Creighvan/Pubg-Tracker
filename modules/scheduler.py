@@ -24,10 +24,33 @@ from zoneinfo import ZoneInfo
 import discord
 from discord.ext import tasks
 import asyncio
+import logging
 
 import storage
 from pubg_api import PubgApiError, PubgClient
 import translations
+
+logger = logging.getLogger(__name__)
+
+# Strong references so fire-and-forget tasks cannot be garbage-collected mid-run
+_background_tasks: set = set()
+
+
+def _on_task_done(task: "asyncio.Task") -> None:
+    _background_tasks.discard(task)
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc is not None:
+        logger.error("Background task %s failed", task.get_name(), exc_info=exc)
+
+
+def _spawn(coro, name: str, loop=None) -> "asyncio.Task":
+    """Create a tracked background task whose failure is always logged."""
+    task = (loop or asyncio.get_running_loop()).create_task(coro, name=name)
+    _background_tasks.add(task)
+    task.add_done_callback(_on_task_done)
+    return task
 import history
 from commands.achievements import check_achievements, record_achievement, ACHIEVEMENTS
 from commands.streaks import update_streaks
@@ -66,13 +89,13 @@ async def trigger_maintenance_recovery():
     if MAINTENANCE_SKIPPED_DIGEST:
         print(f"[scheduler] Triggering auto_digest (was skipped during maintenance)")
         MAINTENANCE_SKIPPED_DIGEST = False
-        asyncio.create_task(auto_digest())
+        _spawn(auto_digest(), "auto_digest_recovery")
     
     # Trigger auto_chicken_dinner if it was skipped
     if MAINTENANCE_SKIPPED_CHICKEN_DINNER:
         print(f"[scheduler] Triggering auto_chicken_dinner (was skipped during maintenance)")
         MAINTENANCE_SKIPPED_CHICKEN_DINNER = False
-        asyncio.create_task(auto_chicken_dinner())
+        _spawn(auto_chicken_dinner(), "auto_chicken_dinner_recovery")
 
 # Late-binding helpers to avoid stale imports at module load time
 # These re-read the values from config on each call to get the real instances
@@ -856,21 +879,17 @@ def start_all_scheduled_tasks(bot_instance):
     auto_last_active.start()
     auto_ranked.start()
     # Start auto_highlights as a background task (custom 24-hour schedule)
-    task_highlights = bot_instance.loop.create_task(run_auto_highlights())
-    task_highlights.add_done_callback(lambda t: logger.error(f"auto_highlights task failed: {t.exception()}") if t.exception() else None)
+    _spawn(run_auto_highlights(), "run_auto_highlights", bot_instance.loop)
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_chicken_dinner.start()
     auto_feedback_prompt.start()
     # Start daily backup task
-    task_backup = bot_instance.loop.create_task(run_daily_backup())
-    task_backup.add_done_callback(lambda t: logger.error(f"run_daily_backup task failed: {t.exception()}") if t.exception() else None)
+    _spawn(run_daily_backup(), "run_daily_backup", bot_instance.loop)
     # Start cache cleanup task
-    task_cleanup = bot_instance.loop.create_task(run_cache_cleanup())
-    task_cleanup.add_done_callback(lambda t: logger.error(f"run_cache_cleanup task failed: {t.exception()}") if t.exception() else None)
+    _spawn(run_cache_cleanup(), "run_cache_cleanup", bot_instance.loop)
     # Start daily snapshot task
-    task_snapshot = bot_instance.loop.create_task(run_daily_snapshot())
-    task_snapshot.add_done_callback(lambda t: logger.error(f"run_daily_snapshot task failed: {t.exception()}") if t.exception() else None)
+    _spawn(run_daily_snapshot(), "run_daily_snapshot", bot_instance.loop)
 
 
 async def run_daily_backup():
