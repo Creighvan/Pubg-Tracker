@@ -25,7 +25,7 @@ async def masterystats_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
 
     try:
-        result = await pubg.get_mastery_report(interaction.guild_id)
+        result = await pubg.get_mastery_report(interaction.guild_id, None)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
@@ -50,7 +50,7 @@ async def survivalstats_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
 
     try:
-        result = await fetch_survival_mastery_report(interaction.guild_id, interaction.guild.name)
+        result = await fetch_survival_mastery_report(interaction.guild_id, None)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return

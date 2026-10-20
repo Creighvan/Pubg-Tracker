@@ -25,7 +25,7 @@ async def clanstats_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
 
     try:
-        result = await fetch_clan_report(interaction.guild_id, interaction.guild.name)
+        result = await fetch_clan_report(interaction.guild_id, None)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
@@ -94,7 +94,7 @@ async def lastactive_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
     
     try:
-        result = await fetch_last_active_report(interaction.guild_id, interaction.guild.name)
+        result = await fetch_last_active_report(interaction.guild_id, None)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
