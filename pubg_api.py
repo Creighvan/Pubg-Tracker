@@ -291,7 +291,7 @@ class PubgClient:
                                 pass  # a status-reporting hook must never break the actual request
                         # Always retry on 429, even for non-rate-limited calls (telemetry/match details)
                         if attempt < 3:
-                            logger.info(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
+                            logger.warning(f"[pubg] PUBG rate-limited a request; pausing {delay:.0f}s then retrying")
                             if rate_limited:
                                 await self._limiter.cool_down(delay)
                             else:
