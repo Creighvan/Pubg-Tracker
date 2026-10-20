@@ -6,6 +6,7 @@ import asyncio
 import sys
 import os
 import tempfile
+from datetime import datetime, timedelta, timezone
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -23,7 +24,7 @@ async def test_daily_snapshot():
     print("[TEST] Daily snapshot recording")
 
     guild_id = 123456789
-    date = "2026-10-05"
+    date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
     player_stats = {
         "testplayer1": {
@@ -74,8 +75,8 @@ async def test_trend_calculation():
     guild_id = 123456789
 
     # Record two snapshots
-    date1 = "2026-10-01"
-    date2 = "2026-10-05"
+    date1 = (datetime.now(timezone.utc) - timedelta(days=5)).strftime("%Y-%m-%d")
+    date2 = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
 
     player_stats1 = {
         "testplayer1": {
@@ -137,8 +138,8 @@ async def test_match_recording():
 
     match_data = {
         "match_id": "test-match-123",
-        "date": "2026-10-05",
-        "timestamp": "2026-10-05T12:00:00Z",
+        "date": (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d"),
+        "timestamp": (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%dT12:00:00Z"),
         "map": "Erangel",
         "game_mode": "squad-fpp",
         "participants": ["testplayer1", "testplayer2"],
