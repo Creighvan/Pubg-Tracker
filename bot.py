@@ -1406,5 +1406,8 @@ async def main():
 
 
 if __name__ == "__main__":
+    # bot.start() (unlike bot.run()) configures no logging, so set up the root logger here;
+    # without this every logger.info() in scheduler/maintenance is silently dropped.
+    discord.utils.setup_logging(level=logging.INFO, root=True)
     asyncio.run(main())
 
