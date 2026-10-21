@@ -12,7 +12,7 @@ import translations
 logger = logging.getLogger(__name__)
 
 
-async def mapstats_impl(interaction: discord.Interaction):
+async def mapstats_impl(interaction, pubg):
     """Show clan map performance statistics."""
     # Defer immediately to prevent timeout
     try:
@@ -39,7 +39,7 @@ async def mapstats_impl(interaction: discord.Interaction):
 
     if not match_history:
         await interaction.followup.send(
-            "No match history data available yet. Map analytics require accumulated match data.",
+            "No match history data available yet. Map analytics require accumulated match data. Match history is automatically recorded when Chicken Dinner reports run. Enable and configure the Chicken Dinner feature (/setchickendinnerchannel) to start accumulating match data.",
             ephemeral=True
         )
         return

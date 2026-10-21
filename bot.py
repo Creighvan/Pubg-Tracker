@@ -1382,7 +1382,7 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Clear and resync all Discord commands (fixes duplicates)")
+@bot.tree.command(description="[Admin] Resync all Discord commands (fixes duplicates)")
 @app_commands.describe(
     secret_key="Optional admin secret key to unlock this command",
 )
@@ -1398,15 +1398,19 @@ async def resynccommands(
     try:
         await interaction.response.defer()
         
-        # Clear global commands (guild=None means global)
-        bot.tree.clear_commands(guild=None)
-        logger.info("Cleared all global commands from bot tree")
+        # Reset the sync flag to force a fresh sync
+        global _commands_synced_once
+        _commands_synced_once = False
         
-        # Sync to Discord (this will remove old commands and add new ones)
+        # Get current command count
+        before_count = len(bot.tree.get_commands())
+        logger.info(f"Commands before sync: {before_count}")
+        
+        # Sync to Discord (this will update existing commands)
         synced = await bot.tree.sync()
         logger.info(f"Resynced {len(synced)} commands globally")
         
-        await interaction.followup.send(f"✅ Commands cleared and resynced! ({len(synced)} commands registered)")
+        await interaction.followup.send(f"✅ Commands resynced! ({len(synced)} commands registered)")
     except Exception as e:
         logger.error(f"Failed to resync commands: {e}", exc_info=True)
         await interaction.followup.send(f"❌ Failed to resync commands: {e}")
