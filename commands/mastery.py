@@ -7,7 +7,7 @@ import storage
 import translations
 from pubg_api import PubgApiError
 import discord
-from modules.reports import fetch_survival_mastery_report
+from modules.reports import fetch_survival_mastery_report, fetch_mastery_report
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +25,7 @@ async def masterystats_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
 
     try:
-        result = await pubg.get_mastery_report(interaction.guild_id, None)
+        result = await fetch_mastery_report(interaction.guild_id, None)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return

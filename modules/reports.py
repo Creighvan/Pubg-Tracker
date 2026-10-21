@@ -215,7 +215,7 @@ async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, 
     return embed, players
 
 
-async def fetch_mastery_report(guild_id: int, guild_name: str) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_mastery_report(guild_id: int, guild_name: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch weapon and survival mastery report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
