@@ -1402,11 +1402,7 @@ async def resynccommands(
         global _commands_synced_once
         _commands_synced_once = False
         
-        # Get current command count
-        before_count = len(bot.tree.get_commands())
-        logger.info(f"Commands before sync: {before_count}")
-        
-        # Sync to Discord (this will update existing commands)
+        # Sync to Discord (this will re-register all commands)
         synced = await bot.tree.sync()
         logger.info(f"Resynced {len(synced)} commands globally")
         
