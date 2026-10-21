@@ -1398,9 +1398,9 @@ async def resynccommands(
     try:
         await interaction.response.defer()
         
-        # Clear all commands from the bot tree
-        bot.tree.clear_commands()
-        logger.info("Cleared all commands from bot tree")
+        # Clear global commands (guild=None means global)
+        bot.tree.clear_commands(guild=None)
+        logger.info("Cleared all global commands from bot tree")
         
         # Sync to Discord (this will remove old commands and add new ones)
         synced = await bot.tree.sync()
