@@ -1402,23 +1402,16 @@ async def resynccommands(
         before_count = len(bot.tree.get_commands())
         logger.info(f"Commands before sync: {before_count}")
         
-        # Clear all commands from Discord's servers
-        bot.tree.clear_commands(guild=None)
-        logger.info("Cleared all commands from bot tree")
-        
-        # Sync to Discord to remove them from Discord's servers
-        await bot.tree.sync(guild=None)
-        logger.info("Synced empty command tree to Discord (clearing old commands)")
-        
         # Reset the sync flag to force a fresh sync
         global _commands_synced_once
         _commands_synced_once = False
         
-        # Sync to Discord (this will re-register all commands)
+        # Sync to Discord (this will update existing commands)
+        # Discord's API handles deduplication automatically
         synced = await bot.tree.sync()
         logger.info(f"Resynced {len(synced)} commands globally")
         
-        await interaction.followup.send(f"✅ Commands cleared and resynced! ({len(synced)} commands registered)")
+        await interaction.followup.send(f"✅ Commands resynced! ({len(synced)} commands registered)")
     except Exception as e:
         logger.error(f"Failed to resync commands: {e}", exc_info=True)
         await interaction.followup.send(f"❌ Failed to resync commands: {e}")
