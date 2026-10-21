@@ -1358,6 +1358,36 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
+@bot.tree.command(description="[Admin] Clear and resync all Discord commands (fixes duplicates)")
+@app_commands.describe(
+    secret_key="Optional admin secret key to unlock this command",
+)
+@app_commands.default_permissions(administrator=True)
+async def resynccommands(
+    interaction: discord.Interaction,
+    secret_key: str = None,
+):
+    if not await _is_admin_authorized(interaction, secret_key):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return
+
+    try:
+        await interaction.response.defer()
+        
+        # Clear all commands from the bot tree
+        bot.tree.clear_commands()
+        logger.info("Cleared all commands from bot tree")
+        
+        # Sync to Discord (this will remove old commands and add new ones)
+        synced = await bot.tree.sync()
+        logger.info(f"Resynced {len(synced)} commands globally")
+        
+        await interaction.followup.send(f"✅ Commands cleared and resynced! ({len(synced)} commands registered)")
+    except Exception as e:
+        logger.error(f"Failed to resync commands: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ Failed to resync commands: {e}")
+
+
 @bot.tree.command(description="[Admin] Post feedback & suggestions prompt to a channel")
 @app_commands.describe(
     channel="Channel to post the feedback prompt in (defaults to current channel)",
