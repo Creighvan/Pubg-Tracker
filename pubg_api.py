@@ -737,6 +737,8 @@ class PubgClient:
         matches_examined = 0
         telemetry_downloaded = 0
         telemetry_bytes = 0
+        
+        logger.info(f"[highlights] Starting daily activity report for {len(names)} players (last {hours} hours)")
 
         # Use rolling 24-hour window from the provided hours parameter
         # Default is 24 hours from now, not the PUBG daily reset
@@ -825,6 +827,7 @@ class PubgClient:
             return await task
 
         async def process_player(p: dict):
+            logger.info(f"[highlights] Processing player {p['name']} ({len(found)} total players)")
             totals = {
                 "kills": 0, "damageDealt": 0.0, "headshotKills": 0,
                 "revives": 0, "assists": 0, "wins": 0, "matches": 0,
@@ -925,6 +928,7 @@ class PubgClient:
             p.pop("_expired_matches", None)
 
         await asyncio.gather(*(process_player(p) for p in found))
+        logger.info(f"[highlights] Processed all {len(found)} players, aggregating results")
         found.sort(key=lambda p: p["daily"]["kills"], reverse=True)
 
         elapsed = time.monotonic() - start_time
