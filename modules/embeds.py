@@ -504,12 +504,20 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
             f"{d['human_kills']} {get_translation(lang, 'human_bot_split').format(count=d['bot_kills'])}, {d['wins']}W, "
             f"{get_translation(lang, 'matches_count').format(count=d['matches'], unit=get_translation(lang, 'matches' if d['matches'] != 1 else 'match'))}"
         )
-    embed.add_field(name=get_translation(lang, "top_10"), value="\n".join(lines), inline=False)
+    top_10_value = "\n".join(lines)
+    # Discord embed field values must be 1024 characters or fewer
+    if len(top_10_value) > 1024:
+        top_10_value = top_10_value[:1020] + "..."
+    embed.add_field(name=get_translation(lang, "top_10"), value=top_10_value, inline=False)
 
     if not_found:
+        not_found_value = ", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else "")
+        # Discord embed field values must be 1024 characters or fewer
+        if len(not_found_value) > 1024:
+            not_found_value = not_found_value[:1020] + "..."
         embed.add_field(
             name=f"⚠️ {get_translation(lang, 'not_found')}",
-            value=", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else ""),
+            value=not_found_value,
             inline=False,
         )
     embed.set_footer(text=get_translation(lang, "highlights_footer"))
