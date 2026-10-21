@@ -12,7 +12,7 @@ from modules.reports import fetch_clan_report
 logger = logging.getLogger(__name__)
 
 
-async def clanstats_impl(interaction, pubg):
+async def clanstats_impl(interaction, pubg, game_mode=None):
     """Implementation of clanstats command."""
     # Defer immediately to prevent timeout
     try:
@@ -24,8 +24,11 @@ async def clanstats_impl(interaction, pubg):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 
+    # Use provided game_mode or fall back to guild config
+    mode = game_mode or guild_cfg.get("game_mode", "squad-fpp")
+
     try:
-        result = await fetch_clan_report(interaction.guild_id, None)
+        result = await fetch_clan_report(interaction.guild_id, None, game_mode=mode)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
@@ -37,9 +40,9 @@ async def clanstats_impl(interaction, pubg):
         await interaction.followup.send(translations.get_translation(lang, "no_clan_data"))
 
 
-async def postnow_impl(interaction, pubg):
+async def postnow_impl(interaction, pubg, game_mode=None):
     """Implementation of postnow command."""
-    await clanstats_impl(interaction, pubg)
+    await clanstats_impl(interaction, pubg, game_mode=game_mode)
 
 
 async def leaderboard_impl(interaction, pubg, sort_by):

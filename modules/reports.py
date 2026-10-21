@@ -48,13 +48,14 @@ from modules.embeds import (
 )
 
 
-async def fetch_clan_report(guild_id: int, guild_name: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_clan_report(guild_id: int, guild_name: str | None = None, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch clan statistics report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
         return None
-    players, not_found = await _get_pubg().get_players_and_stats(guild_cfg["players"], game_mode=guild_cfg["game_mode"])
-    embed = build_clan_embed(guild_name, guild_cfg, players, not_found)
+    mode = game_mode or guild_cfg["game_mode"]
+    players, not_found = await _get_pubg().get_players_and_stats(guild_cfg["players"], game_mode=mode)
+    embed = build_clan_embed(guild_name, guild_cfg, players, not_found, game_mode=mode)
     return embed, players
 
 

@@ -153,11 +153,11 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
     return embed
 
 
-def build_clan_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str]) -> discord.Embed:
+def build_clan_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], game_mode: str | None = None) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
-    game_mode = guild_cfg["game_mode"]
+    mode = game_mode or guild_cfg["game_mode"]
     title = guild_cfg.get("clan_name") or guild_name or "Clan"
 
     total_kills = sum(p["stats"].get("kills", 0) for p in players)
@@ -166,7 +166,7 @@ def build_clan_embed(guild_name: str | None, guild_cfg: dict, players: list[dict
     total_damage = sum(p["stats"].get("damageDealt", 0.0) for p in players)
 
     embed = discord.Embed(
-        title=f"{title} — {get_translation(lang, 'clan_report')} ({game_mode})",
+        title=f"{title} — {get_translation(lang, 'clan_report')} ({mode})",
         color=discord.Color.orange(),
         timestamp=datetime.now(timezone.utc),
     )

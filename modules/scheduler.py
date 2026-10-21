@@ -139,7 +139,7 @@ async def auto_digest():
             continue
         try:
             async with get_scheduler_lock():
-                result = await fetch_clan_report(guild_id, None)
+                result = await fetch_clan_report(guild_id, None, game_mode=guild_cfg.get("game_mode"))
             if result:
                 embed, players = result
                 await channel.send(embed=embed)

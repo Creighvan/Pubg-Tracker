@@ -665,12 +665,36 @@ async def runallreports(interaction: discord.Interaction):
     await runallreports_impl(interaction)
 
 @bot.tree.command(description="Post aggregated clan stats right now")
-async def clanstats(interaction: discord.Interaction):
-    await clanstats_impl(interaction, pubg)
+@app_commands.describe(game_mode="Game mode to show stats for (solo, duo, squad with TPP/FPP)")
+@app_commands.choices(
+    game_mode=[
+        app_commands.Choice(name="Solo TPP", value="solo-tpp"),
+        app_commands.Choice(name="Solo FPP", value="solo-fpp"),
+        app_commands.Choice(name="Duo TPP", value="duo-tpp"),
+        app_commands.Choice(name="Duo FPP", value="duo-fpp"),
+        app_commands.Choice(name="Squad TPP", value="squad-tpp"),
+        app_commands.Choice(name="Squad FPP", value="squad-fpp"),
+    ]
+)
+async def clanstats(interaction: discord.Interaction, game_mode: app_commands.Choice[str] = None):
+    mode = game_mode.value if game_mode else None
+    await clanstats_impl(interaction, pubg, game_mode=mode)
 
 @bot.tree.command(description="Manually post today's clan digest to this channel")
-async def postnow(interaction: discord.Interaction):
-    await postnow_impl(interaction, pubg)
+@app_commands.describe(game_mode="Game mode to show stats for (solo, duo, squad with TPP/FPP)")
+@app_commands.choices(
+    game_mode=[
+        app_commands.Choice(name="Solo TPP", value="solo-tpp"),
+        app_commands.Choice(name="Solo FPP", value="solo-fpp"),
+        app_commands.Choice(name="Duo TPP", value="duo-tpp"),
+        app_commands.Choice(name="Duo FPP", value="duo-fpp"),
+        app_commands.Choice(name="Squad TPP", value="squad-tpp"),
+        app_commands.Choice(name="Squad FPP", value="squad-fpp"),
+    ]
+)
+async def postnow(interaction: discord.Interaction, game_mode: app_commands.Choice[str] = None):
+    mode = game_mode.value if game_mode else None
+    await postnow_impl(interaction, pubg, game_mode=mode)
 
 @bot.tree.command(description="Show roster sorted by a stat")
 @app_commands.describe(sort_by="Which stat to sort by")
