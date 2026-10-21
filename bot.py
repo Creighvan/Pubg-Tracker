@@ -1189,7 +1189,7 @@ async def weaponstats(interaction: discord.Interaction, player: str):
 
 @bot.tree.command(description="Show clan map performance statistics")
 async def mapstats(interaction: discord.Interaction):
-    await mapstats_impl(interaction)
+    await mapstats_impl(interaction, pubg)
 
 
 @bot.tree.command(description="Show recent matches for a player")
