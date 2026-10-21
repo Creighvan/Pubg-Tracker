@@ -1411,7 +1411,7 @@ async def resynccommands(
         synced = await bot.tree.sync()
         logger.info(f"Resynced {len(synced)} commands globally")
         
-        await interaction.followup.send(f"✅ Commands resynced! ({len(synced)} commands registered)")
+        await interaction.followup.send(f"✅ Commands resynced! ({len(synced)} commands registered). Note: Discord may take up to an hour to update global commands in the command list.")
     except Exception as e:
         logger.error(f"Failed to resync commands: {e}", exc_info=True)
         await interaction.followup.send(f"❌ Failed to resync commands: {e}")
