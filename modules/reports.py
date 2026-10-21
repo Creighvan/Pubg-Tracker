@@ -194,13 +194,13 @@ async def fetch_ranked_report(guild_id: int, guild_name: str | None = None, game
     return embed, players
 
 
-async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, hours: int = 24) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, hours: int = 24, max_matches_checked: int = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch daily highlights report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
         return None
     try:
-        players, not_found = await _get_pubg().get_daily_activity_report(guild_cfg["players"], hours=hours)
+        players, not_found = await _get_pubg().get_daily_activity_report(guild_cfg["players"], hours=hours, max_matches_checked=max_matches_checked)
     except PubgApiError as e:
         # Provide better error message for telemetry availability issues
         if "telemetry" in str(e).lower() or "404" in str(e):

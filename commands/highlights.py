@@ -25,7 +25,9 @@ async def dailyhighlights_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
     
     try:
-        result = await fetch_highlights_report(interaction.guild_id, None)
+        # Use 6-hour window instead of 24 for faster response
+        # Full telemetry processing is very slow - 2+ hours for 77 players
+        result = await fetch_highlights_report(interaction.guild_id, None, hours=6, max_matches_checked=20)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
         return
