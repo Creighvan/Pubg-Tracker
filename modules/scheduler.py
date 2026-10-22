@@ -406,8 +406,15 @@ async def auto_highlights():
                 if last_posted_date >= reset_time_utc:
                     continue  # Already posted since the most recent reset
 
-            channel = _get_bot().get_channel(channel_id)
-            if channel is None:
+            # Skip channel check - if guild exists in storage, try to post
+            # The channel might be temporarily unavailable in Discord's cache
+            try:
+                channel = _get_bot().get_channel(channel_id)
+                if channel is None:
+                    logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found in cache, skipping")
+                    continue
+            except Exception as e:
+                logger.error(f"[auto_highlights] Guild {guild_id}: Error getting channel: {e}")
                 continue
             
             try:
@@ -451,6 +458,8 @@ async def auto_highlights():
                         )
                     except Exception as audit_error:
                         pass  # Audit log failure is non-critical
+                    
+                    logger.info(f"[auto_highlights] Guild {guild_id}: Highlights report posted successfully ({len(players)} players)")
             except PubgApiError as e:
                 logger.error(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])

@@ -27,6 +27,7 @@ Slash commands:
   /postnow                  - manually trigger a digest post immediately
   /lastactive                - show when each roster player last played, right now
   /setactivitychannel        - set current channel for the 24h "last active" report
+  /posthighlights            - manually trigger highlights report immediately
   /rankedsquad                 - show current-season ranked Squad TPP standings
   /rankedduo                   - show current-season ranked Duo TPP standings
   /rankedsolo                  - show current-season ranked Solo TPP standings
@@ -188,6 +189,7 @@ from commands.settings import (
     setrankedchannel_impl,
     setrankedqueue_impl,
     sethighlightschannel_impl,
+    posthighlights_impl,
     setsurvivalchannel_impl,
     setmaintenancechannel_impl,
     setscheduledmaintenancechannel_impl,
@@ -982,6 +984,12 @@ async def dailyhighlights(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
     await sethighlightschannel_impl(interaction)
+
+
+@bot.tree.command(description="Manually trigger highlights report (for testing)")
+@app_commands.checks.has_permissions(manage_guild=True)
+async def posthighlights(interaction: discord.Interaction):
+    await posthighlights_impl(interaction, pubg)
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")

@@ -6,6 +6,8 @@ import logging
 import storage
 import translations
 import discord
+from pubg_api import PubgApiError
+from modules.reports import fetch_highlights_report
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +163,30 @@ async def sethighlightschannel_impl(interaction):
         guild_cfg["highlights_minute_utc"] = 0
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(translations.get_translation(lang, "highlights_channel_set").format(channel=interaction.channel.mention))
+
+
+async def posthighlights_impl(interaction, pubg):
+    """Manually trigger highlights report immediately."""
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        return
+
+    guild_cfg = await storage.get_guild(interaction.guild_id)
+    lang = guild_cfg.get("language", "en")
+    
+    try:
+        # Use same parameters as scheduled version
+        result = await fetch_highlights_report(interaction.guild_id, None, hours=24, max_matches_checked=50)
+    except PubgApiError as e:
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        return
+    
+    if result:
+        embed, players = result
+        await interaction.followup.send(embed=embed)
+    else:
+        await interaction.followup.send(translations.get_translation(lang, "no_highlights"))
 
 
 async def setsurvivalchannel_impl(interaction):
