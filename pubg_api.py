@@ -360,7 +360,8 @@ class PubgClient:
                 )
             return results
 
-        return await self._cache.get_or_fetch(cache_key, fetch_players, ttl_minutes=5)
+        # Use 1-minute TTL for last active to ensure freshness
+        return await self._cache.get_or_fetch(cache_key, fetch_players, ttl_minutes=1)
 
     async def get_clan_by_id(self, clan_id: str) -> dict:
         """Fetch a clan using its official PUBG clan ID."""
@@ -448,7 +449,7 @@ class PubgClient:
         can't be fetched. Match-endpoint calls do not count against the
         10/min rate limit, so these are cheap to make per-player.
         """
-        # Use cache with in-flight request deduplication (10 minute TTL - matches don't change)
+        # Use cache with in-flight request deduplication (5 minute TTL - matches don't change)
         cache_key = self._cache._make_key("match_created", self.shard, match_id)
 
         async def fetch_match():
@@ -458,7 +459,8 @@ class PubgClient:
                 return None
             return data.get("data", {}).get("attributes", {}).get("createdAt")
 
-        result = await self._cache.get_or_fetch(cache_key, fetch_match, ttl_minutes=10)
+        # Use 5-minute TTL for match timestamps to ensure freshness
+        result = await self._cache.get_or_fetch(cache_key, fetch_match, ttl_minutes=5)
         return result
 
     async def get_last_active_times(self, names: list[str]) -> tuple[list[dict], list[str]]:
