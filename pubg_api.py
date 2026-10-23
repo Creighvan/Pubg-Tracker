@@ -337,10 +337,10 @@ class PubgClient:
         if len(names) > 10:
             raise ValueError("PUBG API allows at most 10 player names per lookup call")
 
-        # Use cache with in-flight request deduplication (5 minute TTL for real-time features)
-        # Normalize names for case-insensitive cache key matching
+        # Disable cache for player lookups to ensure fresh last active times
+        # The PUBG API returns match IDs in most-recent-first order
+        # We need fresh data to match the PUBG clan activity list
         normalized_names = sorted(normalize_player_name(name) for name in names)
-        cache_key = self._cache._make_key("players", self.shard, ",".join(normalized_names))
 
         async def fetch_players():
             data = await self._request(
@@ -360,8 +360,8 @@ class PubgClient:
                 )
             return results
 
-        # Use 1-minute TTL for last active to ensure freshness
-        return await self._cache.get_or_fetch(cache_key, fetch_players, ttl_minutes=1)
+        # No caching - always fetch fresh data
+        return await fetch_players()
 
     async def get_clan_by_id(self, clan_id: str) -> dict:
         """Fetch a clan using its official PUBG clan ID."""
@@ -449,9 +449,7 @@ class PubgClient:
         can't be fetched. Match-endpoint calls do not count against the
         10/min rate limit, so these are cheap to make per-player.
         """
-        # Use cache with in-flight request deduplication (5 minute TTL - matches don't change)
-        cache_key = self._cache._make_key("match_created", self.shard, match_id)
-
+        # Disable cache for match timestamps to ensure fresh last active times
         async def fetch_match():
             try:
                 data = await self._request(f"/shards/{self.shard}/matches/{match_id}", rate_limited=False)
@@ -459,9 +457,8 @@ class PubgClient:
                 return None
             return data.get("data", {}).get("attributes", {}).get("createdAt")
 
-        # Use 5-minute TTL for match timestamps to ensure freshness
-        result = await self._cache.get_or_fetch(cache_key, fetch_match, ttl_minutes=5)
-        return result
+        # No caching - always fetch fresh data
+        return await fetch_match()
 
     async def get_last_active_times(self, names: list[str]) -> tuple[list[dict], list[str]]:
         """
