@@ -110,16 +110,12 @@ async def fetch_last_active_report(guild_id: int, guild_name: str | None = None)
                 
                 # Check if we have manual override first
                 if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_normalized):
-                    # Increment manual date daily based on when it was set
+                    # Manual date stays fixed - only the days inactive count changes
                     manual_date = datetime.fromisoformat(manual_data["date"])
-                    set_at = datetime.fromisoformat(manual_data["set_at"])
-                    days_since_set = (datetime.now(timezone.utc) - set_at).days
-                    incremented_date = (manual_date + timedelta(days=days_since_set)).isoformat()
-                    player["last_match_date"] = incremented_date
+                    player["last_match_date"] = manual_date.isoformat()
                     player["data_source"] = "manual"
-                    # Calculate days inactive for manual dates
-                    current_manual_date = manual_date + timedelta(days=days_since_set)
-                    player["days_inactive"] = (datetime.now(timezone.utc) - current_manual_date).days
+                    # Calculate days inactive from the fixed manual date to now
+                    player["days_inactive"] = (datetime.now(timezone.utc) - manual_date).days
                     # Also remove from auto-counting if it exists to avoid conflicts
                     if player_normalized in guild_cfg.get("inactive_since_dates", {}):
                         del guild_cfg["inactive_since_dates"][player_normalized]
