@@ -1010,6 +1010,9 @@ class PubgClient:
         best_weapon_kills, survival_level, survival_xp}.
         Sorted by best_weapon_level, highest first.
         """
+        import logging
+        logger = logging.getLogger(__name__)
+        
         found: list[dict] = []
         not_found: list[str] = []
         for chunk in _chunk(names, 10):
@@ -1019,6 +1022,8 @@ class PubgClient:
                 if normalize_player_name(n) not in resolved_normalized:
                     not_found.append(n)
             found.extend(resolved)
+
+        logger.info(f"[mastery] Processing {len(found)} players")
 
         async def process(p: dict):
             try:
@@ -1041,8 +1046,16 @@ class PubgClient:
                 "survival_tier": survival_attrs.get("tier", survival_attrs.get("Tier", 0)) or 0,
             }
 
-        await asyncio.gather(*(process(p) for p in found))
+        # Process with semaphore to limit concurrent requests
+        semaphore = asyncio.Semaphore(5)
+        async def process_with_limit(p):
+            async with semaphore:
+                await process(p)
+                logger.info(f"[mastery] Processed {p['name']} ({len(found)} total)")
+
+        await asyncio.gather(*(process_with_limit(p) for p in found))
         found.sort(key=lambda p: p["mastery"]["best_weapon_level"], reverse=True)
+        logger.info(f"[mastery] Completed {len(found)} players")
         return found, not_found
 
     # ---------- Official Leaderboards ----------
