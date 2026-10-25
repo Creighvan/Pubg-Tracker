@@ -1047,7 +1047,7 @@ class PubgClient:
             }
 
         # Process with semaphore to limit concurrent requests
-        semaphore = asyncio.Semaphore(5)
+        semaphore = asyncio.Semaphore(10)  # Increased from 5 to 10 for faster processing
         async def process_with_limit(p):
             async with semaphore:
                 await process(p)
