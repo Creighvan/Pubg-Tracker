@@ -32,7 +32,17 @@ async def masterystats_impl(interaction, pubg):
 
     if result:
         embed, _ = result
-        await interaction.followup.send(embed=embed)
+        try:
+            await interaction.followup.send(embed=embed)
+        except discord.NotFound:
+            # Interaction expired, can't send followup
+            logger.error("[masterystats] Interaction expired before response could be sent")
+        except discord.HTTPException as e:
+            # Handle webhook token errors
+            if "Invalid Webhook Token" in str(e):
+                logger.error(f"[masterystats] Discord webhook token expired for interaction {interaction.id}")
+            else:
+                raise
     else:
         await interaction.followup.send(translations.get_translation(lang, "no_mastery_data"))
 
@@ -57,6 +67,14 @@ async def survivalstats_impl(interaction, pubg):
 
     if result:
         embeds, files = result
-        await interaction.followup.send(embeds=embeds[:10], files=files)
+        try:
+            await interaction.followup.send(embeds=embeds[:10], files=files)
+        except discord.NotFound:
+            logger.error("[survivalstats] Interaction expired before response could be sent")
+        except discord.HTTPException as e:
+            if "Invalid Webhook Token" in str(e):
+                logger.error(f"[survivalstats] Discord webhook token expired for interaction {interaction.id}")
+            else:
+                raise
     else:
         await interaction.followup.send(translations.get_translation(lang, "no_survival_data"))
