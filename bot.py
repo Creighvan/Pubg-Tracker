@@ -96,6 +96,16 @@ async def send_error_response(interaction, error, error_id=None, context=""):
     logger.error(f"[{error_id}] {context}: {error}", exc_info=error)
     await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
 
+def with_defer(func):
+    """Decorator to defer interaction before calling the function."""
+    async def wrapper(interaction, *args, **kwargs):
+        try:
+            await interaction.response.defer()
+        except discord.NotFound:
+            return
+        return await func(interaction, *args, **kwargs)
+    return wrapper
+
 # Import all shared configuration and state
 from modules.config import (
     DISCORD_TOKEN,
@@ -588,56 +598,69 @@ async def on_guild_remove(guild: discord.Guild):
 # For now, keeping old commands in bot.py as backup during migration
 # After testing, these will be removed
 
+@with_defer
 @bot.tree.command(description="Add a PUBG player name to this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name (case-insensitive)")
+@with_defer
 async def addplayer(interaction: discord.Interaction, name: str):
     await addplayer_impl(interaction, name, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="Add many PUBG players at once — paste names separated by commas or new lines")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(names="e.g. PlayerOne, PlayerTwo, PlayerThree (commas or newlines both work)")
+@with_defer
 async def addplayers(interaction: discord.Interaction, names: str):
     await addplayers_impl(interaction, names, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="Remove a player from this server's tracked clan roster")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to remove")
+@with_defer
 async def removeplayer(interaction: discord.Interaction, name: str):
     await removeplayer_impl(interaction, name, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="Add a player to the protected list (immune to inactivity removal)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to protect")
 async def addprotected(interaction: discord.Interaction, name: str):
     await addprotected_impl(interaction, name, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="Remove a player from the protected list")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name to unprotect")
 async def removeprotected(interaction: discord.Interaction, name: str):
     await removeprotected_impl(interaction, name, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="List all protected players (immune to inactivity removal)")
 async def listprotected(interaction: discord.Interaction):
     await listprotected_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Clean up protected player list (remove duplicates and empty entries)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def cleanprotected(interaction: discord.Interaction):
     await cleanprotected_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Clear and reset the entire protected player list")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def resetprotected(interaction: discord.Interaction):
     await resetprotected_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Bulk add protected players (one per line or comma-separated)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(players="Player names (one per line or comma-separated)")
 async def addprotectedbulk(interaction: discord.Interaction, players: str):
     await addprotectedbulk_impl(interaction, players)
 
+@with_defer
 @bot.tree.command(description="Set manual inactive date for a player (beyond 14-day API limit)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name", days_ago="How many days ago they last played")
@@ -645,12 +668,14 @@ async def setinactivedate(interaction: discord.Interaction, name: str, days_ago:
     await setinactivedate_impl(interaction, name, days_ago)
 
 
+@with_defer
 @bot.tree.command(description="Remove manual inactive date for a player")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
 async def removeinactivedate(interaction: discord.Interaction, name: str):
     await removeinactivedate_impl(interaction, name)
 
+@with_defer
 @bot.tree.command(description="Reset auto-counting for a specific player (start counting from today)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="PUBG name")
@@ -665,21 +690,25 @@ async def resetinactivedate(interaction: discord.Interaction, name: str):
         await interaction.response.send_message(translations.get_translation(lang, "inactive_count_not_active").format(name=name), ephemeral=True)
 
 
+@with_defer
 @bot.tree.command(description="List everyone currently tracked for this server's clan")
 async def roster(interaction: discord.Interaction):
     await roster_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Report suspicious statistics for manual review")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def reportcheater(interaction: discord.Interaction):
     await reportcheater_impl(interaction, pubg, _detect_statistical_anomalies)
 
 
+@with_defer
 @bot.tree.command(description="Run all active scheduled reports immediately")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def runallreports(interaction: discord.Interaction):
     await runallreports_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Post aggregated clan stats right now")
 @app_commands.describe(game_mode="Game mode to show stats for (solo, duo, squad with TPP/FPP)")
 @app_commands.choices(
@@ -696,6 +725,7 @@ async def clanstats(interaction: discord.Interaction, game_mode: app_commands.Ch
     mode = game_mode.value if game_mode else None
     await clanstats_impl(interaction, pubg, game_mode=mode)
 
+@with_defer
 @bot.tree.command(description="Manually post today's clan digest to this channel")
 @app_commands.describe(game_mode="Game mode to show stats for (solo, duo, squad with TPP/FPP)")
 @app_commands.choices(
@@ -712,6 +742,7 @@ async def postnow(interaction: discord.Interaction, game_mode: app_commands.Choi
     mode = game_mode.value if game_mode else None
     await postnow_impl(interaction, pubg, game_mode=mode)
 
+@with_defer
 @bot.tree.command(description="Show roster sorted by a stat")
 @app_commands.describe(sort_by="Which stat to sort by")
 @app_commands.choices(
@@ -724,6 +755,7 @@ async def postnow(interaction: discord.Interaction, game_mode: app_commands.Choi
 async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Choice[str] = None):
     await leaderboard_impl(interaction, pubg, sort_by)
 
+@with_defer
 @bot.tree.command(description="Set the PUBG game mode used for stats (default squad-fpp)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
@@ -732,21 +764,25 @@ async def leaderboard(interaction: discord.Interaction, sort_by: app_commands.Ch
 async def setgamemode(interaction: discord.Interaction, mode: app_commands.Choice[str]):
     await setgamemode_impl(interaction, mode)
 
+@with_defer
 @bot.tree.command(description="Set the clan-level report from a current PUBG clan member")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(name="Exact in-game PUBG name of a member of the clan")
 async def setclan(interaction: discord.Interaction, name: str):
     await setclan_impl(interaction, name, pubg)
 
+@with_defer
 @bot.tree.command(description="Show the current PUBG clan level and weekly progress")
 async def clanlevel(interaction: discord.Interaction):
     await clanlevel_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for the weekly clan-level report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
     await setclanchannel_impl(interaction, send_audit_log)
 
+@with_defer
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
 async def help(interaction: discord.Interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -758,25 +794,30 @@ async def help(interaction: discord.Interaction):
         f"{SUPPORT_SERVER_URL}"
     )
 
+@with_defer
 @bot.tree.command(description="Set the preferred language for this server")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(language="Language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)")
 async def setlanguage(interaction: discord.Interaction, language: str):
     await setlanguage_impl(interaction, language)
 
+@with_defer
 @bot.tree.command(description="Show the current language setting for this server")
 async def language(interaction: discord.Interaction):
     await language_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Show this server's automatic report schedules and next run times")
 async def reportstatus(interaction: discord.Interaction):
     await reportstatus_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Set this channel to show live bot status (connects, joins/leaves, failures, rate limits)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setstatuschannel(interaction: discord.Interaction):
     await setstatuschannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Administrator: turn a scheduled report on or off without losing its settings")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
@@ -817,15 +858,18 @@ async def reporttoggle(
         )
 
 
+@with_defer
 @bot.tree.command(description="Show the optional donation link for PUBG Tracker")
 async def donate(interaction: discord.Interaction):
     await donate_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Set this channel as where the clan digest gets auto-posted")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchannel(interaction: discord.Interaction):
     await setchannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Set how often (in hours) the digest auto-posts (ignored if a fixed time is set via /setdigesttime)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hours="e.g. 6 for every 6 hours")
@@ -860,6 +904,7 @@ WEEKDAY_CHOICES = [
 ]
 
 
+@with_defer
 @bot.tree.command(description="Post the digest once a day at a fixed UTC time, instead of by interval")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(hour="0-23, UTC (e.g. 9 for 9am UTC)", minute="Quarter-hour, defaults to :00")
@@ -878,6 +923,7 @@ async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Ran
     )
 
 
+@with_defer
 @bot.tree.command(description="Set the weekly clan-level report time in UTC")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
@@ -901,15 +947,18 @@ async def setclantime(
         translations.get_translation(lang, "clan_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
     )
 
+@with_defer
 @bot.tree.command(description="Show when each roster player last played PUBG, right now")
 async def lastactive(interaction: discord.Interaction):
     await lastactive_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for the live-updating 'last active' report (updates at 02:00 UTC daily reset)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setactivitychannel(interaction: discord.Interaction):
     await setactivitychannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
 async def setauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
@@ -919,6 +968,7 @@ async def setauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
+@with_defer
 @bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
 async def clearauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
@@ -928,6 +978,7 @@ async def clearauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
+@with_defer
 @bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
 async def showauditconfig(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
@@ -937,43 +988,53 @@ async def showauditconfig(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await showauditconfig_impl(interaction, ADMIN_USER_IDS)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Squad TPP standings")
 async def rankedsquad(interaction: discord.Interaction):
     await rankedsquad_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Duo TPP standings")
 async def rankedduo(interaction: discord.Interaction):
     await rankedduo_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Solo TPP standings")
 async def rankedsolo(interaction: discord.Interaction):
     await rankedsolo_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Squad FPP standings")
 async def rankedsquadfpp(interaction: discord.Interaction):
     await rankedsquadfpp_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Duo FPP standings")
 async def rankedduofpp(interaction: discord.Interaction):
     await rankedduofpp_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Show current-season ranked Solo FPP standings")
 async def rankedsolofpp(interaction: discord.Interaction):
     await rankedsolofpp_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
 async def refreshranked(interaction: discord.Interaction):
     await refreshranked_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Update the ranked report with fresh data without clearing the cache")
 async def updateranked(interaction: discord.Interaction):
     await updateranked_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
     await setrankedchannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.guild_only()
@@ -990,31 +1051,38 @@ async def setrankedchannel(interaction: discord.Interaction):
 async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
     await setrankedqueue_impl(interaction, queue)
 
+@with_defer
 @bot.tree.command(description="Show daily-reset fun-title awards + top 10 + human/bot kills, right now")
+@with_defer
 async def dailyhighlights(interaction: discord.Interaction):
     await dailyhighlights_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for the daily highlights report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
     await sethighlightschannel_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Manually trigger highlights report (for testing)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def posthighlights(interaction: discord.Interaction):
     await posthighlights_impl(interaction, pubg)
 
 
+@with_defer
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
 async def survivalstats(interaction: discord.Interaction):
     await survivalstats_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for the weekly Survival Mastery report (scheduled in UTC)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setsurvivalchannel(interaction: discord.Interaction):
     await setsurvivalchannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Set the weekly Survival Mastery report time in UTC")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(day="Day of the week", hour="0-23 UTC", minute="Quarter-hour, defaults to :00")
@@ -1040,18 +1108,21 @@ async def setsurvivaltime(
     )
 
 
+@with_defer
 @bot.tree.command(description="Set this channel for automatic PUBG server maintenance notifications")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setmaintenancechannel(interaction: discord.Interaction):
     await setmaintenancechannel_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Set this channel for scheduled maintenance notices (advance warnings)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setscheduledmaintenancechannel(interaction: discord.Interaction):
     await setscheduledmaintenancechannel_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Schedule a PUBG server maintenance notice")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(start_date="Start date (YYYY-MM-DD UTC)", start_hour="Start hour (0-23 UTC)", duration_hours="Duration in hours (e.g., 8.5)")
@@ -1059,12 +1130,14 @@ async def schedulemaintenance(interaction: discord.Interaction, start_date: str,
     await schedulemaintenance_impl(interaction, start_date, start_hour, duration_hours)
 
 
+@with_defer
 @bot.tree.command(description="Clear scheduled maintenance notice")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def clearmaintenance(interaction: discord.Interaction):
     await clearmaintenance_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Force post a maintenance status correction (down/online)")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(status="Status to post: 'down' or 'online'")
@@ -1072,10 +1145,13 @@ async def forcemaintenance(interaction: discord.Interaction, status: str):
     await forcemaintenance_impl(interaction, status)
 
 
+@with_defer
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
+@with_defer
 async def masterystats(interaction: discord.Interaction):
     await masterystats_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Check the official leaderboard for roster placements (most won't appear — top ladder only)")
 @app_commands.describe(pages="How many 500-player pages to check (default 4 = top 2000)")
 async def leaderboardstats(interaction: discord.Interaction, pages: app_commands.Range[int, 1, 10] = 4):
@@ -1100,36 +1176,43 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     await interaction.followup.send(embed=embed)
 
 
+@with_defer
 @bot.tree.command(description="Link your Discord account to a PUBG name (shows as a mention on the official leaderboard report)")
 @app_commands.describe(pubg_name="Your exact PUBG in-game name")
 async def linkme(interaction: discord.Interaction, pubg_name: str):
     await linkme_impl(interaction, pubg_name)
 
+@with_defer
 @bot.tree.command(description="Link another member's Discord account to a PUBG name on their behalf")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.describe(member="The Discord member to link", pubg_name="Their exact PUBG in-game name")
 async def linkplayer(interaction: discord.Interaction, member: discord.Member, pubg_name: str):
     await linkplayer_impl(interaction, member, pubg_name)
 
+@with_defer
 @bot.tree.command(description="Remove your Discord-to-PUBG-name link")
 @app_commands.describe(pubg_name="The PUBG name to unlink")
 async def unlinkme(interaction: discord.Interaction, pubg_name: str):
     await unlinkme_impl(interaction, pubg_name)
 
+@with_defer
 @bot.tree.command(description="Show every PUBG-name-to-Discord link for this server")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def links(interaction: discord.Interaction):
     await links_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Check the roster's recent match history for wins in all game modes")
 async def chickendinner(interaction: discord.Interaction):
     await chickendinner_impl(interaction, pubg)
 
+@with_defer
 @bot.tree.command(description="Set this channel for automatic Chicken Dinner win alerts (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
     await setchickendinnerchannel_impl(interaction)
 
+@with_defer
 @bot.tree.command(description="Toggle mention notifications for achievement awards in reports")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.choices(
@@ -1151,81 +1234,95 @@ async def pingtoggle(interaction: discord.Interaction, enabled: app_commands.Cho
     )
 
 
+@with_defer
 @bot.tree.command(description="Show 7-day trend for a tracked player")
 @app_commands.describe(player="PUBG player name", days="Number of days to analyze (default 7)")
 async def playertrend(interaction: discord.Interaction, player: str, days: app_commands.Range[int, 3, 90] = 7):
     await playertrend_impl(interaction, player, days)
 
 
+@with_defer
 @bot.tree.command(description="Compare two tracked players")
 @app_commands.describe(player1="First player name", player2="Second player name")
 async def compare(interaction: discord.Interaction, player1: str, player2: str):
     await compare_impl(interaction, player1, player2)
 
 
+@with_defer
 @bot.tree.command(description="Show comprehensive player profile with stats and trends")
 @app_commands.describe(player="PUBG player name")
 async def profile(interaction: discord.Interaction, player: str):
     await profile_impl(interaction, player)
 
 
+@with_defer
 @bot.tree.command(description="Show current season summary for the clan")
 async def season(interaction: discord.Interaction):
     await season_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Show clan-wide trend analysis over the last N days")
 @app_commands.describe(days="Number of days to analyze (default 7)")
 async def clantrend(interaction: discord.Interaction, days: app_commands.Range[int, 3, 90] = 7):
     await clantrend_impl(interaction, days)
 
 
+@with_defer
 @bot.tree.command(description="Show clan health dashboard with activity and inactivity status")
 async def rosterhealth(interaction: discord.Interaction):
     await rosterhealth_impl(interaction)
 
 
+@with_defer
 @bot.tree.command(description="Show achievements for a player or all tracked players")
 @app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
 async def achievements(interaction: discord.Interaction, player: str = None):
     await achievements_impl(interaction, player)
 
 
+@with_defer
 @bot.tree.command(description="Show current streaks for a player or all tracked players")
 @app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
 async def streaks(interaction: discord.Interaction, player: str = None):
     await streaks_impl(interaction, player)
 
 
+@with_defer
 @bot.tree.command(description="Show weekly clan awards")
 @app_commands.describe(days="Number of days to analyze (default 7)")
 async def weeklyawards(interaction: discord.Interaction, days: app_commands.Range[int, 3, 30] = 7):
     await weeklyawards_impl(interaction, days)
 
 
+@with_defer
 @bot.tree.command(description="Show weapon statistics for a player")
 @app_commands.describe(player="PUBG player name")
 async def weaponstats(interaction: discord.Interaction, player: str):
     await weaponstats_impl(interaction, player)
 
 
+@with_defer
 @bot.tree.command(description="Show clan map performance statistics")
 async def mapstats(interaction: discord.Interaction):
     await mapstats_impl(interaction, pubg)
 
 
+@with_defer
 @bot.tree.command(description="Show recent matches for a player")
 @app_commands.describe(player="PUBG player name")
 async def matches(interaction: discord.Interaction, player: str):
     await matches_impl(interaction, player)
 
 
+@with_defer
 @bot.tree.command(description="Show chemistry between two players")
 @app_commands.describe(player1="First PUBG player name", player2="Second PUBG player name")
 async def chemistry(interaction: discord.Interaction, player1: str, player2: str):
     await chemistry_impl(interaction, player1, player2)
 
 
+@with_defer
 @bot.tree.command(description="Show the best squad combination in the clan")
 async def bestsquad(interaction: discord.Interaction):
     await bestsquad_impl(interaction)
@@ -1243,6 +1340,7 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
     return is_owner or has_admin_id or has_valid_key
 
 
+@with_defer
 @bot.tree.command(description="[Admin] List all Discord servers the bot is in")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
@@ -1279,6 +1377,7 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
+@with_defer
 @bot.tree.command(description="[Admin] Reset database corruption flag")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
@@ -1404,6 +1503,7 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
+@with_defer
 @bot.tree.command(description="[Admin] Resync all Discord commands (fixes duplicates)")
 @app_commands.describe(
     secret_key="Optional admin secret key to unlock this command",
@@ -1439,6 +1539,7 @@ async def resynccommands(
         await interaction.followup.send(f"❌ Failed to resync commands: {e}")
 
 
+@with_defer
 @bot.tree.command(description="[Admin] Post feedback & suggestions prompt to a channel")
 @app_commands.describe(
     channel="Channel to post the feedback prompt in (defaults to current channel)",

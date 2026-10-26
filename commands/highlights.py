@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 async def dailyhighlights_impl(interaction, pubg):
     """Implementation of dailyhighlights command."""
-    # Interaction already deferred by safe_command_wrapper
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
     
