@@ -941,25 +941,25 @@ class PubgClient:
 
     async def get_weapon_mastery(self, player_id: str) -> dict:
         """Raw attributes from the weapon_mastery endpoint for one player."""
-        # Use cache with in-flight request deduplication (20 minute TTL)
+        # Use cache with in-flight request deduplication (24 hour TTL - mastery changes slowly)
         cache_key = self._cache._make_key("weapon_mastery", self.shard, player_id)
 
         async def fetch_weapon():
             data = await self._request(f"/shards/{self.shard}/players/{player_id}/weapon_mastery")
             return data.get("data", {}).get("attributes", {})
 
-        return await self._cache.get_or_fetch(cache_key, fetch_weapon, ttl_minutes=20)
+        return await self._cache.get_or_fetch(cache_key, fetch_weapon, ttl_minutes=1440)
 
     async def get_survival_mastery(self, player_id: str) -> dict:
         """Raw attributes from the survival_mastery endpoint for one player."""
-        # Use cache with in-flight request deduplication (20 minute TTL)
+        # Use cache with in-flight request deduplication (24 hour TTL - mastery changes slowly)
         cache_key = self._cache._make_key("survival_mastery", self.shard, player_id)
 
         async def fetch_survival():
             data = await self._request(f"/shards/{self.shard}/players/{player_id}/survival_mastery")
             return data.get("data", {}).get("attributes", {})
 
-        return await self._cache.get_or_fetch(cache_key, fetch_survival, ttl_minutes=20)
+        return await self._cache.get_or_fetch(cache_key, fetch_survival, ttl_minutes=1440)
 
     @staticmethod
     def _best_weapon_from_mastery(attrs: dict) -> dict | None:
