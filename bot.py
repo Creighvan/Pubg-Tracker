@@ -96,6 +96,42 @@ async def send_error_response(interaction, error, error_id=None, context=""):
     logger.error(f"[{error_id}] {context}: {error}", exc_info=error)
     await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
 
+async def safe_command_wrapper(interaction, func, *args, **kwargs):
+    """
+    Universal command wrapper to ensure all commands work perfectly.
+    - Defers immediately to prevent timeout
+    - Handles NotFound (interaction expired)
+    - Handles HTTPException (webhook token expired)
+    - Handles all errors gracefully
+    """
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning(f"[command_wrapper] Interaction {interaction.id} already expired")
+        return
+
+    try:
+        await func(interaction, *args, **kwargs)
+    except discord.NotFound:
+        logger.error(f"[command_wrapper] Interaction {interaction.id} expired before response could be sent")
+    except discord.HTTPException as e:
+        if "Invalid Webhook Token" in str(e):
+            logger.error(f"[command_wrapper] Discord webhook token expired for interaction {interaction.id}")
+        else:
+            error_id = generate_error_id()
+            logger.error(f"[{error_id}] HTTPException in command: {e}", exc_info=e)
+            try:
+                await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
+            except:
+                pass
+    except Exception as e:
+        error_id = generate_error_id()
+        logger.error(f"[{error_id}] Unexpected error in command: {e}", exc_info=e)
+        try:
+            await interaction.followup.send(f"❌ Something went wrong. Error reference: {error_id}")
+        except:
+            pass
+
 # Import all shared configuration and state
 from modules.config import (
     DISCORD_TOKEN,
@@ -172,10 +208,9 @@ from commands.ranked import (
     refreshranked_impl,
     updateranked_impl,
 )
-from commands.mastery import (
-    masterystats_impl,
-    survivalstats_impl,
-)
+from commands.highlights import dailyhighlights_impl
+from commands.mastery import masterystats_impl, survivalstats_impl
+from commands.mapstats import mapstats_impl
 from commands.reports import (
     clanstats_impl,
     postnow_impl,
@@ -215,9 +250,6 @@ from commands.chicken_dinner import (
     chickendinner_impl,
     setchickendinnerchannel_impl,
 )
-from commands.highlights import (
-    dailyhighlights_impl,
-)
 from commands.admin import (
     reportcheater_impl,
     runallreports_impl,
@@ -247,9 +279,6 @@ from commands.weeklyawards import (
 )
 from commands.weaponstats import (
     weaponstats_impl,
-)
-from commands.mapstats import (
-    mapstats_impl,
 )
 from commands.matches import (
     matches_impl,

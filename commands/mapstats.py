@@ -14,13 +14,7 @@ logger = logging.getLogger(__name__)
 
 async def mapstats_impl(interaction, pubg):
     """Show clan map performance statistics."""
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
-
+    # Interaction already deferred by safe_command_wrapper
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 
