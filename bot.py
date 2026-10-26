@@ -98,7 +98,7 @@ async def send_error_response(interaction, error, error_id=None, context=""):
 
 def with_defer(func):
     """Decorator to defer interaction before calling the function."""
-    async def wrapper(interaction, *args, **kwargs):
+    async def wrapper(interaction: discord.Interaction, *args, **kwargs):
         try:
             await interaction.response.defer()
         except discord.NotFound:
