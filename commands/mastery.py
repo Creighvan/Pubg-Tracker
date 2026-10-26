@@ -46,7 +46,7 @@ async def safe_command_wrapper(interaction, func, *args, **kwargs):
 
 async def masterystats_impl(interaction, pubg):
     """Implementation of masterystats command."""
-    await safe_command_wrapper(interaction, _masterystats_impl, pubg)
+    await _masterystats_impl(interaction, pubg)
 
 async def _masterystats_impl(interaction, pubg):
     guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -67,7 +67,7 @@ async def _masterystats_impl(interaction, pubg):
 
 async def survivalstats_impl(interaction, pubg):
     """Implementation of survivalstats command."""
-    await safe_command_wrapper(interaction, _survivalstats_impl, pubg)
+    await _survivalstats_impl(interaction, pubg)
 
 async def _survivalstats_impl(interaction, pubg):
     guild_cfg = await storage.get_guild(interaction.guild_id)
