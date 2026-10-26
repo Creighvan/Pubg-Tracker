@@ -1082,11 +1082,22 @@ async def forcemaintenance(interaction: discord.Interaction, status: str):
 
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
 async def masterystats(interaction: discord.Interaction):
+    await interaction.response.send_message("⏳ Processing mastery data for 77 players... This takes ~35 minutes. Results will be posted when complete.", ephemeral=True)
+    
+    # Run in background to avoid timeout
+    asyncio.create_task(_run_masterystats_background(interaction.channel_id, interaction.guild_id))
+
+async def _run_masterystats_background(channel_id, guild_id):
+    """Background task to process mastery stats and post results."""
     try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        return
-    await masterystats_impl(interaction, pubg)
+        result = await fetch_mastery_report(guild_id, None)
+        if result:
+            embed, _ = result
+            channel = bot.get_channel(channel_id)
+            if channel:
+                await channel.send(embed=embed)
+    except Exception as e:
+        logger.error(f"[masterystats_background] Error: {e}", exc_info=e)
 
 @bot.tree.command(description="Check the official leaderboard for roster placements (most won't appear — top ladder only)")
 @app_commands.describe(pages="How many 500-player pages to check (default 4 = top 2000)")
