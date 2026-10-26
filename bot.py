@@ -181,6 +181,7 @@ from commands.reports import (
     leaderboard_impl,
     lastactive_impl,
 )
+from modules.reports import fetch_mastery_report
 from commands.settings import (
     setgamemode_impl,
     setchannel_impl,
