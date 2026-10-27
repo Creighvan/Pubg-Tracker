@@ -489,9 +489,9 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
     for emoji, label, winner_name, val_str in _compute_award_winners(active_players):
         embed.add_field(name=f"{emoji} {label}", value=f"**{winner_name}** — {val_str}", inline=True)
 
-    # Top 10 overall, ranked by best single-match kills, with human/bot kill split
+    # Top 5 overall, ranked by best single-match kills, with human/bot kill split
     # Sort players by best match kills (highest first)
-    top_players = sorted(active_players, key=lambda p: p["daily"].get("best_match_kills", p["daily"]["kills"]), reverse=True)[:10]
+    top_players = sorted(active_players, key=lambda p: p["daily"].get("best_match_kills", p["daily"]["kills"]), reverse=True)[:5]
     
     lines = []
     for i, p in enumerate(top_players, start=1):
@@ -508,7 +508,7 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
     # Discord embed field values must be 1024 characters or fewer
     if len(top_10_value) > 1024:
         top_10_value = top_10_value[:1020] + "..."
-    embed.add_field(name=get_translation(lang, "top_10"), value=top_10_value, inline=False)
+    embed.add_field(name=get_translation(lang, "top_5"), value=top_10_value, inline=False)
 
     if not_found:
         not_found_value = ", ".join(not_found[:15]) + (" ..." if len(not_found) > 15 else "")
