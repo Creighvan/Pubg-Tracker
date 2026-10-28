@@ -60,6 +60,8 @@ _DEFAULT_GUILD = {
     "clan_name": None,
     "pubg_clan_name": None,  # exact PUBG clan name used by the clan-level report
     "pubg_clan_id": None,  # official clan ID, resolved from a clan member
+    "setup_guide_sent_at": None,  # ISO timestamp: first-run setup guide was delivered (never sent twice)
+    "setup_guide_failed_at": None,  # ISO timestamp of the last failed delivery (retried after 7 days)
     "language": "en",  # preferred language code (en, zh, hi, es, ar, fr, bn, pt, id, ur)
     "clan_channel_id": None,  # destination for the weekly clan-level report
     "clan_level_enabled": True,

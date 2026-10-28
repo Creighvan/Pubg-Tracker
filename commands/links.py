@@ -45,7 +45,7 @@ async def linkplayer_impl(interaction, member, pubg_name):
         guild_cfg["player_links"] = guild_cfg.get("player_links", {})
         guild_cfg["player_links"][pubg_name] = member.id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "link_player_success").format(member=member.mention, pubg_name=pubg_name))
+    await interaction.followup.send(translations.get_translation(lang, "link_player_success").format(player=pubg_name, discord_mention=member.mention))
 
 
 async def unlinkme_impl(interaction, pubg_name):
@@ -71,7 +71,7 @@ async def unlinkme_impl(interaction, pubg_name):
     if removed:
         await interaction.followup.send(translations.get_translation(lang, "unlink_success").format(pubg_name=pubg_name))
     else:
-        await interaction.followup.send(translations.get_translation(lang, "unlink_not_found").format(pubg_name=pubg_name), ephemeral=True)
+        await interaction.followup.send(translations.get_translation(lang, "unlink_not_found").format(discord_mention=interaction.user.mention), ephemeral=True)
 
 
 async def links_impl(interaction):

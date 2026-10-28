@@ -30,7 +30,7 @@ async def clanstats_impl(interaction, pubg, game_mode=None):
     try:
         result = await fetch_clan_report(interaction.guild_id, None, game_mode=mode)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:
@@ -66,7 +66,7 @@ async def leaderboard_impl(interaction, pubg, sort_by):
     try:
         players, not_found = await pubg.get_players_and_stats(guild_cfg["players"], game_mode=guild_cfg["game_mode"])
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     ranked = sorted(players, key=lambda p: p["stats"].get(stat_key, 0), reverse=True)
@@ -99,7 +99,7 @@ async def lastactive_impl(interaction, pubg):
     try:
         result = await fetch_last_active_report(interaction.guild_id, None)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:

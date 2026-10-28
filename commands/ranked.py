@@ -6,6 +6,7 @@ import logging
 import storage
 import translations
 from pubg_api import PubgApiError
+from modules.reports import fetch_ranked_report
 import discord
 
 logger = logging.getLogger(__name__)
@@ -92,9 +93,9 @@ async def _run_ranked_command_impl(interaction, pubg, mode, mode_label):
     lang = guild_cfg.get("language", "en")
     
     try:
-        result = await pubg.get_ranked_report(interaction.guild_id, mode)
+        result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name, mode)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:

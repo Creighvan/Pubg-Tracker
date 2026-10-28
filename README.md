@@ -331,6 +331,7 @@ No manual match recording is required — historical data accumulates in the bac
 | `/setclanchannel` | Set the channel for the weekly clan-level report |
 | `/setclantime <day> <hour> [minute]` | Schedule the clan-level report once a week, UTC time |
 | `/help` | Get assistance and the official Discord support-server link |
+| `/setupguide` | Show the quick-start guide and a checklist of what is already configured (only you can see it) |
 | `/reportstatus` | Show enabled automatic reports, destination channels, schedules, and next run times |
 | `/reporttoggle <report> <on/off>` | Administrator: turn a scheduled report on or off without clearing its settings |
 | `/setstatuschannel` | Set this channel to show live bot status — updates only when something happens, never on a timer |
@@ -363,6 +364,15 @@ No manual match recording is required — historical data accumulates in the bac
 | `/setauditchannel` | **Admin**: Set a custom audit log channel for this server (overrides central audit server) |
 | `/clearauditchannel` | **Admin**: Remove custom audit channel and use central audit server |
 | `/showauditconfig` | **Admin**: Show current audit logging configuration for this server |
+
+### First-run setup guide
+
+When the bot joins a server, and once at startup for any server that has the bot but was never set up (no players, no report channels, no clan), it posts a short getting-started guide. It goes to the server's system channel, or the best public channel it can write in, and falls back to a DM to the server owner.
+
+- Each server is messaged **once**. Servers that configured anything are never messaged.
+- A server the bot cannot reach is retried at most once every 7 days.
+- `SETUP_GUIDE_ENABLED=false` in `.env` turns it all off. `SETUP_GUIDE_SWEEP_EXISTING=false` keeps the message for new joins but skips the startup sweep of existing servers.
+- `/setupguide` shows the guide (plus a progress checklist) to the person who runs it, at any time.
 
 ### Historical Analytics (requires accumulated data)
 

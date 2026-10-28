@@ -21,7 +21,7 @@ async def dailyhighlights_impl(interaction, pubg):
         # Full telemetry processing is very slow - 2+ hours for 77 players
         result = await fetch_highlights_report(interaction.guild_id, None, hours=6, max_matches_checked=20)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:

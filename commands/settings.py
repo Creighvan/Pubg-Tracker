@@ -103,7 +103,7 @@ async def setactivitychannel_impl(interaction):
         guild_cfg["last_activity_message_id"] = None
     await storage.modify_guild(interaction.guild_id, modifier)
     
-    await interaction.followup.send(translations.get_translation(lang, "activity_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "activity_channel_set", channel=interaction.channel.mention))
 
 
 async def setrankedchannel_impl(interaction):
@@ -122,7 +122,7 @@ async def setrankedchannel_impl(interaction):
         guild_cfg["ranked_channel_id"] = interaction.channel_id
         guild_cfg["ranked_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "ranked_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "ranked_channel_set", channel=interaction.channel.mention))
 
 
 async def setrankedqueue_impl(interaction, queue):
@@ -179,7 +179,7 @@ async def posthighlights_impl(interaction, pubg):
         # Use same parameters as scheduled version
         result = await fetch_highlights_report(interaction.guild_id, None, hours=24, max_matches_checked=50)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:
@@ -205,7 +205,7 @@ async def setsurvivalchannel_impl(interaction):
         guild_cfg["survival_channel_id"] = interaction.channel_id
         guild_cfg["survival_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "survival_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "survival_channel_set", channel=interaction.channel.mention))
 
 
 async def setsurvivaltime_impl(interaction, day, hour, minute):
@@ -379,18 +379,15 @@ async def setstatuschannel_impl(interaction):
     def modifier(guild_cfg):
         guild_cfg["status_channel_id"] = interaction.channel_id
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "status_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "status_channel_set", channel=interaction.channel.mention))
 
 
 async def setauditchannel_impl(interaction, admin_ids):
     """Implementation of setauditchannel command."""
     # User is already authorized by the decorator check
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
+    # The command wrapper in bot.py already deferred (ephemeral); only defer if called directly
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
 
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -399,7 +396,7 @@ async def setauditchannel_impl(interaction, admin_ids):
         def modifier(guild_cfg):
             guild_cfg["audit_channel_id"] = interaction.channel_id
         await storage.modify_guild(interaction.guild_id, modifier)
-        await interaction.followup.send(translations.get_translation(lang, "audit_channel_set"))
+        await interaction.followup.send(translations.get_translation(lang, "audit_channel_set", channel=interaction.channel.mention))
     except Exception as e:
         logger.error(f"Error in setauditchannel_impl: {e}", exc_info=True)
         await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
@@ -408,12 +405,9 @@ async def setauditchannel_impl(interaction, admin_ids):
 async def clearauditchannel_impl(interaction, admin_ids):
     """Implementation of clearauditchannel command."""
     # User is already authorized by the decorator check
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
+    # The command wrapper in bot.py already deferred (ephemeral); only defer if called directly
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
 
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -431,12 +425,9 @@ async def clearauditchannel_impl(interaction, admin_ids):
 async def showauditconfig_impl(interaction, admin_ids):
     """Implementation of showauditconfig command."""
     # User is already authorized by the decorator check
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
+    # The command wrapper in bot.py already deferred (ephemeral); only defer if called directly
+    if not interaction.response.is_done():
+        await interaction.response.defer(ephemeral=True)
 
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
@@ -556,7 +547,7 @@ async def reportstatus_impl(interaction):
             next_run = _next_daily_report(guild_cfg.get("digest_hour_utc"), guild_cfg.get("digest_minute_utc", 0))
             embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
         else:
-            next_run = _next_interval_report(guild_cfg.get("post_interval_hours", 6))
+            next_run = _next_interval_report(guild_cfg.get("post_interval_hours", 6), guild_cfg.get("last_post_at"))
             embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
     else:
         embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=translations.get_translation(lang, "disabled"), inline=False)

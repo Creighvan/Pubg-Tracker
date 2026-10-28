@@ -55,7 +55,7 @@ async def _masterystats_impl(interaction, pubg):
     try:
         result = await fetch_mastery_report(interaction.guild_id, None)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
 
     if result:
@@ -76,7 +76,7 @@ async def _survivalstats_impl(interaction, pubg):
     try:
         result = await fetch_survival_mastery_report(interaction.guild_id, None)
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
 
     if result:

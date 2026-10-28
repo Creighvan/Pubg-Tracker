@@ -14,7 +14,9 @@ logger = logging.getLogger(__name__)
 
 async def mapstats_impl(interaction, pubg):
     """Show clan map performance statistics."""
-    # Interaction already deferred by safe_command_wrapper
+        # No wrapper defers this command, so acknowledge here before any storage/history work
+    if not interaction.response.is_done():
+        await interaction.response.defer()
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 

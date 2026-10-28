@@ -173,7 +173,7 @@ from commands.ranked import (
     updateranked_impl,
 )
 from commands.highlights import dailyhighlights_impl
-from commands.mastery import masterystats_impl, survivalstats_impl
+from commands.mastery import survivalstats_impl
 from commands.mapstats import mapstats_impl
 from commands.reports import (
     clanstats_impl,
@@ -532,6 +532,13 @@ async def on_ready():
     # Wire up the PUBG rate limit callback
     pubg.on_rate_limit_hit = lambda delay: _record_status_event(f"⏳ PUBG API rate-limited us — pausing {delay:.0f}s then retrying")
 
+    # One-time setup-guide sweep: servers that installed the bot but never configured it
+    try:
+        from modules.onboarding import start_setup_guide_sweep
+        start_setup_guide_sweep(bot)
+    except Exception as e:
+        logger.warning(f"[on_ready] Failed to start setup guide sweep: {e}", exc_info=True)
+
 
 @bot.event
 async def on_disconnect():
@@ -546,6 +553,14 @@ async def on_resumed():
 @bot.event
 async def on_guild_join(guild: discord.Guild):
     """Make commands available immediately when the bot is invited somewhere new."""
+    # First-run setup guide goes out first so a failure in the status/audit calls below cannot skip it.
+    # Sent once per server and never raises (see modules/onboarding.py).
+    try:
+        from modules.onboarding import send_setup_guide
+        await send_setup_guide(bot, guild)
+    except Exception as e:
+        logger.warning(f"[on_guild_join] setup guide failed for {guild.id}: {e}", exc_info=True)
+
     await _record_status_event(f"Joined server: {guild.name}")
     await send_audit_log(
         guild.id,
@@ -747,6 +762,11 @@ async def clanlevel(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setclanchannel(interaction: discord.Interaction):
     await setclanchannel_impl(interaction, send_audit_log)
+
+@bot.tree.command(description="Show the quick-start setup guide and what is already configured for this server")
+async def setupguide(interaction: discord.Interaction):
+    from modules.onboarding import setupguide_impl
+    await setupguide_impl(interaction)
 
 @bot.tree.command(description="Get help with PUBG Tracker and join the official support server")
 async def help(interaction: discord.Interaction):
@@ -1308,10 +1328,11 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
 @app_commands.default_permissions(administrator=True)
 async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
     if not await _is_admin_authorized(interaction, secret_key):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
         return
 
     storage.reset_corruption_state()
-    await interaction.followup.send("✅ Database corruption flag has been reset. Writes are now enabled.", ephemeral=True)
+    await interaction.response.send_message("✅ Database corruption flag has been reset. Writes are now enabled.", ephemeral=True)
 
 
 # build_feedback_prompt_embed - moved to bot/embeds.py

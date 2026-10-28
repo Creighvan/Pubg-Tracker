@@ -189,7 +189,7 @@ async def rosterhealth_impl(interaction: discord.Interaction):
         if snapshots:
             # Check if they have recent snapshots
             last_snapshot = snapshots[-1]["date"]
-            days_since_snapshot = (datetime.now(timezone.utc) - datetime.strptime(last_snapshot, "%Y-%m-%d")).days
+            days_since_snapshot = (datetime.now(timezone.utc) - datetime.strptime(last_snapshot, "%Y-%m-%d").replace(tzinfo=timezone.utc)).days
 
             if days_since_snapshot <= 7:
                 active.append(player)

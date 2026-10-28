@@ -56,7 +56,7 @@ async def chickendinner_impl(interaction, pubg):
         await interaction.followup.send(embed=embed)
         
     except PubgApiError as e:
-        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error')}: {str(e)}")
+        await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
 
 
@@ -76,7 +76,7 @@ async def setchickendinnerchannel_impl(interaction):
         guild_cfg["chicken_dinner_channel_id"] = interaction.channel_id
         guild_cfg["chicken_dinner_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
-    await interaction.followup.send(translations.get_translation(lang, "chicken_dinner_channel_set"))
+    await interaction.followup.send(translations.get_translation(lang, "chicken_dinner_channel_set", channel=interaction.channel.mention))
 
 
 async def pingtoggle_impl(interaction):
