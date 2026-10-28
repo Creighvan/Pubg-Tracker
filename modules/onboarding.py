@@ -173,12 +173,27 @@ def candidate_channels(client: discord.Client, guild: discord.Guild) -> list:
         except Exception:  # noqa: BLE001
             return False
 
+    def is_audit_log(ch) -> bool:
+        """Check if this channel is configured as the audit log channel."""
+        cfg = None
+        try:
+            import storage
+            # Async call not available here, so we'll check on the send side
+            return False
+        except:
+            return False
+
     ranked = []
     sys_ch = getattr(guild, "system_channel", None)
+    audit_ch = None  # Will be checked during send
+    
     for ch in getattr(guild, "text_channels", []):
         if not can_post(ch):
             continue
         name = (ch.name or "").lower()
+        # Skip audit log channels (common names)
+        if any(word in name for word in ("audit", "logs", "log", "admin-log", "mod-log")):
+            continue
         score = (
             0 if (sys_ch is not None and ch.id == sys_ch.id) else 1,
             0 if is_public(ch) else 1,
@@ -239,8 +254,16 @@ async def send_setup_guide(client: discord.Client, guild: discord.Guild) -> str:
 
     embed = build_setup_embed(guild.name)
     none = discord.AllowedMentions.none()
+    
+    # Get configured audit channel to exclude it
+    cfg = await storage.get_guild(guild.id)
+    audit_channel_id = cfg.get("audit_channel_id") if cfg else None
 
     for ch in candidate_channels(client, guild)[:3]:
+        # Skip the configured audit log channel
+        if audit_channel_id and ch.id == audit_channel_id:
+            logger.info("[onboarding] skipping audit channel #%s in %s", ch.name, guild.name)
+            continue
         try:
             await ch.send(embed=embed, allowed_mentions=none)
             logger.info("[onboarding] sent setup guide to #%s in %s (%s)", ch.name, guild.name, guild.id)
