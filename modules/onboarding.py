@@ -22,6 +22,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import re
 from collections import Counter
 from datetime import datetime, timedelta, timezone
 
@@ -38,6 +39,8 @@ FAILED_KEY = "setup_guide_failed_at"
 RETRY_AFTER = timedelta(days=7)
 SEND_DELAY_SECONDS = 2.0  # pause between servers during the sweep (be polite to Discord's rate limits)
 _PREFERRED_NAMES = ("bot", "command", "general", "welcome", "chat", "lobby")
+_LOG_WORDS = {"audit", "log", "logs"}
+_LOG_NAMES = {"modlog", "modlogs", "adminlog", "adminlogs", "auditlog", "auditlogs"}
 
 SENT_CHANNEL = "sent_channel"
 SENT_DM = "sent_dm"
@@ -173,26 +176,15 @@ def candidate_channels(client: discord.Client, guild: discord.Guild) -> list:
         except Exception:  # noqa: BLE001
             return False
 
-    def is_audit_log(ch) -> bool:
-        """Check if this channel is configured as the audit log channel."""
-        cfg = None
-        try:
-            import storage
-            # Async call not available here, so we'll check on the send side
-            return False
-        except:
-            return False
-
     ranked = []
     sys_ch = getattr(guild, "system_channel", None)
-    audit_ch = None  # Will be checked during send
-    
+
     for ch in getattr(guild, "text_channels", []):
         if not can_post(ch):
             continue
         name = (ch.name or "").lower()
-        # Skip audit log channels (common names)
-        if any(word in name for word in ("audit", "logs", "log", "admin-log", "mod-log")):
+        # Skip log-style channels. Match whole words only, so "technology" or "catalog" are not excluded.
+        if _LOG_WORDS & set(re.split(r"[^a-z0-9]+", name)) or name in _LOG_NAMES:
             continue
         score = (
             0 if (sys_ch is not None and ch.id == sys_ch.id) else 1,

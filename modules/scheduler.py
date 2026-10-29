@@ -420,7 +420,7 @@ async def auto_highlights():
             try:
                 async with get_scheduler_lock():
                     # Scheduled version uses full 24h window (runs daily at 02:00 UTC)
-                    result = await fetch_highlights_report(guild_id, None, hours=24, max_matches_checked=50)
+                    result = await fetch_highlights_report(guild_id, None, hours=24, max_matches_checked=50, live=True)
                 if result:
                     embed, players = result
                     message_id = guild_cfg.get("highlights_message_id")

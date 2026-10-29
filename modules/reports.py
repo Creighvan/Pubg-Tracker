@@ -190,7 +190,7 @@ async def fetch_ranked_report(guild_id: int, guild_name: str | None = None, game
     return embed, players
 
 
-async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, hours: int = 24, max_matches_checked: int = None) -> tuple[discord.Embed, list[dict]] | None:
+async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, hours: int = 24, max_matches_checked: int = None, live: bool = False) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch daily highlights report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
@@ -208,7 +208,7 @@ async def fetch_highlights_report(guild_id: int, guild_name: str | None = None, 
             )
             return embed, []
         raise
-    embed = build_highlights_embed(guild_name, guild_cfg, players, not_found, hours)
+    embed = build_highlights_embed(guild_name, guild_cfg, players, not_found, hours, live=live)
     return embed, players
 
 

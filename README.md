@@ -351,7 +351,7 @@ No manual match recording is required — historical data accumulates in the bac
 | `/updateranked` | Update the ranked report with fresh data without clearing the cache |
 | `/setrankedchannel` | Set channel for the daily ranked report (posts immediately, then updates at 04:30 UTC) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
-| `/dailyhighlights` | Show daily-reset fun-title awards + top 10 + human/bot kills, right now |
+| `/dailyhighlights` | Show fun-title awards + top 5 + human/bot kills for the last 6 hours, right now (the scheduled report covers the last 24 hours) |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
 | `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (requires Manage Server) |
@@ -518,14 +518,15 @@ expire, and doesn't require you to leave your own PC on.
 
 ## Daily Highlights Awards
 
-The `/dailyhighlights` command includes fun achievement awards based on matches played since the daily reset (02:00 UTC):
+The highlights report gives fun achievement awards based on matches played in a **rolling window ending when the report is generated**: the last 24 hours for the scheduled report (posted at 02:00 UTC and edited in place) and `/postnow`, and the last 6 hours for the quicker `/dailyhighlights`. The exact window is shown in the report as local timestamps.
 
 - 🌳 **Tactical Shrub** — Awarded to the player with the best placement
   in a single match with 0 kills (e.g., placed #5 with 0 kills)
-- Other awards for top 10 placements, human vs bot kills, and achievement stats
+- Other awards for the top 5 players by best single match, human vs bot kills, and achievement stats
 
 **Important changes:**
-- The report now checks **all matches since 02:00 UTC daily reset** (not just the last 24 hours)
+- Only **standard matches** count: solo, duo and squad (TPP/FPP, casual, ranked and esports). Custom, event, training, arcade, Team Deathmatch, War, Zombie and Lab matches are skipped, because their telemetry holds many kill events that PUBG's stats do not count.
+- Human and bot kills come from match telemetry but can never exceed the kills PUBG records for that match; if they disagree the PUBG stat wins.
 - It reviews **ALL matches for each player** in the daily window to find the **best single-match stats** (highest kills, damage, etc.)
 - Best single-match stats are displayed instead of aggregated totals
 - Supports **10 languages** with automatic detection: English, Mandarin Chinese, Hindi, Spanish, Arabic, French, Bengali, Portuguese, Indonesian, and Urdu

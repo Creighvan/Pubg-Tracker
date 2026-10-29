@@ -284,3 +284,11 @@ async def test_setupguide_command_is_ephemeral_and_shows_progress():
     it = SimpleNamespace(guild_id=31, guild=SimpleNamespace(name="S"), response=SimpleNamespace(send_message=send_message))
     await onboarding.setupguide_impl(it)
     assert sent["ephemeral"] is True and "✅ Players added (1)" in str(sent["embed"].to_dict())
+
+
+def test_log_style_channels_are_skipped_but_lookalike_words_are_not():
+    g = FakeGuild(1, [FakeChannel(1, "mod-logs", position=0), FakeChannel(2, "audit_log", position=1),
+                      FakeChannel(3, "auditlog", position=2), FakeChannel(4, "technology", position=3),
+                      FakeChannel(5, "catalog", position=4)])
+    names = [c.name for c in onboarding.candidate_channels(FakeClient(), g)]
+    assert names == ["technology", "catalog"]

@@ -453,7 +453,21 @@ def _compute_award_winners(active_players: list[dict]) -> list[tuple[str, str, s
     return winners
 
 
-def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int) -> discord.Embed:
+def _highlights_window_line(players: list[dict]) -> str:
+    """Exact window the numbers cover, as Discord timestamps (rendered in each viewer's own timezone)."""
+    for p in players:
+        d = p.get("daily") or {}
+        if d.get("window_start") and d.get("window_end"):
+            try:
+                start = int(datetime.fromisoformat(d["window_start"]).timestamp())
+                end = int(datetime.fromisoformat(d["window_end"]).timestamp())
+            except (ValueError, TypeError):
+                return ""
+            return f"\n🕒 <t:{start}:f> → <t:{end}:f>"
+    return ""
+
+
+def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], hours: int, live: bool = False) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
 
@@ -464,8 +478,9 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
         title=f"{title} — {get_translation(lang, 'daily_highlights')} ({get_translation(lang, 'fun_titles')})",
         description=get_translation(lang, "highlights_description").format(
             count=len(active_players),
-            unit=get_translation(lang, "players" if len(active_players) != 1 else "player")
-        ),
+            unit=get_translation(lang, "unit_players" if len(active_players) != 1 else "unit_player"),
+            hours=hours,
+        ) + _highlights_window_line(players),
         color=discord.Color.gold(),
         timestamp=datetime.now(timezone.utc),
     )
@@ -478,7 +493,7 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
                 name=get_translation(lang, "no_recent_matches_available"),
                 value=get_translation(lang, "no_recent_matches_description").format(
                     count=expired_count,
-                    unit=get_translation(lang, "players" if expired_count != 1 else "player")
+                    unit=get_translation(lang, "unit_players" if expired_count != 1 else "unit_player")
                 ),
                 inline=False
             )
@@ -502,7 +517,7 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
         lines.append(
             f"{i}. **{p['name']}** — {best_kills} {get_translation(lang, 'kills_best_match')}, {best_damage:,.0f} {get_translation(lang, 'dmg_best_match')}, "
             f"{d['human_kills']} {get_translation(lang, 'human_bot_split').format(count=d['bot_kills'])}, {d['wins']}W, "
-            f"{get_translation(lang, 'matches_count').format(count=d['matches'], unit=get_translation(lang, 'matches' if d['matches'] != 1 else 'match'))}"
+            f"{get_translation(lang, 'matches_count').format(count=d['matches'], unit=get_translation(lang, 'unit_matches' if d['matches'] != 1 else 'unit_match'))}"
         )
     top_10_value = "\n".join(lines)
     # Discord embed field values must be 1024 characters or fewer
@@ -520,7 +535,8 @@ def build_highlights_embed(guild_name: str | None, guild_cfg: dict, players: lis
             value=not_found_value,
             inline=False,
         )
-    embed.set_footer(text=get_translation(lang, "highlights_footer"))
+    embed.set_footer(text=get_translation(lang, "highlights_footer") if live
+                     else get_translation(lang, "highlights_footer_ondemand").format(hours=hours))
     return embed
 
 

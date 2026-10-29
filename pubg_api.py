@@ -223,6 +223,23 @@ LANGUAGE_NAMES = {
 
 __all__ = ["PubgClient", "PubgApiError"]
 
+# Match types / game modes that are not normal battle royale games. Their telemetry can contain hundreds of
+# kill events per player (respawn modes, zombies, training bots) that the stats endpoint does not count, which
+# wrecks per-day totals such as "human kills". Daily highlights only count standard matches.
+NON_STANDARD_MATCH_TYPES = {"arcade", "custom", "event", "training"}
+NON_STANDARD_MODE_PREFIXES = ("tdm", "war", "zombie", "lab", "ibr")
+
+
+def is_standard_match(details: dict) -> bool:
+    """True for normal solo/duo/squad (casual, ranked, esports) battle royale matches."""
+    if details.get("is_custom"):
+        return False
+    if (details.get("match_type") or "").lower() in NON_STANDARD_MATCH_TYPES:
+        return False
+    mode = (details.get("game_mode") or "").lower()
+    return not mode.startswith(NON_STANDARD_MODE_PREFIXES) and "zombie" not in mode
+
+
 class PubgClient:
     def __init__(self, api_key: str, shard: str = "steam"):
         self.api_key = api_key
@@ -705,6 +722,9 @@ class PubgClient:
             "participants": participants,
             "telemetry_url": telemetry_url,
             "map_name": _friendly_map_name(attrs.get("mapName")),
+            "game_mode": attrs.get("gameMode") or "",
+            "match_type": attrs.get("matchType") or "",
+            "is_custom": bool(attrs.get("isCustomMatch")),
         }
 
     async def get_daily_activity_report(
@@ -742,7 +762,8 @@ class PubgClient:
         # Use rolling 24-hour window from the provided hours parameter
         # Default is 24 hours from now, not the PUBG daily reset
         from datetime import datetime, timezone, timedelta
-        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        window_end = datetime.now(timezone.utc)
+        cutoff = window_end - timedelta(hours=hours)
 
         found: list[dict] = []
         not_found: list[str] = []
@@ -802,6 +823,8 @@ class PubgClient:
                     if not killer_id:
                         continue
                     victim_id = (e.get("victim") or {}).get("accountId") or ""
+                    if not victim_id:
+                        continue  # NPC / zombie / environment victim: not a human kill
                     counts = tally.setdefault(killer_id, [0, 0, 0])
                     if victim_id == killer_id:
                         counts[2] += 1  # self-kill
@@ -835,6 +858,8 @@ class PubgClient:
                 "road_kills": 0, "roadKills": 0, "swim_distance": 0.0, "weapons_acquired": 0,
                 "best_zero_kill_placement": None, "loot_ratio": 0.0,
                 "longestKill": 0,
+                "window_start": cutoff.isoformat(), "window_end": window_end.isoformat(),
+                "skipped_nonstandard": 0,
             }
             # Track best single-match stats
             best_stats = {
@@ -863,6 +888,9 @@ class PubgClient:
                     continue
                 if created_dt < cutoff:
                     break  # newest-first assumption: nothing after this is in-window either
+                if not is_standard_match(details):
+                    totals["skipped_nonstandard"] += 1
+                    continue
                 stats = details["participants"].get(p["id"])
                 if not stats:
                     continue
@@ -912,6 +940,13 @@ class PubgClient:
 
                 breakdown = await get_kill_breakdown(match_id, details.get("telemetry_url"))
                 human, bot, self_kills = breakdown.get(p["id"], (0, 0, 0))
+                # Telemetry and the stats endpoint describe the same kills, so the split can never exceed the
+                # participant's kill count for that match. If it does, trust the stats endpoint and clamp.
+                if human + bot > match_kills:
+                    logger.warning(f"[highlights] telemetry/stats mismatch in {match_id} for {p['name']}: "
+                                   f"telemetry {human}h+{bot}b vs stats {match_kills} kills; clamping")
+                    human = min(human, match_kills)
+                    bot = min(bot, match_kills - human)
                 totals["human_kills"] += human
                 totals["bot_kills"] += bot
                 totals["self_kills"] += self_kills
