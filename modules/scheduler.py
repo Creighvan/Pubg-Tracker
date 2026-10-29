@@ -643,10 +643,17 @@ async def auto_chicken_dinner():
             guilds_skipped += 1
             logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
+        # Try to get channel from cache
         channel = _get_bot().get_channel(channel_id)
         if channel is None:
+            # Try to get it from the guild's channel list
+            guild = _get_bot().get_guild(guild_id)
+            if guild:
+                channel = guild.get_channel(channel_id)
+        
+        if channel is None:
             guilds_skipped += 1
-            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found in cache, skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
 
         # No daily reset filter - show all recent wins
