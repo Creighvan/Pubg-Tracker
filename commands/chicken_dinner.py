@@ -44,13 +44,17 @@ async def chickendinner_impl(interaction, pubg):
         )
         
         for win in wins[:10]:  # Show up to 10 most recent
-            player_name = win.get("name", "Unknown")
-            match_time = win.get("match_time", "Unknown time")
-            embed.add_field(
-                name=player_name,
-                value=f"🏆 {match_time}",
-                inline=False
-            )
+            # get_squad_wins returns: {"match_id", "map_name", "created_at", "players": [{"name", "kills", "winPlace"}]}
+            players = win.get("players", [])
+            if players:
+                player_names = ", ".join(p["name"] for p in players)
+                match_time = win.get("created_at", "Unknown time")
+                map_name = win.get("map_name", "Unknown map")
+                embed.add_field(
+                    name=player_names,
+                    value=f"🏆 {map_name} • {match_time}",
+                    inline=False
+                )
         
         embed.set_footer(text=f"Updates every 15 minutes • {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}")
         await interaction.followup.send(embed=embed)
