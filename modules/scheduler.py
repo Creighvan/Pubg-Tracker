@@ -648,6 +648,12 @@ async def auto_chicken_dinner():
         if channel is None:
             # Try to get it from the guild's channel list
             guild = _get_bot().get_guild(guild_id)
+            if guild is None:
+                # If get_guild returns None, try finding it in the guilds list
+                for g in _get_bot().guilds:
+                    if g.id == guild_id:
+                        guild = g
+                        break
             if guild:
                 channel = guild.get_channel(channel_id)
                 logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Tried guild.get_channel for {channel_id}, result: {channel is not None}")
