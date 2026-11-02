@@ -112,25 +112,36 @@ def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     bot = _get_bot()
     
+    # Debug: Log available guilds
+    available_guilds = [g.id for g in bot.guilds]
+    logger.info(f"[_get_channel_cached] Looking for channel {channel_id} in guild {guild_id}. Available guilds: {available_guilds[:5]}... (total {len(available_guilds)})")
+    
     # Method 1: Try bot.get_channel()
     channel = bot.get_channel(channel_id)
     if channel is not None:
+        logger.info(f"[_get_channel_cached] Found channel via bot.get_channel()")
         return channel
     
     # Method 2: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
+    logger.info(f"[_get_channel_cached] get_guild({guild_id}) returned: {guild is not None}")
     if guild is None and guild_id:
         # Method 3: Iterate through bot.guilds to find the guild
+        logger.info(f"[_get_channel_cached] Iterating through {len(bot.guilds)} guilds to find {guild_id}")
         for g in bot.guilds:
+            logger.info(f"[_get_channel_cached] Checking guild {g.id} == {guild_id}: {g.id == guild_id}")
             if g.id == guild_id:
                 guild = g
+                logger.info(f"[_get_channel_cached] Found guild in iteration")
                 break
     
     if guild:
         channel = guild.get_channel(channel_id)
+        logger.info(f"[_get_channel_cached] guild.get_channel({channel_id}) returned: {channel is not None}")
         if channel is not None:
             return channel
     
+    logger.warning(f"[_get_channel_cached] Failed to find channel {channel_id} for guild {guild_id}")
     return None
 
 
