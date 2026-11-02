@@ -31,52 +31,77 @@ async def runallreports_impl(interaction):
         )
         
         results = []
+        channel = interaction.channel
         
         # Run digest (uses fetch_clan_report)
         if guild_cfg.get("digest_enabled"):
             try:
-                await fetch_clan_report(interaction.guild_id, interaction.channel_id)
-                results.append("✅ Digest")
+                embed, _ = await fetch_clan_report(interaction.guild_id, None)
+                if embed:
+                    await channel.send(embed=embed)
+                    results.append("✅ Digest")
+                else:
+                    results.append("❌ Digest: No data")
             except Exception as e:
                 results.append(f"❌ Digest: {e}")
         
         # Run last active
         if guild_cfg.get("activity_enabled"):
             try:
-                await fetch_last_active_report(interaction.guild_id, interaction.channel_id)
-                results.append("✅ Last Active")
+                embed, _ = await fetch_last_active_report(interaction.guild_id, None)
+                if embed:
+                    await channel.send(embed=embed)
+                    results.append("✅ Last Active")
+                else:
+                    results.append("❌ Last Active: No data")
             except Exception as e:
                 results.append(f"❌ Last Active: {e}")
         
         # Run ranked
         if guild_cfg.get("ranked_enabled"):
             try:
-                await fetch_ranked_report(interaction.guild_id, interaction.channel_id)
-                results.append("✅ Ranked")
+                embed, _ = await fetch_ranked_report(interaction.guild_id, None)
+                if embed:
+                    await channel.send(embed=embed)
+                    results.append("✅ Ranked")
+                else:
+                    results.append("❌ Ranked: No data")
             except Exception as e:
                 results.append(f"❌ Ranked: {e}")
         
         # Run highlights
         if guild_cfg.get("highlights_enabled"):
             try:
-                await fetch_highlights_report(interaction.guild_id, interaction.channel_id)
-                results.append("✅ Highlights")
+                embed, _ = await fetch_highlights_report(interaction.guild_id, None)
+                if embed:
+                    await channel.send(embed=embed)
+                    results.append("✅ Highlights")
+                else:
+                    results.append("❌ Highlights: No data")
             except Exception as e:
                 results.append(f"❌ Highlights: {e}")
         
         # Run clan level
         if guild_cfg.get("clan_level_enabled"):
             try:
-                await fetch_clan_level_report(interaction.guild_id)
-                results.append("✅ Clan Level")
+                embed, _ = await fetch_clan_level_report(interaction.guild_id)
+                if embed:
+                    await channel.send(embed=embed)
+                    results.append("✅ Clan Level")
+                else:
+                    results.append("❌ Clan Level: No data")
             except Exception as e:
                 results.append(f"❌ Clan Level: {e}")
         
         # Run survival
         if guild_cfg.get("survival_enabled"):
             try:
-                await fetch_survival_mastery_report(interaction.guild_id)
-                results.append("✅ Survival")
+                embeds, files = await fetch_survival_mastery_report(interaction.guild_id, None)
+                if embeds:
+                    await channel.send(embeds=embeds, files=files)
+                    results.append("✅ Survival")
+                else:
+                    results.append("❌ Survival: No data")
             except Exception as e:
                 results.append(f"❌ Survival: {e}")
         
