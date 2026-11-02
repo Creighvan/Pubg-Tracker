@@ -304,6 +304,7 @@ async def auto_ranked():
     """
     utc = timezone.utc
     now_utc = datetime.now(utc)
+    logger.info(f"[auto_ranked] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -311,6 +312,7 @@ async def auto_ranked():
             continue
         channel_id = guild_cfg.get("ranked_channel_id") or guild_cfg.get("post_channel_id")
         if channel_id is None:
+            logger.info(f"[auto_ranked] Guild {guild_id}: No channel configured, skipping")
             continue
         
         # Get configured time (defaults to 04:30 UTC if not set)
@@ -327,11 +329,10 @@ async def auto_ranked():
         if posted_at:
             posted_date = datetime.fromisoformat(posted_at).astimezone(utc)
             if posted_date >= reset_time_utc:
+                logger.info(f"[auto_ranked] Guild {guild_id}: Already posted since {reset_time_utc}, skipping")
                 continue  # Already posted since the most recent reset
         
-        # Only run during or after the configured time window
-        if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
-            continue  # Not yet at scheduled time
+        logger.info(f"[auto_ranked] Guild {guild_id}: Running ranked report")
 
         channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
