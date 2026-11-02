@@ -25,17 +25,17 @@ async def runallreports_impl(interaction):
         
         # Import report functions
         from modules.reports import (
-            fetch_digest_report, fetch_last_active_report,
+            fetch_clan_report, fetch_last_active_report,
             fetch_ranked_report, fetch_highlights_report,
-            fetch_clan_level_report, fetch_survival_report
+            fetch_clan_level_report, fetch_survival_mastery_report
         )
         
         results = []
         
-        # Run digest
+        # Run digest (uses fetch_clan_report)
         if guild_cfg.get("digest_enabled"):
             try:
-                await fetch_digest_report(interaction.guild_id, interaction.channel_id)
+                await fetch_clan_report(interaction.guild_id, interaction.channel_id)
                 results.append("✅ Digest")
             except Exception as e:
                 results.append(f"❌ Digest: {e}")
@@ -67,7 +67,7 @@ async def runallreports_impl(interaction):
         # Run clan level
         if guild_cfg.get("clan_level_enabled"):
             try:
-                await fetch_clan_level_report(interaction.guild_id, interaction.channel_id)
+                await fetch_clan_level_report(interaction.guild_id)
                 results.append("✅ Clan Level")
             except Exception as e:
                 results.append(f"❌ Clan Level: {e}")
@@ -75,7 +75,7 @@ async def runallreports_impl(interaction):
         # Run survival
         if guild_cfg.get("survival_enabled"):
             try:
-                await fetch_survival_report(interaction.guild_id, interaction.channel_id)
+                await fetch_survival_mastery_report(interaction.guild_id)
                 results.append("✅ Survival")
             except Exception as e:
                 results.append(f"❌ Survival: {e}")
