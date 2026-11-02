@@ -103,6 +103,36 @@ def _get_pubg():
     from modules.config import pubg
     return pubg
 
+def _get_channel_cached(channel_id: int, guild_id: int = None):
+    """
+    Try multiple methods to get a channel reliably.
+    1. bot.get_channel() - checks bot's internal cache
+    2. get_guild() then guild.get_channel() - checks guild's channel list
+    3. Iterate through bot.guilds to find the guild by ID, then get_channel
+    """
+    bot = _get_bot()
+    
+    # Method 1: Try bot.get_channel()
+    channel = bot.get_channel(channel_id)
+    if channel is not None:
+        return channel
+    
+    # Method 2: Try get_guild() then guild.get_channel()
+    guild = bot.get_guild(guild_id)
+    if guild is None and guild_id:
+        # Method 3: Iterate through bot.guilds to find the guild
+        for g in bot.guilds:
+            if g.id == guild_id:
+                guild = g
+                break
+    
+    if guild:
+        channel = guild.get_channel(channel_id)
+        if channel is not None:
+            return channel
+    
+    return None
+
 
 @tasks.loop(minutes=15)
 async def auto_digest():
@@ -644,27 +674,11 @@ async def auto_chicken_dinner():
             logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
         # Try to get channel from cache
-        channel = _get_bot().get_channel(channel_id)
-        if channel is None:
-            # Try to get it from the guild's channel list
-            guild = _get_bot().get_guild(guild_id)
-            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: get_guild returned: {guild is not None}")
-            if guild is None:
-                # If get_guild returns None, try finding it in the guilds list
-                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Iterating through {len(_get_bot().guilds)} guilds")
-                for g in _get_bot().guilds:
-                    logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Checking guild {g.id}")
-                    if g.id == guild_id:
-                        guild = g
-                        logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Found guild in iteration")
-                        break
-            if guild:
-                channel = guild.get_channel(channel_id)
-                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Tried guild.get_channel for {channel_id}, result: {channel is not None}")
+        channel = _get_channel_cached(channel_id, guild_id)
         
         if channel is None:
             guilds_skipped += 1
-            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found (get_channel: {bool(_get_bot().get_channel(channel_id))}, guild.get_channel: {bool(guild.get_channel(channel_id)) if guild else 'no guild'}), skipping")
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
 
         # No daily reset filter - show all recent wins
