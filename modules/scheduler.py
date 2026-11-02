@@ -175,7 +175,7 @@ async def auto_digest():
         if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
 
-        channel = _get_bot().get_channel(channel_id)
+        channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
@@ -344,7 +344,7 @@ async def auto_ranked():
         if now_utc.hour < ranked_hour or (now_utc.hour == ranked_hour and now_utc.minute < ranked_minute):
             continue  # Not yet at scheduled time
 
-        channel = _get_bot().get_channel(channel_id)
+        channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         
@@ -534,7 +534,7 @@ async def auto_clan_level():
         if channel_id is None or not _is_weekly_due(guild_cfg):
             continue
 
-        channel = _get_bot().get_channel(channel_id)
+        channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
@@ -600,7 +600,7 @@ async def auto_survival_mastery():
         ):
             continue
 
-        channel = _get_bot().get_channel(channel_id)
+        channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
