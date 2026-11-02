@@ -648,11 +648,15 @@ async def auto_chicken_dinner():
         if channel is None:
             # Try to get it from the guild's channel list
             guild = _get_bot().get_guild(guild_id)
+            logger.info(f"[auto_chicken_dinner] Guild {guild_id}: get_guild returned: {guild is not None}")
             if guild is None:
                 # If get_guild returns None, try finding it in the guilds list
+                logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Iterating through {len(_get_bot().guilds)} guilds")
                 for g in _get_bot().guilds:
+                    logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Checking guild {g.id}")
                     if g.id == guild_id:
                         guild = g
+                        logger.info(f"[auto_chicken_dinner] Guild {guild_id}: Found guild in iteration")
                         break
             if guild:
                 channel = guild.get_channel(channel_id)
