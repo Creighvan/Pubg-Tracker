@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 async def runallreports_impl(interaction):
-    """Reset all report timestamps so they run on next cycle."""
+    """Run all reports immediately for this guild."""
     # Defer immediately to prevent timeout
     try:
         await interaction.response.defer()
@@ -21,22 +21,74 @@ async def runallreports_impl(interaction):
 
     try:
         guild_cfg = await storage.get_guild(interaction.guild_id)
+        lang = guild_cfg.get("language", "en")
         
-        def modifier(g):
-            g["last_post_at"] = None
-            g["last_activity_posted_at"] = None
-            g["ranked_posted_at"] = None
-            g["highlights_posted_at"] = None
-            g["clan_posted_at"] = None
-            g["survival_posted_at"] = None
+        # Import report functions
+        from modules.reports import (
+            fetch_digest_report, fetch_last_active_report,
+            fetch_ranked_report, fetch_highlights_report,
+            fetch_clan_level_report, fetch_survival_report
+        )
         
-        await storage.modify_guild(interaction.guild_id, modifier)
+        results = []
         
-        await interaction.followup.send("✅ All report timestamps reset. Reports will run on their next scheduled cycle (digest at 04:30 UTC, highlights at 02:00 UTC, etc.)")
+        # Run digest
+        if guild_cfg.get("digest_enabled"):
+            try:
+                await fetch_digest_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Digest")
+            except Exception as e:
+                results.append(f"❌ Digest: {e}")
+        
+        # Run last active
+        if guild_cfg.get("activity_enabled"):
+            try:
+                await fetch_last_active_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Last Active")
+            except Exception as e:
+                results.append(f"❌ Last Active: {e}")
+        
+        # Run ranked
+        if guild_cfg.get("ranked_enabled"):
+            try:
+                await fetch_ranked_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Ranked")
+            except Exception as e:
+                results.append(f"❌ Ranked: {e}")
+        
+        # Run highlights
+        if guild_cfg.get("highlights_enabled"):
+            try:
+                await fetch_highlights_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Highlights")
+            except Exception as e:
+                results.append(f"❌ Highlights: {e}")
+        
+        # Run clan level
+        if guild_cfg.get("clan_level_enabled"):
+            try:
+                await fetch_clan_level_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Clan Level")
+            except Exception as e:
+                results.append(f"❌ Clan Level: {e}")
+        
+        # Run survival
+        if guild_cfg.get("survival_enabled"):
+            try:
+                await fetch_survival_report(interaction.guild_id, interaction.channel_id)
+                results.append("✅ Survival")
+            except Exception as e:
+                results.append(f"❌ Survival: {e}")
+        
+        # Send results
+        result_text = "\n".join(results)
+        await interaction.followup.send(f"**Report Results:**\n{result_text}")
         
     except Exception as e:
         import logging
         logger = logging.getLogger(__name__)
+        logger.error(f"[runallreports] Error: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ Error running reports: {e}")
         logger.error(f"Error in runallreports_impl: {e}", exc_info=True)
         await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
