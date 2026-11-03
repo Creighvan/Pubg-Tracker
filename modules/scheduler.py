@@ -848,6 +848,7 @@ async def auto_channel_cache_refresh():
     """
     bot = _get_bot()
     if not bot.is_ready():
+        logger.warning("[auto_channel_cache_refresh] Bot not ready, skipping this cycle")
         return
     
     logger.info("[auto_channel_cache_refresh] Starting channel cache refresh")
