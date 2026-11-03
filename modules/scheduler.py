@@ -252,9 +252,9 @@ async def auto_last_active():
                 logger.info(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
                 continue
 
-        channel = _get_bot().get_channel(channel_id)
+        channel = _get_channel_cached(channel_id, guild_id)
         if channel is None:
-            logger.info(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found (may have been deleted or bot lacks permission), skipping")
+            logger.info(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
 
         logger.info(f"[auto_last_active] Guild {guild_id}: All checks passed, posting report")
@@ -455,15 +455,10 @@ async def auto_highlights():
                 if last_posted_date >= reset_time_utc:
                     continue  # Already posted since the most recent reset
 
-            # Skip channel check - if guild exists in storage, try to post
-            # The channel might be temporarily unavailable in Discord's cache
-            try:
-                channel = _get_bot().get_channel(channel_id)
-                if channel is None:
-                    logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found in cache, skipping")
-                    continue
-            except Exception as e:
-                logger.error(f"[auto_highlights] Guild {guild_id}: Error getting channel: {e}")
+            # Use robust channel lookup
+            channel = _get_channel_cached(channel_id, guild_id)
+            if channel is None:
+                logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found, skipping")
                 continue
             
             try:
