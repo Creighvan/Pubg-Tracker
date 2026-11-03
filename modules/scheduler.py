@@ -844,12 +844,9 @@ async def auto_channel_cache_refresh():
     """
     Periodically refresh the channel cache using REST API to ensure
     channels remain accessible. This bypasses Discord's unreliable cache
-    by directly fetching configured channels every 5 minutes.
+    by directly fetching configured channels every 2 minutes.
     """
     bot = _get_bot()
-    if not bot.is_ready():
-        logger.warning("[auto_channel_cache_refresh] Bot not ready, skipping this cycle")
-        return
     
     logger.info("[auto_channel_cache_refresh] Starting channel cache refresh")
     
