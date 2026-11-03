@@ -234,8 +234,10 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
                     logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via raw HTTP")
                 elif response.status == 403:
                     logger.warning(f"[_get_channel_cached] No permission for channel {channel_id} via raw HTTP")
+                else:
+                    logger.warning(f"[_get_channel_cached] Raw HTTP returned status {response.status} for channel {channel_id}")
     except Exception as e:
-        logger.debug(f"[_get_channel_cached] Raw HTTP failed ({type(e).__name__}), trying Discord.py REST")
+        logger.warning(f"[_get_channel_cached] Raw HTTP failed ({type(e).__name__}): {e}, trying Discord.py REST")
     
     # Method 2: Try Discord.py REST API
     try:
