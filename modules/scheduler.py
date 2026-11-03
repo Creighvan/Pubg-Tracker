@@ -112,11 +112,6 @@ def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     bot = _get_bot()
     
-    # Check if bot has guilds loaded
-    if len(bot.guilds) == 0:
-        logger.warning(f"[_get_channel_cached] Bot has no guilds loaded, channel lookup will fail")
-        return None
-    
     # Method 1: Try bot.get_channel()
     channel = bot.get_channel(channel_id)
     if channel is not None:
@@ -159,12 +154,6 @@ async def auto_digest():
     
     now = datetime.now(timezone.utc)
     logger.info(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    
-    # Skip if guilds not loaded yet (bot just started)
-    bot = _get_bot()
-    if len(bot.guilds) == 0:
-        logger.info("[auto_digest] Guilds not loaded yet, skipping this cycle")
-        return
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -318,12 +307,6 @@ async def auto_ranked():
     now_utc = datetime.now(utc)
     logger.info(f"[auto_ranked] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
-    # Skip if guilds not loaded yet (bot just started)
-    bot = _get_bot()
-    if len(bot.guilds) == 0:
-        logger.info("[auto_ranked] Guilds not loaded yet, skipping this cycle")
-        return
-    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("ranked_enabled", True):
@@ -429,11 +412,19 @@ async def auto_highlights():
     Edits existing message instead of posting new ones.
     """
     logger.info("[auto_highlights] Starting highlights loop")
+    # Catch-up: on the first pass after a (re)start, process guilds immediately
+    # instead of sleeping until the next 02:00 UTC. The per-guild check below
+    # (highlights_posted_at vs. the last reset) skips anyone already posted
+    # today, so a restart before/around 02:00 no longer costs a whole day.
+    first_pass = True
     while True:
-        # Wait until 02:00 UTC
-        logger.info("[auto_highlights] Waiting until 02:00 UTC")
-        await _wait_until_time(2, 0)
-        logger.info("[auto_highlights] Reached 02:00 UTC, processing guilds")
+        if first_pass:
+            first_pass = False
+            logger.info("[auto_highlights] Startup catch-up pass (skips guilds already posted since last reset)")
+        else:
+            logger.info("[auto_highlights] Waiting until 02:00 UTC")
+            await _wait_until_time(2, 0)
+            logger.info("[auto_highlights] Reached 02:00 UTC, processing guilds")
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -667,12 +658,6 @@ async def auto_chicken_dinner():
     utc = timezone.utc
     now_utc = datetime.now(utc)
     logger.info(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-
-    # Skip if guilds not loaded yet (bot just started)
-    bot = _get_bot()
-    if len(bot.guilds) == 0:
-        logger.info("[auto_chicken_dinner] Guilds not loaded yet, skipping this cycle")
-        return
 
     guilds_processed = 0
     guilds_skipped = 0
@@ -914,6 +899,7 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
     if _audit_log_func:
         return await _audit_log_func(guild_id, title, description, None, details, is_automated, report_embed)
     logger.info(f"[audit_log] Audit log function not set: {title} for guild {guild_id}")
+
 
 
 

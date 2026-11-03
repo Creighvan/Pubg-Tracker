@@ -36,7 +36,8 @@ async def runallreports_impl(interaction):
         # Run digest (uses fetch_clan_report)
         if guild_cfg.get("digest_enabled"):
             try:
-                embed, _ = await fetch_clan_report(interaction.guild_id, None)
+                result = await fetch_clan_report(interaction.guild_id, None)
+                embed = result[0] if result else None
                 if embed:
                     await channel.send(embed=embed)
                     results.append("✅ Digest")
@@ -48,7 +49,8 @@ async def runallreports_impl(interaction):
         # Run last active
         if guild_cfg.get("activity_enabled"):
             try:
-                embed, _ = await fetch_last_active_report(interaction.guild_id, None)
+                result = await fetch_last_active_report(interaction.guild_id, None)
+                embed = result[0] if result else None
                 if embed:
                     await channel.send(embed=embed)
                     results.append("✅ Last Active")
@@ -60,7 +62,8 @@ async def runallreports_impl(interaction):
         # Run ranked
         if guild_cfg.get("ranked_enabled"):
             try:
-                embed, _ = await fetch_ranked_report(interaction.guild_id, None)
+                result = await fetch_ranked_report(interaction.guild_id, None)
+                embed = result[0] if result else None
                 if embed:
                     await channel.send(embed=embed)
                     results.append("✅ Ranked")
@@ -72,7 +75,8 @@ async def runallreports_impl(interaction):
         # Run highlights
         if guild_cfg.get("highlights_enabled"):
             try:
-                embed, _ = await fetch_highlights_report(interaction.guild_id, None)
+                result = await fetch_highlights_report(interaction.guild_id, None)
+                embed = result[0] if result else None
                 if embed:
                     await channel.send(embed=embed)
                     results.append("✅ Highlights")
@@ -84,7 +88,8 @@ async def runallreports_impl(interaction):
         # Run clan level
         if guild_cfg.get("clan_level_enabled"):
             try:
-                embed, _ = await fetch_clan_level_report(interaction.guild_id)
+                result = await fetch_clan_level_report(interaction.guild_id)
+                embed = result[0] if result else None
                 if embed:
                     await channel.send(embed=embed)
                     results.append("✅ Clan Level")
@@ -96,7 +101,8 @@ async def runallreports_impl(interaction):
         # Run survival
         if guild_cfg.get("survival_enabled"):
             try:
-                embeds, files = await fetch_survival_mastery_report(interaction.guild_id, None)
+                survival = await fetch_survival_mastery_report(interaction.guild_id, None)
+                embeds, files = survival if survival else (None, None)
                 if embeds:
                     await channel.send(embeds=embeds, files=files)
                     results.append("✅ Survival")
@@ -106,7 +112,7 @@ async def runallreports_impl(interaction):
                 results.append(f"❌ Survival: {e}")
         
         # Send results
-        result_text = "\n".join(results)
+        result_text = "\n".join(results) or "No reports are enabled for this server (see /reportstatus)."
         await interaction.followup.send(f"**Report Results:**\n{result_text}")
         
     except Exception as e:
@@ -114,8 +120,6 @@ async def runallreports_impl(interaction):
         logger = logging.getLogger(__name__)
         logger.error(f"[runallreports] Error: {e}", exc_info=True)
         await interaction.followup.send(f"❌ Error running reports: {e}")
-        logger.error(f"Error in runallreports_impl: {e}", exc_info=True)
-        await interaction.followup.send(f"❌ Error: {str(e)}", ephemeral=True)
 
 
 class StatisticalAnomalyReportModal(discord.ui.Modal, title="Report Statistical Anomaly"):

@@ -329,7 +329,12 @@ async def check_maintenance_status():
     # Maintenance if: player count very low OR player count suspicious
     # Changed to be more conservative - treat any count below 50k as maintenance
     # even if API is working, to avoid false "back online" during partial recovery
-    is_down = steam_signal_low or steam_signal_suspicious
+    # A Steam count under 100k is NORMAL for PUBG during its quiet hours (roughly
+    # 90-160k off-peak), so it only counts as maintenance when the PUBG API
+    # also fails to return real data. A very low count (< 50k) or both API
+    # checks failing still counts on its own.
+    api_down = (not api_status_ok) and (not api_data_ok)
+    is_down = steam_signal_low or api_down or (steam_signal_suspicious and not api_data_ok)
 
     logger.info(f"[maintenance] Check: steam={steam_count}, api_status={api_status_ok}, api_data={api_data_ok}, is_down={is_down}")
 
