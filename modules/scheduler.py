@@ -103,13 +103,15 @@ def _get_pubg():
     from modules.config import pubg
     return pubg
 
-async def _get_channel_cached(channel_id: int, guild_id: int = None):
+async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
     """
-    Try multiple methods to get a channel reliably.
+    Try multiple methods to get a channel reliably with retry logic.
     PRIMARY: REST API fetch_channel() - bypasses cache entirely (most reliable)
     FALLBACK 1: bot.get_channel() - checks bot's internal cache
     FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
     FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
+    
+    If all methods fail, retry once after a short delay to handle Discord.py initialization issues.
     """
     bot = _get_bot()
     
@@ -124,7 +126,7 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
     except discord.Forbidden:
         logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
     except AttributeError as e:
-        # '_MissingSentinel' error - bot not fully initialized, try cache
+        # '_MissingSentinel' error - bot not fully initialized
         logger.debug(f"[_get_channel_cached] REST API not ready ({type(e).__name__}), trying cache")
     except Exception as e:
         logger.debug(f"[_get_channel_cached] REST API failed ({type(e).__name__}), trying cache")
@@ -150,7 +152,13 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
             logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild")
             return channel
     
-    logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id}")
+    # If all methods failed and we haven't retried yet, retry once after a delay
+    if retry_count == 0:
+        logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id}, retrying in 2 seconds...")
+        await asyncio.sleep(2)
+        return await _get_channel_cached(channel_id, guild_id, retry_count=1)
+    
+    logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id} after retry")
     return None
 
 
