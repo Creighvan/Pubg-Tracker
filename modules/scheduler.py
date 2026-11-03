@@ -106,22 +106,39 @@ def _get_pubg():
 async def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     Try multiple methods to get a channel reliably.
-    1. bot.get_channel() - checks bot's internal cache (fast)
-    2. get_guild() then guild.get_channel() - checks guild's channel list
-    3. Iterate through bot.guilds to find the guild by ID, then get_channel
-    4. bot.fetch_channel() - REST API call (slow but reliable, bypasses cache)
+    PRIMARY: REST API fetch_channel() - bypasses cache entirely (most reliable)
+    FALLBACK 1: bot.get_channel() - checks bot's internal cache
+    FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
+    FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
     """
     bot = _get_bot()
     
-    # Method 1: Try bot.get_channel() (fast cache lookup)
+    # Method 1: Try REST API first (most reliable, bypasses cache)
+    try:
+        channel = await bot.fetch_channel(channel_id)
+        if channel is not None:
+            logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
+            return channel
+    except discord.NotFound:
+        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
+    except discord.Forbidden:
+        logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
+    except AttributeError as e:
+        # '_MissingSentinel' error - bot not fully initialized, try cache
+        logger.debug(f"[_get_channel_cached] REST API not ready ({type(e).__name__}), trying cache")
+    except Exception as e:
+        logger.debug(f"[_get_channel_cached] REST API failed ({type(e).__name__}), trying cache")
+    
+    # Method 2: Try bot.get_channel() (cache fallback)
     channel = bot.get_channel(channel_id)
     if channel is not None:
+        logger.debug(f"[_get_channel_cached] Found channel {channel_id} in cache")
         return channel
     
-    # Method 2: Try get_guild() then guild.get_channel()
+    # Method 3: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
     if guild is None and guild_id:
-        # Method 3: Iterate through bot.guilds to find the guild
+        # Method 4: Iterate through bot.guilds to find the guild
         for g in bot.guilds:
             if g.id == guild_id:
                 guild = g
@@ -130,25 +147,8 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
     if guild:
         channel = guild.get_channel(channel_id)
         if channel is not None:
+            logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild")
             return channel
-    
-    # Method 4: Use REST API to fetch channel directly (slow but reliable)
-    # This bypasses the cache and will always work if the channel exists
-    logger.info(f"[_get_channel_cached] Cache failed for channel {channel_id}, attempting REST API fetch")
-    try:
-        channel = await bot.fetch_channel(channel_id)
-        if channel is not None:
-            logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
-            return channel
-    except discord.NotFound:
-        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
-    except discord.Forbidden:
-        logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
-    except AttributeError as e:
-        # '_MissingSentinel' error - bot not fully initialized, skip REST API this time
-        logger.warning(f"[_get_channel_cached] Bot not ready for REST API fetch ({type(e).__name__}): {e}")
-    except Exception as e:
-        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id} ({type(e).__name__}): {e}")
     
     logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id}")
     return None
