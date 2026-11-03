@@ -141,16 +141,77 @@ class RawMessage:
 async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
     """
     Try multiple methods to get a channel reliably with retry logic.
-    PRIMARY: Discord.py REST API fetch_channel() - reliable when bot is connected
-    FALLBACK 1: bot.get_channel() - checks bot's internal cache
-    FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
-    FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
+    PRIMARY: Discord.py HTTP client (bot.http) - bypasses cache, uses proper auth
+    FALLBACK 1: Discord.py REST API fetch_channel() - reliable when bot is connected
+    FALLBACK 2: bot.get_channel() - checks bot's internal cache
+    FALLBACK 3: get_guild() then guild.get_channel() - checks guild's channel list
+    FALLBACK 4: Iterate through bot.guilds to find the guild by ID, then get_channel
     
     If all methods fail, retry once after a short delay to handle initialization issues.
     """
     bot = _get_bot()
     
-    # Method 1: Try Discord.py REST API first (most reliable when bot is connected)
+    # Method 1: Try Discord.py HTTP client directly (bypasses cache, proper auth)
+    try:
+        from discord.http import Route
+        route = Route('GET', '/channels/{channel_id}', channel_id=channel_id)
+        data = await bot.http.request(route)
+        # Convert raw data to a minimal channel object
+        class HTTPChannel:
+            def __init__(self, data, bot):
+                self.id = int(data["id"])
+                self.name = data.get("name", "")
+                self.type = data.get("type", 0)
+                self.guild_id = data.get("guild_id")
+                self.parent_id = data.get("parent_id")
+                self._bot = bot
+            
+            async def send(self, content=None, embed=None, embeds=None, **kwargs):
+                """Send message using bot's HTTP client"""
+                from discord.http import Route
+                route = Route('POST', '/channels/{channel_id}/messages', channel_id=self.id)
+                payload = {}
+                if content:
+                    payload["content"] = content
+                if embed:
+                    payload["embeds"] = [embed.to_dict()]
+                elif embeds:
+                    payload["embeds"] = [e.to_dict() for e in embeds]
+                payload.update(kwargs)
+                return await self._bot.http.request(route, json=payload)
+            
+            async def fetch_message(self, message_id):
+                """Fetch message using bot's HTTP client"""
+                from discord.http import Route
+                route = Route('GET', '/channels/{channel_id}/messages/{message_id}', 
+                             channel_id=self.id, message_id=message_id)
+                data = await self._bot.http.request(route)
+                return HTTPMessage(data, self._bot)
+        
+        class HTTPMessage:
+            def __init__(self, data, bot):
+                self.id = int(data["id"])
+                self._bot = bot
+                self._data = data
+            
+            async def edit(self, embed=None, **kwargs):
+                """Edit message using bot's HTTP client"""
+                from discord.http import Route
+                route = Route('PATCH', '/channels/{channel_id}/messages/{message_id}',
+                             channel_id=self._data['channel_id'], message_id=self.id)
+                payload = {}
+                if embed:
+                    payload["embeds"] = [embed.to_dict()]
+                payload.update(kwargs)
+                return await self._bot.http.request(route, json=payload)
+        
+        channel = HTTPChannel(data, bot)
+        logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via HTTP client")
+        return channel
+    except Exception as e:
+        logger.debug(f"[_get_channel_cached] HTTP client failed ({type(e).__name__}), trying fetch_channel")
+    
+    # Method 2: Try Discord.py REST API
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
@@ -165,16 +226,16 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     except Exception as e:
         logger.debug(f"[_get_channel_cached] Discord.py REST failed ({type(e).__name__}), trying cache")
     
-    # Method 2: Try bot.get_channel() (cache fallback)
+    # Method 3: Try bot.get_channel() (cache fallback)
     channel = bot.get_channel(channel_id)
     if channel is not None:
         logger.debug(f"[_get_channel_cached] Found channel {channel_id} in cache")
         return channel
     
-    # Method 3: Try get_guild() then guild.get_channel()
+    # Method 4: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
     if guild is None and guild_id:
-        # Method 4: Iterate through bot.guilds to find the guild
+        # Method 5: Iterate through bot.guilds to find the guild
         for g in bot.guilds:
             if g.id == guild_id:
                 guild = g
