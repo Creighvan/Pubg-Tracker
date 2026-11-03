@@ -106,41 +106,80 @@ def _get_pubg():
 async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
     """
     Try multiple methods to get a channel reliably with retry logic.
-    PRIMARY: REST API fetch_channel() - bypasses cache entirely (most reliable)
-    FALLBACK 1: bot.get_channel() - checks bot's internal cache
-    FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
-    FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
+    PRIMARY: Raw HTTP request to Discord REST API - bypasses Discord.py entirely
+    FALLBACK 1: REST API fetch_channel() - Discord.py REST API
+    FALLBACK 2: bot.get_channel() - checks bot's internal cache
+    FALLBACK 3: get_guild() then guild.get_channel() - checks guild's channel list
+    FALLBACK 4: Iterate through bot.guilds to find the guild by ID, then get_channel
     
-    If all methods fail, retry once after a short delay to handle Discord.py initialization issues.
+    If all methods fail, retry once after a short delay to handle initialization issues.
     """
     bot = _get_bot()
     
-    # Method 1: Try REST API first (most reliable, bypasses cache)
+    # Method 1: Raw HTTP request to Discord REST API (most reliable, bypasses Discord.py)
+    try:
+        import aiohttp
+        headers = {
+            "Authorization": f"Bot {bot.http.token}"
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f"https://discord.com/api/v10/channels/{channel_id}",
+                headers=headers
+            ) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    # Return a minimal channel-like object
+                    class RawChannel:
+                        def __init__(self, data):
+                            self.id = int(data["id"])
+                            self.name = data.get("name", "")
+                            self.type = data.get("type", 0)
+                            self.guild_id = data.get("guild_id")
+                            self.parent_id = data.get("parent_id")
+                        
+                        async def send(self, *args, **kwargs):
+                            # For compatibility, return the bot's method
+                            return await bot.get_channel(self.id).send(*args, **kwargs)
+                        
+                        async def fetch_message(self, message_id):
+                            return await bot.get_channel(self.id).fetch_message(message_id)
+                    
+                    channel = RawChannel(data)
+                    logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via raw HTTP")
+                    return channel
+                elif response.status == 404:
+                    logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via raw HTTP")
+                elif response.status == 403:
+                    logger.warning(f"[_get_channel_cached] No permission for channel {channel_id} via raw HTTP")
+    except Exception as e:
+        logger.debug(f"[_get_channel_cached] Raw HTTP failed ({type(e).__name__}), trying Discord.py REST")
+    
+    # Method 2: Try Discord.py REST API
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
-            logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
+            logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via Discord.py REST API")
             return channel
     except discord.NotFound:
-        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
+        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via Discord.py REST API")
     except discord.Forbidden:
         logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
     except AttributeError as e:
-        # '_MissingSentinel' error - bot not fully initialized
-        logger.debug(f"[_get_channel_cached] REST API not ready ({type(e).__name__}), trying cache")
+        logger.debug(f"[_get_channel_cached] Discord.py REST not ready ({type(e).__name__}), trying cache")
     except Exception as e:
-        logger.debug(f"[_get_channel_cached] REST API failed ({type(e).__name__}), trying cache")
+        logger.debug(f"[_get_channel_cached] Discord.py REST failed ({type(e).__name__}), trying cache")
     
-    # Method 2: Try bot.get_channel() (cache fallback)
+    # Method 3: Try bot.get_channel() (cache fallback)
     channel = bot.get_channel(channel_id)
     if channel is not None:
         logger.debug(f"[_get_channel_cached] Found channel {channel_id} in cache")
         return channel
     
-    # Method 3: Try get_guild() then guild.get_channel()
+    # Method 4: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
     if guild is None and guild_id:
-        # Method 4: Iterate through bot.guilds to find the guild
+        # Method 5: Iterate through bot.guilds to find the guild
         for g in bot.guilds:
             if g.id == guild_id:
                 guild = g
