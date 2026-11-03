@@ -511,6 +511,7 @@ async def on_ready():
         logger.warning(f"[on_ready] Failed to fix invalid snapshots: {e}", exc_info=True)
 
     # Force cache all guild channels to ensure scheduled tasks can find them
+    # This MUST complete before starting scheduled tasks
     try:
         for guild in bot.guilds:
             # Fetch all text channels to populate the cache
@@ -519,6 +520,7 @@ async def on_ready():
     except Exception as e:
         logger.warning(f"[on_ready] Failed to cache guild channels: {e}", exc_info=True)
 
+    # Only start scheduled tasks AFTER channel caching is complete
     if not auto_digest.is_running():
         start_all_scheduled_tasks(bot)
         # Wire up the audit log function so scheduler uses our implementation
