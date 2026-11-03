@@ -106,13 +106,14 @@ def _get_pubg():
 def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     Try multiple methods to get a channel reliably.
-    1. bot.get_channel() - checks bot's internal cache
+    1. bot.get_channel() - checks bot's internal cache (fast)
     2. get_guild() then guild.get_channel() - checks guild's channel list
     3. Iterate through bot.guilds to find the guild by ID, then get_channel
+    4. bot.fetch_channel() - REST API call (slow but reliable, bypasses cache)
     """
     bot = _get_bot()
     
-    # Method 1: Try bot.get_channel()
+    # Method 1: Try bot.get_channel() (fast cache lookup)
     channel = bot.get_channel(channel_id)
     if channel is not None:
         return channel
@@ -130,6 +131,20 @@ def _get_channel_cached(channel_id: int, guild_id: int = None):
         channel = guild.get_channel(channel_id)
         if channel is not None:
             return channel
+    
+    # Method 4: Use REST API to fetch channel directly (slow but reliable)
+    # This bypasses the cache and will always work if the channel exists
+    try:
+        channel = await bot.fetch_channel(channel_id)
+        if channel is not None:
+            logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
+            return channel
+    except discord.NotFound:
+        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
+    except discord.Forbidden:
+        logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
+    except Exception as e:
+        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id}: {e}")
     
     return None
 
