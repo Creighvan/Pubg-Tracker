@@ -839,7 +839,7 @@ async def before_auto_chicken_dinner():
     logger.info("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
 
 
-@tasks.loop(minutes=5)
+@tasks.loop(minutes=2)
 async def auto_channel_cache_refresh():
     """
     Periodically refresh the channel cache using REST API to ensure
