@@ -134,6 +134,7 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
     
     # Method 4: Use REST API to fetch channel directly (slow but reliable)
     # This bypasses the cache and will always work if the channel exists
+    logger.info(f"[_get_channel_cached] Cache failed for channel {channel_id}, attempting REST API fetch")
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
@@ -145,10 +146,11 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
         logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
     except AttributeError as e:
         # '_MissingSentinel' error - bot not fully initialized, skip REST API this time
-        logger.debug(f"[_get_channel_cached] Bot not ready for REST API fetch, skipping: {e}")
+        logger.warning(f"[_get_channel_cached] Bot not ready for REST API fetch ({type(e).__name__}): {e}")
     except Exception as e:
-        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id}: {e}")
+        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id} ({type(e).__name__}): {e}")
     
+    logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id}")
     return None
 
 
