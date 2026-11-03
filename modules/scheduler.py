@@ -103,16 +103,17 @@ def _get_pubg():
     from modules.config import pubg
     return pubg
 
-def _get_channel_cached(channel_id: int, guild_id: int = None):
+async def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     Try multiple methods to get a channel reliably.
-    1. bot.get_channel() - checks bot's internal cache
+    1. bot.get_channel() - checks bot's internal cache (fast)
     2. get_guild() then guild.get_channel() - checks guild's channel list
     3. Iterate through bot.guilds to find the guild by ID, then get_channel
+    4. bot.fetch_channel() - REST API call (slow but reliable, bypasses cache)
     """
     bot = _get_bot()
     
-    # Method 1: Try bot.get_channel()
+    # Method 1: Try bot.get_channel() (fast cache lookup)
     channel = bot.get_channel(channel_id)
     if channel is not None:
         return channel
@@ -130,6 +131,20 @@ def _get_channel_cached(channel_id: int, guild_id: int = None):
         channel = guild.get_channel(channel_id)
         if channel is not None:
             return channel
+    
+    # Method 4: Use REST API to fetch channel directly (slow but reliable)
+    # This bypasses the cache and will always work if the channel exists
+    try:
+        channel = await bot.fetch_channel(channel_id)
+        if channel is not None:
+            logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
+            return channel
+    except discord.NotFound:
+        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
+    except discord.Forbidden:
+        logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
+    except Exception as e:
+        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id}: {e}")
     
     return None
 
@@ -165,7 +180,7 @@ async def auto_digest():
         if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
 
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
@@ -241,7 +256,7 @@ async def auto_last_active():
                 logger.info(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
                 continue
 
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
             logger.info(f"[auto_last_active] Guild {guild_id}: Channel {channel_id} not found, skipping")
             continue
@@ -335,7 +350,7 @@ async def auto_ranked():
         
         logger.info(f"[auto_ranked] Guild {guild_id}: Running ranked report")
 
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         
@@ -447,7 +462,7 @@ async def auto_highlights():
                     continue  # Already posted since the most recent reset
 
             # Use robust channel lookup
-            channel = _get_channel_cached(channel_id, guild_id)
+            channel = await _get_channel_cached(channel_id, guild_id)
             if channel is None:
                 logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found, skipping")
                 continue
@@ -528,7 +543,7 @@ async def auto_clan_level():
         if channel_id is None or not _is_weekly_due(guild_cfg):
             continue
 
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
@@ -594,7 +609,7 @@ async def auto_survival_mastery():
         ):
             continue
 
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
             continue
         try:
@@ -679,7 +694,7 @@ async def auto_chicken_dinner():
             logger.info(f"[auto_chicken_dinner] Guild {guild_id}: No players tracked, skipping")
             continue
         # Try to get channel from cache
-        channel = _get_channel_cached(channel_id, guild_id)
+        channel = await _get_channel_cached(channel_id, guild_id)
         
         if channel is None:
             guilds_skipped += 1
