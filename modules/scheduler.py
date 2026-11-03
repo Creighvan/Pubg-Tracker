@@ -112,6 +112,11 @@ def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
     bot = _get_bot()
     
+    # Check if bot has guilds loaded
+    if len(bot.guilds) == 0:
+        logger.warning(f"[_get_channel_cached] Bot has no guilds loaded, channel lookup will fail")
+        return None
+    
     # Method 1: Try bot.get_channel()
     channel = bot.get_channel(channel_id)
     if channel is not None:
@@ -154,6 +159,13 @@ async def auto_digest():
     
     now = datetime.now(timezone.utc)
     logger.info(f"[auto_digest] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    
+    # Skip if guilds not loaded yet (bot just started)
+    bot = _get_bot()
+    if len(bot.guilds) == 0:
+        logger.info("[auto_digest] Guilds not loaded yet, skipping this cycle")
+        return
+    
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         if not guild_cfg.get("digest_enabled", True):
@@ -305,6 +317,12 @@ async def auto_ranked():
     utc = timezone.utc
     now_utc = datetime.now(utc)
     logger.info(f"[auto_ranked] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+    
+    # Skip if guilds not loaded yet (bot just started)
+    bot = _get_bot()
+    if len(bot.guilds) == 0:
+        logger.info("[auto_ranked] Guilds not loaded yet, skipping this cycle")
+        return
     
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
@@ -654,6 +672,12 @@ async def auto_chicken_dinner():
     utc = timezone.utc
     now_utc = datetime.now(utc)
     logger.info(f"[auto_chicken_dinner] Running at {now_utc.strftime('%Y-%m-%d %H:%M:%S UTC')}")
+
+    # Skip if guilds not loaded yet (bot just started)
+    bot = _get_bot()
+    if len(bot.guilds) == 0:
+        logger.info("[auto_chicken_dinner] Guilds not loaded yet, skipping this cycle")
+        return
 
     guilds_processed = 0
     guilds_skipped = 0
