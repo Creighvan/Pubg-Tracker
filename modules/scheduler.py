@@ -134,11 +134,13 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
     
     # Method 4: Use REST API to fetch channel directly (slow but reliable)
     # This bypasses the cache and will always work if the channel exists
+    # Only attempt if bot is ready to avoid '_MissingSentinel' errors
     try:
-        channel = await bot.fetch_channel(channel_id)
-        if channel is not None:
-            logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
-            return channel
+        if bot.is_ready():
+            channel = await bot.fetch_channel(channel_id)
+            if channel is not None:
+                logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
+                return channel
     except discord.NotFound:
         logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
     except discord.Forbidden:
