@@ -209,7 +209,7 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
         logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via HTTP client")
         return channel
     except Exception as e:
-        logger.debug(f"[_get_channel_cached] HTTP client failed ({type(e).__name__}), trying fetch_channel")
+        logger.warning(f"[_get_channel_cached] HTTP client failed ({type(e).__name__}): {e}, trying fetch_channel")
     
     # Method 2: Try Discord.py REST API
     try:
