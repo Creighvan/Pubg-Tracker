@@ -104,56 +104,56 @@ def _get_pubg():
     from modules.config import pubg
     return pubg
 
-# Store valid channel IDs to cache successful lookups
-_valid_channel_cache = {}
-_channel_cache_lock = asyncio.Lock()
-# Store resolved channel objects that persist across cache invalidations
-_persistent_channels = {}
-_persistent_channels_lock = asyncio.Lock()
+# Store channel data from REST API responses (bypasses Discord.py cache entirely)
+_channel_data_cache = {}
+_channel_data_cache_lock = asyncio.Lock()
+
+class RawMessage:
+    """Minimal message object for REST API messages"""
+    def __init__(self, data, token):
+        self.id = int(data["id"])
+        self._token = token
+        self._data = data
+    
+    async def edit(self, embed=None, **kwargs):
+        """Edit message via REST API"""
+        import aiohttp
+        headers = {
+            "Authorization": f"Bot {self._token}",
+            "Content-Type": "application/json"
+        }
+        payload = {}
+        if embed:
+            payload["embeds"] = [embed.to_dict()]
+        payload.update(kwargs)
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(
+                f"https://discord.com/api/v10/channels/{self._data['channel_id']}/messages/{self.id}",
+                headers=headers,
+                json=payload
+            ) as response:
+                if response.status == 200:
+                    return await response.json()
+                else:
+                    raise Exception(f"Failed to edit message: {response.status}")
 
 async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
     """
     Try multiple methods to get a channel reliably with retry logic.
-    PRIMARY: Check persistent channel cache (bypasses Discord.py cache)
-    FALLBACK 1: Check if channel was successfully fetched before (cache)
-    FALLBACK 2: Raw HTTP request to Discord REST API - bypasses Discord.py entirely
-    FALLBACK 3: REST API fetch_channel() - Discord.py REST API
-    FALLBACK 4: bot.get_channel() - checks bot's internal cache
-    FALLBACK 5: get_guild() then guild.get_channel() - checks guild's channel list
-    FALLBACK 6: Iterate through bot.guilds to find the guild by ID, then get_channel
+    PRIMARY: Raw HTTP request to Discord REST API - bypasses Discord.py entirely
+    FALLBACK 1: REST API fetch_channel() - Discord.py REST API
+    FALLBACK 2: bot.get_channel() - checks bot's internal cache
+    FALLBACK 3: get_guild() then guild.get_channel() - checks guild's channel list
+    FALLBACK 4: Iterate through bot.guilds to find the guild by ID, then get_channel
     
     If all methods fail, retry once after a short delay to handle initialization issues.
     """
-    global _valid_channel_cache, _persistent_channels
-    
-    # Method 0: Check persistent channel cache (stores actual Discord.py channel objects)
-    async with _persistent_channels_lock:
-        if channel_id in _persistent_channels:
-            channel = _persistent_channels[channel_id]
-            if channel is not None:
-                logger.debug(f"[_get_channel_cached] Using persistent channel {channel_id}")
-                return channel
-            # If None, try to refetch
-            del _persistent_channels[channel_id]
-    
-    # Method 1: Check if we successfully fetched this channel before
-    async with _channel_cache_lock:
-        if channel_id in _valid_channel_cache:
-            # Try to get it via bot methods (should work if cached before)
-            bot = _get_bot()
-            channel = bot.get_channel(channel_id)
-            if channel is not None:
-                logger.debug(f"[_get_channel_cached] Using cached valid channel {channel_id}")
-                # Also store in persistent cache
-                async with _persistent_channels_lock:
-                    _persistent_channels[channel_id] = channel
-                return channel
-            # If not in bot cache, try to re-fetch via HTTP
-            del _valid_channel_cache[channel_id]
+    global _channel_data_cache
     
     bot = _get_bot()
     
-    # Method 2: Raw HTTP request to Discord REST API (most reliable, bypasses Discord.py)
+    # Method 1: Raw HTTP request to Discord REST API (most reliable, bypasses Discord.py)
     try:
         import aiohttp
         headers = {
@@ -166,26 +166,68 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
             ) as response:
                 if response.status == 200:
                     data = await response.json()
-                    # Return a minimal channel-like object
+                    # Cache the raw data
+                    async with _channel_data_cache_lock:
+                        _channel_data_cache[channel_id] = data
+                    # Return a minimal channel-like object that uses REST API for all operations
                     class RawChannel:
-                        def __init__(self, data):
+                        def __init__(self, data, bot):
                             self.id = int(data["id"])
                             self.name = data.get("name", "")
                             self.type = data.get("type", 0)
                             self.guild_id = data.get("guild_id")
                             self.parent_id = data.get("parent_id")
+                            self._bot = bot
+                            self._token = bot.http.token
                         
-                        async def send(self, *args, **kwargs):
-                            # For compatibility, return the bot's method
-                            return await bot.get_channel(self.id).send(*args, **kwargs)
+                        async def send(self, content=None, embed=None, embeds=None, **kwargs):
+                            """Send message via REST API"""
+                            import aiohttp
+                            headers = {
+                                "Authorization": f"Bot {self._token}",
+                                "Content-Type": "application/json"
+                            }
+                            payload = {}
+                            if content:
+                                payload["content"] = content
+                            if embed:
+                                payload["embeds"] = [embed.to_dict()]
+                            elif embeds:
+                                payload["embeds"] = [e.to_dict() for e in embeds]
+                            payload.update(kwargs)
+                            
+                            async with aiohttp.ClientSession() as session:
+                                async with session.post(
+                                    f"https://discord.com/api/v10/channels/{self.id}/messages",
+                                    headers=headers,
+                                    json=payload
+                                ) as response:
+                                    if response.status == 200:
+                                        return await response.json()
+                                    else:
+                                        raise Exception(f"Failed to send message: {response.status}")
                         
                         async def fetch_message(self, message_id):
-                            return await bot.get_channel(self.id).fetch_message(message_id)
+                            """Fetch message via REST API and return a minimal message object"""
+                            import aiohttp
+                            headers = {
+                                "Authorization": f"Bot {self._token}"
+                            }
+                            async with aiohttp.ClientSession() as session:
+                                async with session.get(
+                                    f"https://discord.com/api/v10/channels/{self.id}/messages/{message_id}",
+                                    headers=headers
+                                ) as response:
+                                    if response.status == 200:
+                                        data = await response.json()
+                                        return RawMessage(data, self._token)
+                                    else:
+                                        raise Exception(f"Failed to fetch message: {response.status}")
                     
-                    channel = RawChannel(data)
-                    # Cache successful lookup
-                    async with _channel_cache_lock:
-                        _valid_channel_cache[channel_id] = time.time()
+                    channel = RawChannel(data, bot)
+                    # Cache the raw data
+                    async with _channel_data_cache_lock:
+                        _channel_data_cache[channel_id] = data
                     logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via raw HTTP")
                     return channel
                 elif response.status == 404:
@@ -195,14 +237,10 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     except Exception as e:
         logger.debug(f"[_get_channel_cached] Raw HTTP failed ({type(e).__name__}), trying Discord.py REST")
     
-    # Method 3: Try Discord.py REST API
+    # Method 2: Try Discord.py REST API
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
-            async with _channel_cache_lock:
-                _valid_channel_cache[channel_id] = time.time()
-            async with _persistent_channels_lock:
-                _persistent_channels[channel_id] = channel
             logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via Discord.py REST API")
             return channel
     except discord.NotFound:
@@ -214,20 +252,16 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     except Exception as e:
         logger.debug(f"[_get_channel_cached] Discord.py REST failed ({type(e).__name__}), trying cache")
     
-    # Method 4: Try bot.get_channel() (cache fallback)
+    # Method 3: Try bot.get_channel() (cache fallback)
     channel = bot.get_channel(channel_id)
     if channel is not None:
-        async with _channel_cache_lock:
-            _valid_channel_cache[channel_id] = time.time()
-        async with _persistent_channels_lock:
-            _persistent_channels[channel_id] = channel
         logger.debug(f"[_get_channel_cached] Found channel {channel_id} in cache")
         return channel
     
-    # Method 5: Try get_guild() then guild.get_channel()
+    # Method 4: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
     if guild is None and guild_id:
-        # Method 6: Iterate through bot.guilds to find the guild
+        # Method 5: Iterate through bot.guilds to find the guild
         for g in bot.guilds:
             if g.id == guild_id:
                 guild = g
@@ -236,10 +270,6 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     if guild:
         channel = guild.get_channel(channel_id)
         if channel is not None:
-            async with _channel_cache_lock:
-                _valid_channel_cache[channel_id] = time.time()
-            async with _persistent_channels_lock:
-                _persistent_channels[channel_id] = channel
             logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild")
             return channel
     
