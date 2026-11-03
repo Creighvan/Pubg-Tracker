@@ -20,6 +20,7 @@ time conditions are met.
 
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
+import time
 
 import discord
 from discord.ext import tasks
