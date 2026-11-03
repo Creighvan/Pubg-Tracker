@@ -995,7 +995,7 @@ def start_all_scheduled_tasks(bot_instance):
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_chicken_dinner.start()
-    auto_channel_cache_refresh.start()
+    # Disabled: auto_channel_cache_refresh.start() - not working reliably due to Discord.py '_MissingSentinel' errors
     auto_feedback_prompt.start()
     # Start daily backup task
     _spawn(run_daily_backup(), "run_daily_backup", bot_instance.loop)
