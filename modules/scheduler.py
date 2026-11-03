@@ -839,6 +839,69 @@ async def before_auto_chicken_dinner():
     logger.info("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
 
 
+@tasks.loop(minutes=5)
+async def auto_channel_cache_refresh():
+    """
+    Periodically refresh the channel cache using REST API to ensure
+    channels remain accessible. This bypasses Discord's unreliable cache
+    by directly fetching configured channels every 5 minutes.
+    """
+    bot = _get_bot()
+    if not bot.is_ready():
+        return
+    
+    logger.info("[auto_channel_cache_refresh] Starting channel cache refresh")
+    
+    # Collect all unique channel IDs from all guilds
+    channel_ids = set()
+    try:
+        for guild_id in await storage.all_guild_ids():
+            guild_cfg = await storage.get_guild(guild_id)
+            # Collect all configured channel IDs
+            for key in [
+                "post_channel_id", "activity_channel_id", "ranked_channel_id",
+                "highlights_channel_id", "chicken_dinner_channel_id",
+                "clan_channel_id", "survival_channel_id"
+            ]:
+                channel_id = guild_cfg.get(key)
+                if channel_id:
+                    channel_ids.add(channel_id)
+    except Exception as e:
+        logger.error(f"[auto_channel_cache_refresh] Error collecting channel IDs: {e}")
+        return
+    
+    if not channel_ids:
+        logger.info("[auto_channel_cache_refresh] No channels to refresh")
+        return
+    
+    logger.info(f"[auto_channel_cache_refresh] Refreshing {len(channel_ids)} channels via REST API")
+    
+    refreshed = 0
+    failed = 0
+    for channel_id in channel_ids:
+        try:
+            await bot.fetch_channel(channel_id)
+            refreshed += 1
+        except discord.NotFound:
+            logger.warning(f"[auto_channel_cache_refresh] Channel {channel_id} not found")
+            failed += 1
+        except discord.Forbidden:
+            logger.warning(f"[auto_channel_cache_refresh] No permission for channel {channel_id}")
+            failed += 1
+        except Exception as e:
+            logger.error(f"[auto_channel_cache_refresh] Error fetching channel {channel_id}: {e}")
+            failed += 1
+    
+    logger.info(f"[auto_channel_cache_refresh] Completed: {refreshed} refreshed, {failed} failed")
+
+
+@auto_channel_cache_refresh.before_loop
+async def before_auto_channel_cache_refresh():
+    logger.info("[auto_channel_cache_refresh] Waiting for bot to be ready...")
+    await _get_bot().wait_until_ready()
+    logger.info("[auto_channel_cache_refresh] Bot ready, starting cache refresh (every 5 minutes)")
+
+
 @tasks.loop(minutes=30)
 async def auto_feedback_prompt():
     """Posts a feedback prompt with an interactive modal button once every 14 days per guild."""
@@ -934,6 +997,7 @@ def start_all_scheduled_tasks(bot_instance):
     auto_clan_level.start()
     auto_survival_mastery.start()
     auto_chicken_dinner.start()
+    auto_channel_cache_refresh.start()
     auto_feedback_prompt.start()
     # Start daily backup task
     _spawn(run_daily_backup(), "run_daily_backup", bot_instance.loop)
