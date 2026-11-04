@@ -141,17 +141,48 @@ class RawMessage:
 async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
     """
     Try multiple methods to get a channel reliably with retry logic.
-    PRIMARY: Discord.py HTTP client (bot.http) - bypasses cache, uses proper auth
-    FALLBACK 1: Discord.py REST API fetch_channel() - reliable when bot is connected
-    FALLBACK 2: bot.get_channel() - checks bot's internal cache
-    FALLBACK 3: get_guild() then guild.get_channel() - checks guild's channel list
-    FALLBACK 4: Iterate through bot.guilds to find the guild by ID, then get_channel
+    PRIMARY: Guild cache lookup (most reliable when guilds are cached at startup)
+    FALLBACK 1: bot.get_channel() - checks bot's internal cache
+    FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
+    FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
+    FALLBACK 4: Discord.py HTTP client (bot.http) - bypasses cache, uses proper auth
+    FALLBACK 5: Discord.py REST API fetch_channel() - reliable when bot is connected
     
     If all methods fail, retry once after a short delay to handle initialization issues.
     """
     bot = _get_bot()
     
-    # Method 1: Try Discord.py HTTP client directly (bypasses cache, proper auth)
+    # Method 1: Try guild cache first (most reliable when guilds are cached at startup)
+    if guild_id:
+        guild = bot.get_guild(guild_id)
+        if guild:
+            channel = guild.get_channel(channel_id)
+            if channel is not None:
+                logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild cache")
+                return channel
+    
+    # Method 2: Try bot.get_channel() (cache fallback)
+    channel = bot.get_channel(channel_id)
+    if channel is not None:
+        logger.debug(f"[_get_channel_cached] Found channel {channel_id} in bot cache")
+        return channel
+    
+    # Method 3: Try get_guild() then guild.get_channel()
+    guild = bot.get_guild(guild_id)
+    if guild is None and guild_id:
+        # Method 4: Iterate through bot.guilds to find the guild
+        for g in bot.guilds:
+            if g.id == guild_id:
+                guild = g
+                break
+    
+    if guild:
+        channel = guild.get_channel(channel_id)
+        if channel is not None:
+            logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild iteration")
+            return channel
+    
+    # Method 5: Try Discord.py HTTP client directly (bypasses cache, proper auth)
     try:
         from discord.http import Route
         route = Route('GET', '/channels/{channel_id}', channel_id=channel_id)
@@ -211,7 +242,7 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     except Exception as e:
         logger.warning(f"[_get_channel_cached] HTTP client failed ({type(e).__name__}): {e}, trying fetch_channel")
     
-    # Method 2: Try Discord.py REST API
+    # Method 6: Try Discord.py REST API
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
@@ -225,27 +256,6 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
         logger.debug(f"[_get_channel_cached] Discord.py REST not ready ({type(e).__name__}), trying cache")
     except Exception as e:
         logger.debug(f"[_get_channel_cached] Discord.py REST failed ({type(e).__name__}), trying cache")
-    
-    # Method 3: Try bot.get_channel() (cache fallback)
-    channel = bot.get_channel(channel_id)
-    if channel is not None:
-        logger.debug(f"[_get_channel_cached] Found channel {channel_id} in cache")
-        return channel
-    
-    # Method 4: Try get_guild() then guild.get_channel()
-    guild = bot.get_guild(guild_id)
-    if guild is None and guild_id:
-        # Method 5: Iterate through bot.guilds to find the guild
-        for g in bot.guilds:
-            if g.id == guild_id:
-                guild = g
-                break
-    
-    if guild:
-        channel = guild.get_channel(channel_id)
-        if channel is not None:
-            logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild")
-            return channel
     
     # If all methods failed and we haven't retried yet, retry once after a delay
     if retry_count == 0:
