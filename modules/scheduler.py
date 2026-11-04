@@ -20,7 +20,6 @@ time conditions are met.
 
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
-import time
 
 import discord
 from discord.ext import tasks
@@ -104,73 +103,25 @@ def _get_pubg():
     from modules.config import pubg
     return pubg
 
-# Store channel data from REST API responses (bypasses Discord.py cache entirely)
-_channel_data_cache = {}
-_channel_data_cache_lock = asyncio.Lock()
-
-class RawMessage:
-    """Minimal message object for REST API messages"""
-    def __init__(self, data, token):
-        self.id = int(data["id"])
-        self._token = token
-        self._data = data
-    
-    async def edit(self, embed=None, **kwargs):
-        """Edit message via REST API"""
-        import aiohttp
-        headers = {
-            "Authorization": f"Bot {self._token}",
-            "Content-Type": "application/json"
-        }
-        payload = {}
-        if embed:
-            payload["embeds"] = [embed.to_dict()]
-        payload.update(kwargs)
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.patch(
-                f"https://discord.com/api/v10/channels/{self._data['channel_id']}/messages/{self.id}",
-                headers=headers,
-                json=payload
-            ) as response:
-                if response.status == 200:
-                    return await response.json()
-                else:
-                    raise Exception(f"Failed to edit message: {response.status}")
-
-async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count: int = 0):
+async def _get_channel_cached(channel_id: int, guild_id: int = None):
     """
-    Try multiple methods to get a channel reliably with retry logic.
-    PRIMARY: Guild cache lookup (most reliable when guilds are cached at startup)
-    FALLBACK 1: bot.get_channel() - checks bot's internal cache
-    FALLBACK 2: get_guild() then guild.get_channel() - checks guild's channel list
-    FALLBACK 3: Iterate through bot.guilds to find the guild by ID, then get_channel
-    FALLBACK 4: Discord.py HTTP client (bot.http) - bypasses cache, uses proper auth
-    FALLBACK 5: Discord.py REST API fetch_channel() - reliable when bot is connected
-    
-    If all methods fail, retry once after a short delay to handle initialization issues.
+    Try multiple methods to get a channel reliably.
+    1. bot.get_channel() - checks bot's internal cache (fast)
+    2. get_guild() then guild.get_channel() - checks guild's channel list
+    3. Iterate through bot.guilds to find the guild by ID, then get_channel
+    4. bot.fetch_channel() - REST API call (slow but reliable, bypasses cache)
     """
     bot = _get_bot()
     
-    # Method 1: Try guild cache first (most reliable when guilds are cached at startup)
-    if guild_id:
-        guild = bot.get_guild(guild_id)
-        if guild:
-            channel = guild.get_channel(channel_id)
-            if channel is not None:
-                logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild cache")
-                return channel
-    
-    # Method 2: Try bot.get_channel() (cache fallback)
+    # Method 1: Try bot.get_channel() (fast cache lookup)
     channel = bot.get_channel(channel_id)
     if channel is not None:
-        logger.debug(f"[_get_channel_cached] Found channel {channel_id} in bot cache")
         return channel
     
-    # Method 3: Try get_guild() then guild.get_channel()
+    # Method 2: Try get_guild() then guild.get_channel()
     guild = bot.get_guild(guild_id)
     if guild is None and guild_id:
-        # Method 4: Iterate through bot.guilds to find the guild
+        # Method 3: Iterate through bot.guilds to find the guild
         for g in bot.guilds:
             if g.id == guild_id:
                 guild = g
@@ -179,91 +130,22 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None, retry_count
     if guild:
         channel = guild.get_channel(channel_id)
         if channel is not None:
-            logger.debug(f"[_get_channel_cached] Found channel {channel_id} via guild iteration")
             return channel
     
-    # Method 5: Try Discord.py HTTP client directly (bypasses cache, proper auth)
-    try:
-        from discord.http import Route
-        route = Route('GET', '/channels/{channel_id}', channel_id=channel_id)
-        data = await bot.http.request(route)
-        # Convert raw data to a minimal channel object
-        class HTTPChannel:
-            def __init__(self, data, bot):
-                self.id = int(data["id"])
-                self.name = data.get("name", "")
-                self.type = data.get("type", 0)
-                self.guild_id = data.get("guild_id")
-                self.parent_id = data.get("parent_id")
-                self._bot = bot
-            
-            async def send(self, content=None, embed=None, embeds=None, **kwargs):
-                """Send message using bot's HTTP client"""
-                from discord.http import Route
-                route = Route('POST', '/channels/{channel_id}/messages', channel_id=self.id)
-                payload = {}
-                if content:
-                    payload["content"] = content
-                if embed:
-                    payload["embeds"] = [embed.to_dict()]
-                elif embeds:
-                    payload["embeds"] = [e.to_dict() for e in embeds]
-                payload.update(kwargs)
-                return await self._bot.http.request(route, json=payload)
-            
-            async def fetch_message(self, message_id):
-                """Fetch message using bot's HTTP client"""
-                from discord.http import Route
-                route = Route('GET', '/channels/{channel_id}/messages/{message_id}', 
-                             channel_id=self.id, message_id=message_id)
-                data = await self._bot.http.request(route)
-                return HTTPMessage(data, self._bot)
-        
-        class HTTPMessage:
-            def __init__(self, data, bot):
-                self.id = int(data["id"])
-                self._bot = bot
-                self._data = data
-            
-            async def edit(self, embed=None, **kwargs):
-                """Edit message using bot's HTTP client"""
-                from discord.http import Route
-                route = Route('PATCH', '/channels/{channel_id}/messages/{message_id}',
-                             channel_id=self._data['channel_id'], message_id=self.id)
-                payload = {}
-                if embed:
-                    payload["embeds"] = [embed.to_dict()]
-                payload.update(kwargs)
-                return await self._bot.http.request(route, json=payload)
-        
-        channel = HTTPChannel(data, bot)
-        logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via HTTP client")
-        return channel
-    except Exception as e:
-        logger.warning(f"[_get_channel_cached] HTTP client failed ({type(e).__name__}): {e}, trying fetch_channel")
-    
-    # Method 6: Try Discord.py REST API
+    # Method 4: Use REST API to fetch channel directly (slow but reliable)
+    # This bypasses the cache and will always work if the channel exists
     try:
         channel = await bot.fetch_channel(channel_id)
         if channel is not None:
-            logger.debug(f"[_get_channel_cached] Fetched channel {channel_id} via Discord.py REST API")
+            logger.info(f"[_get_channel_cached] Fetched channel {channel_id} via REST API")
             return channel
     except discord.NotFound:
-        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via Discord.py REST API")
+        logger.warning(f"[_get_channel_cached] Channel {channel_id} not found via REST API")
     except discord.Forbidden:
         logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
-    except AttributeError as e:
-        logger.debug(f"[_get_channel_cached] Discord.py REST not ready ({type(e).__name__}), trying cache")
     except Exception as e:
-        logger.debug(f"[_get_channel_cached] Discord.py REST failed ({type(e).__name__}), trying cache")
+        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id}: {e}")
     
-    # If all methods failed and we haven't retried yet, retry once after a delay
-    if retry_count == 0:
-        logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id}, retrying in 2 seconds...")
-        await asyncio.sleep(2)
-        return await _get_channel_cached(channel_id, guild_id, retry_count=1)
-    
-    logger.warning(f"[_get_channel_cached] All methods failed for channel {channel_id} after retry")
     return None
 
 
@@ -300,6 +182,7 @@ async def auto_digest():
 
         channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
+            logger.warning(f"[scheduler] Guild {guild_id}: channel {channel_id} not found or inaccessible, skipping report")
             continue
         try:
             async with get_scheduler_lock():
@@ -470,6 +353,7 @@ async def auto_ranked():
 
         channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
+            logger.warning(f"[scheduler] Guild {guild_id}: channel {channel_id} not found or inaccessible, skipping report")
             continue
         
         try:
@@ -642,12 +526,15 @@ async def run_auto_highlights():
     """Wrapper to start auto_highlights as a background task."""
     await _get_bot().wait_until_ready()
     logger.info("[auto_highlights] Starting highlights background task")
-    try:
-        await auto_highlights()
-    except Exception as e:
-        logger.error(f"[auto_highlights] Fatal error in highlights task: {e}")
-        import traceback
-        traceback.print_exc()
+    while True:
+        try:
+            await auto_highlights()
+            return
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.error(f"[auto_highlights] Fatal error in highlights task, retrying in 5 minutes: {e}", exc_info=True)
+            await asyncio.sleep(300)
 
 
 @tasks.loop(minutes=15)
@@ -663,6 +550,7 @@ async def auto_clan_level():
 
         channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
+            logger.warning(f"[scheduler] Guild {guild_id}: channel {channel_id} not found or inaccessible, skipping report")
             continue
         try:
             async with get_scheduler_lock():
@@ -729,6 +617,7 @@ async def auto_survival_mastery():
 
         channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
+            logger.warning(f"[scheduler] Guild {guild_id}: channel {channel_id} not found or inaccessible, skipping report")
             continue
         try:
             async with get_scheduler_lock():
@@ -952,67 +841,6 @@ async def before_auto_chicken_dinner():
     logger.info("[auto_chicken_dinner] Bot ready, starting loop (every 15 minutes)")
 
 
-@tasks.loop(minutes=2)
-async def auto_channel_cache_refresh():
-    """
-    Periodically refresh the channel cache using REST API to ensure
-    channels remain accessible. This bypasses Discord's unreliable cache
-    by directly fetching configured channels every 2 minutes.
-    """
-    bot = _get_bot()
-    
-    logger.info("[auto_channel_cache_refresh] Starting channel cache refresh")
-    
-    # Collect all unique channel IDs from all guilds
-    channel_ids = set()
-    try:
-        for guild_id in await storage.all_guild_ids():
-            guild_cfg = await storage.get_guild(guild_id)
-            # Collect all configured channel IDs
-            for key in [
-                "post_channel_id", "activity_channel_id", "ranked_channel_id",
-                "highlights_channel_id", "chicken_dinner_channel_id",
-                "clan_channel_id", "survival_channel_id"
-            ]:
-                channel_id = guild_cfg.get(key)
-                if channel_id:
-                    channel_ids.add(channel_id)
-    except Exception as e:
-        logger.error(f"[auto_channel_cache_refresh] Error collecting channel IDs: {e}")
-        return
-    
-    if not channel_ids:
-        logger.info("[auto_channel_cache_refresh] No channels to refresh")
-        return
-    
-    logger.info(f"[auto_channel_cache_refresh] Refreshing {len(channel_ids)} channels via REST API")
-    
-    refreshed = 0
-    failed = 0
-    for channel_id in channel_ids:
-        try:
-            await bot.fetch_channel(channel_id)
-            refreshed += 1
-        except discord.NotFound:
-            logger.warning(f"[auto_channel_cache_refresh] Channel {channel_id} not found")
-            failed += 1
-        except discord.Forbidden:
-            logger.warning(f"[auto_channel_cache_refresh] No permission for channel {channel_id}")
-            failed += 1
-        except Exception as e:
-            logger.error(f"[auto_channel_cache_refresh] Error fetching channel {channel_id}: {e}")
-            failed += 1
-    
-    logger.info(f"[auto_channel_cache_refresh] Completed: {refreshed} refreshed, {failed} failed")
-
-
-@auto_channel_cache_refresh.before_loop
-async def before_auto_channel_cache_refresh():
-    logger.info("[auto_channel_cache_refresh] Waiting for bot to be ready...")
-    await _get_bot().wait_until_ready()
-    logger.info("[auto_channel_cache_refresh] Bot ready, starting cache refresh (every 5 minutes)")
-
-
 @tasks.loop(minutes=30)
 async def auto_feedback_prompt():
     """Posts a feedback prompt with an interactive modal button once every 14 days per guild."""
@@ -1098,24 +926,40 @@ async def send_audit_log(guild_id: int, title: str, description: str, is_automat
 
 
 
+def _spawn_once(factory, name: str, loop=None):
+    """Start a background task unless one with this name is already running."""
+    for t in _background_tasks:
+        if t.get_name() == name and not t.done():
+            return t
+    return _spawn(factory(), name, loop)
+
+
+def _start_loop(task_loop, label: str):
+    """Start a tasks.loop unless it is already running (restarts one that died)."""
+    if task_loop.is_running():
+        return
+    logger.info(f"[scheduler] Starting {label}")
+    task_loop.start()
+
+
 def start_all_scheduled_tasks(bot_instance):
-    """Start all scheduled task loops."""
-    auto_digest.start()
-    auto_last_active.start()
-    auto_ranked.start()
-    # Start auto_highlights as a background task (custom 24-hour schedule)
-    _spawn(run_auto_highlights(), "run_auto_highlights", bot_instance.loop)
-    auto_clan_level.start()
-    auto_survival_mastery.start()
-    auto_chicken_dinner.start()
-    # Disabled: auto_channel_cache_refresh.start() - not working reliably due to Discord.py '_MissingSentinel' errors
-    auto_feedback_prompt.start()
-    # Start daily backup task
-    _spawn(run_daily_backup(), "run_daily_backup", bot_instance.loop)
-    # Start cache cleanup task
-    _spawn(run_cache_cleanup(), "run_cache_cleanup", bot_instance.loop)
-    # Start daily snapshot task
-    _spawn(run_daily_snapshot(), "run_daily_snapshot", bot_instance.loop)
+    """Start all scheduled task loops.
+
+    Safe to call repeatedly: anything already running is left alone, and any
+    loop or background task that died is started again.
+    """
+    _start_loop(auto_digest, "auto_digest")
+    _start_loop(auto_last_active, "auto_last_active")
+    _start_loop(auto_ranked, "auto_ranked")
+    # auto_highlights is a background task (custom 24-hour schedule)
+    _spawn_once(run_auto_highlights, "run_auto_highlights", bot_instance.loop)
+    _start_loop(auto_clan_level, "auto_clan_level")
+    _start_loop(auto_survival_mastery, "auto_survival_mastery")
+    _start_loop(auto_chicken_dinner, "auto_chicken_dinner")
+    _start_loop(auto_feedback_prompt, "auto_feedback_prompt")
+    _spawn_once(run_daily_backup, "run_daily_backup", bot_instance.loop)
+    _spawn_once(run_cache_cleanup, "run_cache_cleanup", bot_instance.loop)
+    _spawn_once(run_daily_snapshot, "run_daily_snapshot", bot_instance.loop)
 
 
 async def run_daily_backup():

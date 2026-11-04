@@ -520,9 +520,12 @@ async def on_ready():
     except Exception as e:
         logger.warning(f"[on_ready] Failed to cache guild channels: {e}", exc_info=True)
 
-    # Only start scheduled tasks AFTER channel caching is complete
-    if not auto_digest.is_running():
-        start_all_scheduled_tasks(bot)
+    # Only start scheduled tasks AFTER channel caching is complete.
+    # start_all_scheduled_tasks is idempotent, so calling it on every on_ready
+    # also revives any loop that died; one-time wiring stays behind the flag.
+    _first_start = not auto_digest.is_running()
+    start_all_scheduled_tasks(bot)
+    if _first_start:
         # Wire up the audit log function so scheduler uses our implementation
         _set_audit_log_func(send_audit_log)
         
