@@ -14,6 +14,8 @@ When servers come back online, immediately triggers all skipped scheduled tasks.
 """
 
 from datetime import datetime, timezone, timedelta
+import json
+import os
 import aiohttp
 from discord.ext import tasks
 import discord
@@ -47,6 +49,81 @@ CHECK_INTERVAL_SECONDS = 120  # check every 2 minutes
 # Player count thresholds for maintenance detection
 NORMAL_PLAYER_COUNT_MIN = 100000  # below this is suspicious (raised from 50k)
 MAINTENANCE_PLAYER_COUNT_MAX = 50000  # at or below this is definitely maintenance (raised from 10k)
+
+
+# The bot restarts often (deploys, reboots), and the state above only lives in
+# memory. Without saving it, a restart in the middle of maintenance would post a
+# second "maintenance detected" notice and lose the real downtime, and a restart
+# right when maintenance ends would never post "back online". The state is
+# therefore saved to this small file and read back at startup.
+STATE_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "maintenance_state.json")
+
+
+def _dt_to_str(value):
+    return value.isoformat() if isinstance(value, datetime) else None
+
+
+def _str_to_dt(value):
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(value)
+    except (TypeError, ValueError):
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _save_state():
+    """Write the parts of MAINTENANCE_STATE that must survive a restart."""
+    try:
+        scheduled = MAINTENANCE_STATE.get("scheduled_maintenance")
+        data = {
+            "is_maintenance": bool(MAINTENANCE_STATE["is_maintenance"]),
+            "down_since": _dt_to_str(MAINTENANCE_STATE["down_since"]),
+            "scheduled_maintenance": None if not scheduled else {
+                "start_time": _dt_to_str(scheduled["start_time"]),
+                "end_time": _dt_to_str(scheduled["end_time"]),
+                "source": scheduled.get("source", "Manual"),
+                "announced": bool(scheduled.get("announced")),
+                "reminded": bool(scheduled.get("reminded")),
+            },
+        }
+        tmp = STATE_FILE + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        os.replace(tmp, STATE_FILE)  # atomic: never leaves a half-written file
+    except Exception as e:
+        logger.error(f"[maintenance] Could not save maintenance state: {e}")
+
+
+def _load_state():
+    """Restore saved maintenance state at startup (no file = first run)."""
+    try:
+        if not os.path.exists(STATE_FILE):
+            return
+        with open(STATE_FILE, encoding="utf-8") as f:
+            data = json.load(f)
+        MAINTENANCE_STATE["is_maintenance"] = bool(data.get("is_maintenance"))
+        MAINTENANCE_STATE["down_since"] = _str_to_dt(data.get("down_since"))
+        if MAINTENANCE_STATE["is_maintenance"] and MAINTENANCE_STATE["down_since"] is None:
+            MAINTENANCE_STATE["down_since"] = datetime.now(timezone.utc)
+        sched = data.get("scheduled_maintenance")
+        if sched:
+            start, end = _str_to_dt(sched.get("start_time")), _str_to_dt(sched.get("end_time"))
+            if start and end:
+                MAINTENANCE_STATE["scheduled_maintenance"] = {
+                    "start_time": start, "end_time": end,
+                    "source": sched.get("source", "Manual"),
+                    "announced": bool(sched.get("announced")),
+                    "reminded": bool(sched.get("reminded")),
+                }
+        logger.info(
+            f"[maintenance] Restored state: is_maintenance={MAINTENANCE_STATE['is_maintenance']}, "
+            f"down_since={MAINTENANCE_STATE['down_since']}, "
+            f"scheduled={'yes' if MAINTENANCE_STATE['scheduled_maintenance'] else 'no'}"
+        )
+    except Exception as e:
+        logger.error(f"[maintenance] Could not load maintenance state (starting fresh): {e}")
 
 
 def _get_bot():
@@ -154,14 +231,15 @@ async def build_back_online_embed(maintenance_start: datetime, downtime: str, pl
     return embed
 
 
-async def build_scheduled_maintenance_embed(start_time: datetime, end_time: datetime, source: str = "Manual"):
-    """Build an embed for scheduled maintenance announcement."""
+async def build_scheduled_maintenance_embed(start_time: datetime, end_time: datetime, source: str = "Manual", reminder: bool = False):
+    """Build an embed for scheduled maintenance announcement (or its "starting soon" reminder)."""
     duration = end_time - start_time
     duration_str = f"{duration.total_seconds() / 3600:.1f} hours"
     
     embed = discord.Embed(
-        title="📅 Scheduled PUBG Server Maintenance",
-        description="PUBG servers will undergo maintenance starting soon.",
+        title="⏰ PUBG Maintenance Starting Soon" if reminder else "📅 Scheduled PUBG Server Maintenance",
+        description=("PUBG servers are about to go down for maintenance." if reminder
+                     else "PUBG servers will undergo maintenance starting soon."),
         color=0xFFAA00,
         timestamp=datetime.now(timezone.utc)
     )
@@ -170,7 +248,7 @@ async def build_scheduled_maintenance_embed(start_time: datetime, end_time: date
     embed.add_field(name="Expected End", value=end_time.strftime("%Y-%m-%d %H:%M:%S UTC"), inline=True)
     embed.add_field(name="Duration", value=duration_str, inline=True)
     embed.add_field(name="Source", value=source, inline=True)
-    embed.add_field(name="Status", value="⏳ Scheduled", inline=True)
+    embed.add_field(name="Status", value="⏰ Starting soon" if reminder else "⏳ Scheduled", inline=True)
     embed.set_footer(text="Automatic monitoring will confirm when maintenance actually starts")
     
     return embed
@@ -220,8 +298,10 @@ async def set_scheduled_maintenance(start_time: datetime, end_time: datetime, so
         "start_time": start_time,
         "end_time": end_time,
         "announced": True,
+        "reminded": False,
         "source": source
     }
+    _save_state()
     
     embed = await build_scheduled_maintenance_embed(start_time, end_time, source)
     await post_maintenance_notification(embed, scheduled=True)
@@ -233,38 +313,18 @@ async def clear_scheduled_maintenance():
     """Clear any scheduled maintenance notice."""
     global MAINTENANCE_STATE
     MAINTENANCE_STATE["scheduled_maintenance"] = None
+    _save_state()
     logger.info("[maintenance] Scheduled maintenance cleared")
-
-
-async def schedule_october_14_maintenance():
-    """
-    Schedule the October 14, 2026 maintenance (00:00 UTC, 8.5 hours).
-    This is called automatically on bot startup if the date is approaching.
-    """
-    from datetime import datetime, timezone, timedelta
-    
-    # October 14, 2026 at 00:00 UTC
-    maintenance_start = datetime(2026, 10, 14, 0, 0, tzinfo=timezone.utc)
-    maintenance_end = maintenance_start + timedelta(hours=float(8.5))
-    
-    now = datetime.now(timezone.utc)
-    
-    # Only schedule if we're within 48 hours of the maintenance
-    if now >= maintenance_start - timedelta(hours=48) and now < maintenance_start:
-        await set_scheduled_maintenance(maintenance_start, maintenance_end, "Auto-scheduled (Oct 14)")
-        logger.info(f"[maintenance] Auto-scheduled October 14 maintenance: {maintenance_start} UTC")
-    elif now >= maintenance_start:
-        # Maintenance has already passed, don't schedule
-        logger.info("[maintenance] October 14 maintenance already passed, skipping auto-schedule")
-    else:
-        # Too early to schedule
-        logger.info("[maintenance] October 14 maintenance is more than 48 hours away, skipping auto-schedule")
 
 
 async def post_maintenance_notification(embed: discord.Embed, scheduled: bool = False):
     """Post maintenance notification to all configured channels."""
-    bot = _get_bot()
-    
+    # Same channel lookup the scheduled reports use (cache first, then Discord's
+    # REST API), so a channel that is missing from the cache is still found.
+    from modules.scheduler import _get_channel_cached
+
+    posted = skipped = failed = 0
+
     for guild_id in await storage.all_guild_ids():
         guild_cfg = await storage.get_guild(guild_id)
         
@@ -278,19 +338,26 @@ async def post_maintenance_notification(embed: discord.Embed, scheduled: bool = 
             channel_id = guild_cfg.get("maintenance_channel_id")
         
         if channel_id is None:
-            continue
-        
-        guild = bot.get_guild(guild_id)
-        channel = bot.get_channel(channel_id)
-        
-        if guild is None or channel is None:
+            continue  # this server has no maintenance channel set
+
+        channel = await _get_channel_cached(channel_id, guild_id)
+        if channel is None:
+            skipped += 1
+            logger.warning(
+                f"[maintenance] Guild {guild_id}: channel {channel_id} not found or inaccessible, "
+                f"skipping notification (scheduled={scheduled})"
+            )
             continue
         
         try:
             await channel.send(embed=embed)
+            posted += 1
             logger.info(f"[maintenance] Posted notification to guild {guild_id} (scheduled={scheduled})")
         except Exception as e:
+            failed += 1
             logger.error(f"[maintenance] Failed to post notification to guild {guild_id}: {e}")
+
+    logger.info(f"[maintenance] Notification finished: {posted} posted, {skipped} skipped, {failed} failed (scheduled={scheduled})")
 
 
 async def calculate_downtime(maintenance_start: datetime) -> str:
@@ -325,26 +392,25 @@ async def check_maintenance_status():
     # Signal 3: PUBG API data calls
     api_data_ok = await check_pubg_api_data()
     
-    # Combine signals
-    # Maintenance if: player count very low OR player count suspicious
-    # Changed to be more conservative - treat any count below 50k as maintenance
-    # even if API is working, to avoid false "back online" during partial recovery
-    # A Steam count under 100k is NORMAL for PUBG during its quiet hours (roughly
-    # 90-160k off-peak), so it only counts as maintenance when the PUBG API
-    # also fails to return real data. A very low count (< 50k) or both API
-    # checks failing still counts on its own.
+    # Combine signals.
+    # PUBG's normal Steam count is far above 100k (about 240-260k even in the
+    # small hours, 700k+ at peak), while a real maintenance reads around 18k.
+    # So anything under 100k means servers are down or only partly back, and is
+    # treated as maintenance even when the API answers. That avoids a false
+    # "back online" notice during a partial recovery. If the Steam number could
+    # not be fetched at all, both PUBG API checks failing counts as down.
     api_down = (not api_status_ok) and (not api_data_ok)
-    is_down = steam_signal_low or api_down or (steam_signal_suspicious and not api_data_ok)
+    steam_unavailable = steam_count is None
+    is_down = steam_signal_low or steam_signal_suspicious or (steam_unavailable and api_down)
 
     logger.info(f"[maintenance] Check: steam={steam_count}, api_status={api_status_ok}, api_data={api_data_ok}, is_down={is_down}")
 
     return is_down, steam_count
 
 
-@tasks.loop(seconds=CHECK_INTERVAL_SECONDS)
-async def auto_maintenance_check():
+async def _maintenance_tick():
     """
-    Scheduled task that checks maintenance status every 2 minutes.
+    One maintenance check (runs every 2 minutes from auto_maintenance_check).
     Uses debounce logic to avoid false positives.
     Posts notifications when transitioning between states.
     """
@@ -355,13 +421,21 @@ async def auto_maintenance_check():
 
     logger.info(f"[auto_maintenance_check] Running at {now.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     
-    # Check if scheduled maintenance is starting soon (within 30 minutes)
+    # Scheduled maintenance: one "starting soon" reminder within 30 minutes of the
+    # start, then forget the schedule once it is over.
     scheduled = MAINTENANCE_STATE.get("scheduled_maintenance")
-    if scheduled and not scheduled.get("announced"):
-        start_time = scheduled["start_time"]
-        if now >= start_time - timedelta(minutes=30) and now < start_time:
-            # Post reminder that maintenance is starting soon
-            await set_scheduled_maintenance(start_time, scheduled["end_time"], scheduled["source"])
+    if scheduled:
+        start_time, end_time = scheduled["start_time"], scheduled["end_time"]
+        if not scheduled.get("reminded") and start_time - timedelta(minutes=30) <= now < start_time:
+            scheduled["reminded"] = True
+            _save_state()
+            logger.info(f"[maintenance] Posting 'starting soon' reminder for {start_time} UTC")
+            reminder = await build_scheduled_maintenance_embed(start_time, end_time, scheduled.get("source", "Manual"), reminder=True)
+            await post_maintenance_notification(reminder, scheduled=True)
+        elif now > end_time + timedelta(hours=1):
+            logger.info("[maintenance] Scheduled maintenance window is over, clearing it")
+            MAINTENANCE_STATE["scheduled_maintenance"] = None
+            _save_state()
     
     # Check current status
     is_down, steam_count = await check_maintenance_status()
@@ -376,6 +450,7 @@ async def auto_maintenance_check():
             # Transition to maintenance
             MAINTENANCE_STATE["is_maintenance"] = True
             MAINTENANCE_STATE["down_since"] = now
+            _save_state()
 
             logger.info(f"[maintenance] ⚠️ MAINTENANCE DETECTED - consecutive failures: {MAINTENANCE_STATE['consecutive_failures']}")
 
@@ -391,6 +466,8 @@ async def auto_maintenance_check():
         if MAINTENANCE_STATE["consecutive_successes"] >= SUCCESS_THRESHOLD and MAINTENANCE_STATE["is_maintenance"]:
             # Transition back online
             MAINTENANCE_STATE["is_maintenance"] = False
+            if MAINTENANCE_STATE["down_since"] is None:
+                MAINTENANCE_STATE["down_since"] = now
             downtime = await calculate_downtime(MAINTENANCE_STATE["down_since"])
 
             logger.info(f"[maintenance] ✅ BACK ONLINE - downtime: {downtime}")
@@ -409,6 +486,16 @@ async def auto_maintenance_check():
             
             # Reset downtime
             MAINTENANCE_STATE["down_since"] = None
+            _save_state()
+
+
+@tasks.loop(seconds=CHECK_INTERVAL_SECONDS)
+async def auto_maintenance_check():
+    """Run one maintenance check; an unexpected error must never stop the monitor."""
+    try:
+        await _maintenance_tick()
+    except Exception as e:
+        logger.error(f"[maintenance] Check failed unexpectedly (monitor keeps running): {e}", exc_info=True)
 
 
 def is_in_maintenance():
@@ -424,13 +511,9 @@ def get_maintenance_state():
 async def start_maintenance_monitor():
     """Start the maintenance monitoring task."""
     logger.info("[maintenance] Starting maintenance monitor...")
-    auto_maintenance_check.start()
-
-    # Auto-schedule known maintenance events
-    try:
-        await schedule_october_14_maintenance()
-    except Exception as e:
-        logger.error(f"[maintenance] Failed to auto-schedule October 14 maintenance: {e}")
+    _load_state()
+    if not auto_maintenance_check.is_running():
+        auto_maintenance_check.start()
 
 
 async def stop_maintenance_monitor():

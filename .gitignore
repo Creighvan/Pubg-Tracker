@@ -40,3 +40,4 @@ Thumbs.db
 history.json
 data.json.bak*
 *.tmp
+maintenance_state.json
