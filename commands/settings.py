@@ -8,6 +8,7 @@ import translations
 import discord
 from pubg_api import PubgApiError
 from modules.reports import fetch_highlights_report
+from modules.utils import discord_time
 
 logger = logging.getLogger(__name__)
 
@@ -299,8 +300,8 @@ async def schedulemaintenance_impl(interaction, start_date, start_hour, duration
         await set_scheduled_maintenance(start_time, end_time, "Manual")
         
         await interaction.followup.send(
-            f"✅ Maintenance scheduled for {start_time.strftime('%Y-%m-%d %H:%M UTC')} "
-            f"to {end_time.strftime('%Y-%m-%d %H:%M UTC')} ({duration_hours} hours)\n"
+            f"✅ Maintenance scheduled for {start_time.strftime('%Y-%m-%d %H:%M UTC')} ({discord_time(start_time, 'F')}) "
+            f"to {end_time.strftime('%Y-%m-%d %H:%M UTC')} ({discord_time(end_time, 'F')}) ({duration_hours} hours)\n"
             f"Announcement will be posted 30 minutes before start time."
         )
     except Exception as e:

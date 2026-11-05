@@ -244,8 +244,10 @@ async def build_scheduled_maintenance_embed(start_time: datetime, end_time: date
         timestamp=datetime.now(timezone.utc)
     )
     
-    embed.add_field(name="Start Time", value=start_time.strftime("%Y-%m-%d %H:%M:%S UTC"), inline=True)
-    embed.add_field(name="Expected End", value=end_time.strftime("%Y-%m-%d %H:%M:%S UTC"), inline=True)
+    # Discord timestamps show each player's own local time; the UTC time stays for reference
+    from modules.utils import discord_time
+    embed.add_field(name="Start Time", value=f"{discord_time(start_time, 'F')}\n({discord_time(start_time, 'R')})\n{start_time.strftime('%H:%M')} UTC", inline=True)
+    embed.add_field(name="Expected End", value=f"{discord_time(end_time, 'F')}\n{end_time.strftime('%H:%M')} UTC", inline=True)
     embed.add_field(name="Duration", value=duration_str, inline=True)
     embed.add_field(name="Source", value=source, inline=True)
     embed.add_field(name="Status", value="⏰ Starting soon" if reminder else "⏳ Scheduled", inline=True)

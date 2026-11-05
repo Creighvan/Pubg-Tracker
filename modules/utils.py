@@ -158,9 +158,42 @@ def _as_utc(iso_timestamp: str | None) -> datetime | None:
         return None
 
 
+def discord_time(when: datetime, style: str = "F") -> str:
+    """Return a Discord timestamp that every reader sees in THEIR OWN time zone.
+
+    The bot keeps all schedules and settings in UTC. Putting this in a message or
+    an embed field/description (not a title or footer, which cannot render it)
+    lets Discord convert it to each player's local time automatically.
+    Styles: t = 9:00 PM, F = Thursday, November 5, 2026 9:00 PM, R = in 3 hours.
+    """
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return f"<t:{int(when.timestamp())}:{style}>"
+
+
+def next_daily_utc(hour: int, minute: int = 0, now: datetime | None = None) -> datetime:
+    """The next moment it is HH:MM UTC (today if still ahead, else tomorrow)."""
+    now = now or datetime.now(timezone.utc)
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return target if target > now else target + timedelta(days=1)
+
+
+def next_weekly_utc(weekday: int, hour: int, minute: int = 0, now: datetime | None = None) -> datetime:
+    """The next moment it is the given UTC weekday (Monday=0) at HH:MM UTC."""
+    now = now or datetime.now(timezone.utc)
+    target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    target += timedelta(days=(weekday - now.weekday()) % 7)
+    return target if target > now else target + timedelta(days=7)
+
+
+def utc_with_local(hhmm_utc: str, when: datetime, style: str = "F") -> str:
+    """'02:00 UTC · <your local time>' for confirmation messages."""
+    return f"{hhmm_utc} UTC · {discord_time(when, style)}"
+
+
 def _format_utc_time(when: datetime) -> str:
-    """Format a datetime as a readable UTC time string."""
-    return when.strftime("%A, %b %d at %H:%M UTC")
+    """Show a time in each reader's local zone, with the UTC time kept for reference."""
+    return f"{discord_time(when, 'F')} ({discord_time(when, 'R')}) · {when.strftime('%H:%M')} UTC"
 
 
 def _next_daily_report(hour: int, minute: int, posted_at: str | None) -> str:

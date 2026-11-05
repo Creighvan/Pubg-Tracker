@@ -81,6 +81,7 @@ from discord import app_commands
 from discord.ext import commands
 
 import storage
+from modules.utils import utc_with_local, next_daily_utc, next_weekly_utc
 from pubg_api import PubgApiError, PubgClient
 import translations
 
@@ -942,7 +943,7 @@ async def setdigesttime(interaction: discord.Interaction, hour: app_commands.Ran
         guild_cfg["digest_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        translations.get_translation(lang, "digest_time_set").format(time=f"{hour:02d}:{minute_val:02d} UTC")
+        translations.get_translation(lang, "digest_time_set").format(time=utc_with_local(f"{hour:02d}:{minute_val:02d}", next_daily_utc(hour, minute_val)))
     )
 
 
@@ -966,7 +967,7 @@ async def setclantime(
         guild_cfg["clan_minute_utc"] = minute_val
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        translations.get_translation(lang, "clan_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
+        translations.get_translation(lang, "clan_time_set").format(weekday=day.name, time=utc_with_local(f"{hour:02d}:{minute_val:02d}", next_weekly_utc(day.value, hour, minute_val)))
     )
 
 @bot.tree.command(description="Show when each roster player last played PUBG, right now")
@@ -1112,7 +1113,7 @@ async def setsurvivaltime(
         guild_cfg["survival_enabled"] = True
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.response.send_message(
-        translations.get_translation(lang, "survival_time_set").format(weekday=day.name, time=f"{hour:02d}:{minute_val:02d} UTC")
+        translations.get_translation(lang, "survival_time_set").format(weekday=day.name, time=utc_with_local(f"{hour:02d}:{minute_val:02d}", next_weekly_utc(day.value, hour, minute_val)))
     )
 
 

@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 import discord
 
 from modules.config import RANKED_MODE_LABELS
-from modules.utils import _channel_mention, _safe_div, normalize_player_name
+from modules.utils import _channel_mention, _safe_div, normalize_player_name, _format_utc_time, next_daily_utc
 import translations
 
 # Import scheduler helpers from bot.utils (these are used in build_report_status_embed)
@@ -97,7 +97,7 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
                 schedule = translations.get_translation(lang, "updates_in_place_schedule").format(hour=hour, minute=minute)
-                next_time = f"{hour:02d}:{minute:02d} UTC"
+                next_time = _format_utc_time(next_daily_utc(hour, minute))
                 embed.add_field(name=name.replace("🟢 ", "").replace("🏆 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
                 continue
         hour = guild_cfg.get(hour_key)
