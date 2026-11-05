@@ -144,7 +144,12 @@ async def _get_channel_cached(channel_id: int, guild_id: int = None):
     except discord.Forbidden:
         logger.warning(f"[_get_channel_cached] No permission to fetch channel {channel_id}")
     except Exception as e:
-        logger.error(f"[_get_channel_cached] Error fetching channel {channel_id}: {e}")
+        in_cache = any(g.id == guild_id for g in bot.guilds) if guild_id else None
+        logger.error(
+            f"[_get_channel_cached] Error fetching channel {channel_id} "
+            f"(guild {guild_id}, guild in bot.guilds: {in_cache}): {type(e).__name__}: {e}",
+            exc_info=True,
+        )
     
     return None
 

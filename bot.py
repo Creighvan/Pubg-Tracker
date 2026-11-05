@@ -512,13 +512,34 @@ async def on_ready():
 
     # Force cache all guild channels to ensure scheduled tasks can find them
     # This MUST complete before starting scheduled tasks
-    try:
-        for guild in bot.guilds:
+    # One guild failing must not stop the others, so each gets its own try/except.
+    for guild in bot.guilds:
+        try:
             # Fetch all text channels to populate the cache
             await guild.fetch_channels()
             logger.info(f"[on_ready] Cached {len(guild.channels)} channels for guild {guild.id}")
+        except Exception as e:
+            logger.warning(f"[on_ready] Failed to cache channels for guild {guild.id}: {type(e).__name__}: {e}", exc_info=True)
+
+    # Compare the servers configured in data.json with what Discord's gateway
+    # actually delivered, so a server that is missing from the cache is
+    # explained in the log instead of only showing up as "channel not found".
+    try:
+        connected = {g.id: g for g in bot.guilds}
+        for gid in await storage.all_guild_ids():
+            g = connected.get(int(gid))
+            if g is None:
+                logger.warning(
+                    f"[on_ready] Guild {gid} is configured but NOT in bot.guilds "
+                    f"(bot not in the server, or Discord reports it unavailable). "
+                    f"Its reports can only use the slower REST lookup."
+                )
+            elif g.unavailable:
+                logger.warning(f"[on_ready] Guild {gid} ({g.name}) is marked unavailable by Discord")
+            else:
+                logger.info(f"[on_ready] Guild {gid} ({g.name}) connected with {len(g.channels)} channels in cache")
     except Exception as e:
-        logger.warning(f"[on_ready] Failed to cache guild channels: {e}", exc_info=True)
+        logger.warning(f"[on_ready] Guild connectivity check failed: {e}", exc_info=True)
 
     # Only start scheduled tasks AFTER channel caching is complete.
     # start_all_scheduled_tasks is idempotent, so calling it on every on_ready

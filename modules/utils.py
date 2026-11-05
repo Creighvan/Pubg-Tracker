@@ -77,15 +77,23 @@ def _safe_div(a: float, b: float) -> float:
     return a / b if b else 0.0
 
 
+# How long after its scheduled time a fixed-time daily report may still post
+# (catch-up for delays/restarts). Kept under a day so a report never posts
+# "yesterday's" slot the next morning.
+DAILY_CATCHUP_MINUTES = 360
+
+
 def _is_due(guild_cfg: dict, hour_key: str, minute_key: str, posted_at_key: str, default_interval_hours: int) -> bool:
     """
     Two scheduling modes, chosen per-report:
     - If hour_key is set (0-23): post once per UTC calendar day, at that
-      UTC hour:minute (minute_key, 0/15/30/45). Uses a 15-minute
-      match window rather than exact equality, since the scheduler loop
-      itself only ticks every 15 minutes and its phase isn't necessarily
-      aligned to :00/:15/:30/:45 on the wall clock — the window guarantees
-      exactly one tick lands in range regardless of that offset.
+      UTC hour:minute (minute_key, 0/15/30/45). Due ANY time from that
+      moment until DAILY_CATCHUP_MINUTES later (default 6 hours), as long as
+      it hasn't posted today. A narrow 15-minute window got missed whenever
+      the loop was held up (waiting on the shared scheduler lock or a slow
+      PUBG API) or the bot restarted, which silently skipped the whole day.
+      The posted marker is only written after a successful send, so a failed
+      attempt is retried on the next 15-minute tick.
     - If hour_key is None (default): fall back to the old "every N hours
       since last post" behavior, using default_interval_hours (or
       guild_cfg["post_interval_hours"] for the digest specifically).
@@ -98,7 +106,7 @@ def _is_due(guild_cfg: dict, hour_key: str, minute_key: str, posted_at_key: str,
         now_utc = datetime.now(timezone.utc)
         target_total = target_hour * 60 + target_minute
         now_total = now_utc.hour * 60 + now_utc.minute
-        if not (target_total <= now_total < target_total + 15):
+        if not (target_total <= now_total < target_total + DAILY_CATCHUP_MINUTES):
             return False
         if not posted_at:
             return True
@@ -161,7 +169,7 @@ def _next_daily_report(hour: int, minute: int, posted_at: str | None) -> str:
     target = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
     posted = _as_utc(posted_at)
     has_posted_today = posted is not None and posted.date() == now.date()
-    if target <= now < target + timedelta(minutes=15) and not has_posted_today:
+    if target <= now < target + timedelta(minutes=DAILY_CATCHUP_MINUTES) and not has_posted_today:
         return "Due now (the scheduler checks about every 15 minutes)"
     if target <= now:
         target += timedelta(days=1)

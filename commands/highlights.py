@@ -18,15 +18,22 @@ async def dailyhighlights_impl(interaction, pubg):
     lang = guild_cfg.get("language", "en")
     
     try:
-        # Use 6-hour window instead of 24 for faster response
-        # Full telemetry processing is very slow - 2+ hours for 77 players
-        result = await fetch_highlights_report(interaction.guild_id, None, hours=6, max_matches_checked=20)
+        # Highlights always cover the last 24 hours (same as the scheduled report)
+        result = await fetch_highlights_report(interaction.guild_id, None, hours=24, max_matches_checked=50)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
     
     if result:
         embed, _ = result
-        await interaction.followup.send(embed=embed)
+        try:
+            await interaction.followup.send(embed=embed)
+        except discord.HTTPException:
+            # A 24-hour report can take longer than Discord's 15-minute window for
+            # replying to a command; post it straight to the channel instead.
+            if interaction.channel is not None:
+                await interaction.channel.send(embed=embed)
+            else:
+                raise
     else:
         await interaction.followup.send(translations.get_translation(lang, "no_highlights"))
