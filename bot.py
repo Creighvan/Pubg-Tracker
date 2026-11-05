@@ -70,6 +70,7 @@ Setup:
 import asyncio
 import copy
 import logging
+import sys
 import random
 import string
 import hmac
@@ -84,6 +85,17 @@ from pubg_api import PubgApiError, PubgClient
 import translations
 
 logger = logging.getLogger(__name__)
+
+# bot.py is started as "__main__" (python bot.py). Without this alias, any later
+# `import bot` / `from bot import ...` elsewhere in the project (scheduler.py's
+# feedback prompt, commands/clan.py) would run this whole file a SECOND time:
+# that builds a second Bot that never logs in and overwrites modules.config.bot
+# and modules.config.pubg with it, so every report after that fails with
+# "channel not found" / "'_MissingSentinel' object has no attribute 'is_set'".
+# Registering this module under its own name makes those imports reuse it.
+if __name__ == "__main__":
+    sys.modules.setdefault("bot", sys.modules[__name__])
+
 
 def generate_error_id() -> str:
     """Generate a unique error reference ID for user-facing messages."""
