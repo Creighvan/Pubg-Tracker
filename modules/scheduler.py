@@ -184,6 +184,7 @@ async def auto_digest():
             continue
         if not _is_due(guild_cfg, "digest_hour_utc", "digest_minute_utc", "last_post_at", 6):
             continue
+        logger.info(f"[auto_digest] Guild {guild_id}: Digest is due, fetching report")
 
         channel = await _get_channel_cached(channel_id, guild_id)
         if channel is None:
@@ -201,6 +202,7 @@ async def auto_digest():
                 def modifier(g):
                     g["last_post_at"] = guild_cfg["last_post_at"]
                 await storage.modify_guild(guild_id, modifier)
+                logger.info(f"[auto_digest] Guild {guild_id}: Clan digest posted successfully ({len(players)} players)")
                 
                 await send_audit_log(
                     guild_id,
@@ -210,6 +212,8 @@ async def auto_digest():
                     details={"Report Type": "Clan Digest", "Players": len(players)},
                     report_embed=embed
                 )
+            else:
+                logger.warning(f"[auto_digest] Guild {guild_id}: no report data returned (no players, or every lookup failed); will retry on the next check")
         except PubgApiError as e:
             logger.error(f"[auto_digest] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_digest report failed for guild {guild_id}: {e}"[:200])
@@ -388,6 +392,7 @@ async def auto_ranked():
                     g["ranked_message_id"] = guild_cfg["ranked_message_id"]
                     g["ranked_posted_at"] = guild_cfg["ranked_posted_at"]
                 await storage.modify_guild(guild_id, modifier)
+                logger.info(f"[auto_ranked] Guild {guild_id}: Ranked report posted successfully ({len(players)} players)")
 
                 await send_audit_log(
                     guild_id,
@@ -397,6 +402,8 @@ async def auto_ranked():
                     details={"Report Type": "Ranked Standings", "Players": len(players)},
                     report_embed=embed
                 )
+            else:
+                logger.warning(f"[auto_ranked] Guild {guild_id}: no report data returned (no players, or every lookup failed); will retry on the next check")
         except PubgApiError as e:
             logger.error(f"[auto_ranked] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_ranked report failed for guild {guild_id}: {e}"[:200])
@@ -561,6 +568,7 @@ async def auto_clan_level():
             async with get_scheduler_lock():
                 result = await fetch_clan_level_report(guild_id)
             if result is None:
+                logger.warning(f"[auto_clan_level] Guild {guild_id}: no clan data returned, will retry on the next check")
                 continue
             embed, clan = result
             message_id = guild_cfg.get("clan_message_id")
@@ -589,6 +597,7 @@ async def auto_clan_level():
                 g["clan_last_level"] = guild_cfg["clan_last_level"]
                 g["clan_last_member_count"] = guild_cfg["clan_last_member_count"]
             await storage.modify_guild(guild_id, modifier)
+            logger.info(f"[auto_clan_level] Guild {guild_id}: Clan level report posted successfully")
         except PubgApiError as e:
             logger.error(f"[auto_clan_level] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_clan_level report failed for guild {guild_id}: {e}"[:200])
@@ -649,6 +658,7 @@ async def auto_survival_mastery():
                 g["survival_message_id"] = guild_cfg["survival_message_id"]
                 g["survival_posted_at"] = guild_cfg["survival_posted_at"]
             await storage.modify_guild(guild_id, modifier)
+            logger.info(f"[auto_survival_mastery] Guild {guild_id}: Survival mastery report posted successfully")
         except PubgApiError as e:
             logger.error(f"[auto_survival_mastery] PUBG API error for guild {guild_id}: {e}")
             await _record_status_event(f"⚠️ auto_survival_mastery report failed for guild {guild_id}: {e}"[:200])
