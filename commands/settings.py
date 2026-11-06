@@ -534,26 +534,12 @@ async def reportstatus_impl(interaction):
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
 
-    # Build status embed
-    from modules.utils import _next_daily_report, _next_interval_report
+    # The full builder lists every configured report (digest, Last Active, Ranked,
+    # Daily Highlights, Clan Level, Survival Mastery, ...) with next-run times shown
+    # in each reader's local time. This command used to build only the digest field.
+    from modules.embeds import build_report_status_embed
 
-    embed = discord.Embed(
-        title=translations.get_translation(lang, "report_status_title"),
-        color=discord.Color.blue(),
-    )
-    
-    # Digest status
-    if guild_cfg.get("digest_enabled"):
-        if guild_cfg.get("digest_hour_utc") is not None:
-            next_run = _next_daily_report(guild_cfg.get("digest_hour_utc"), guild_cfg.get("digest_minute_utc", 0), guild_cfg.get("last_post_at"))
-            embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
-        else:
-            next_run = _next_interval_report(guild_cfg.get("post_interval_hours", 6), guild_cfg.get("last_post_at"))
-            embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=f"{translations.get_translation(lang, 'enabled')}\n{translations.get_translation(lang, 'next')}: {next_run}", inline=False)
-    else:
-        embed.add_field(name=translations.get_translation(lang, "clan_digest"), value=translations.get_translation(lang, "disabled"), inline=False)
-    
-    # Other reports...
+    embed = build_report_status_embed(guild_cfg)
     await interaction.followup.send(embed=embed)
 
 
