@@ -434,10 +434,21 @@ async def _wait_until_time(target_hour: int, target_minute: int):
         break
 
 
+# Highlights used to make ONE attempt a day at 02:00 UTC and, if that attempt failed
+# (PUBG rate limit, API error, no data), nothing retried until the next day. It now
+# re-checks every 15 minutes like the other reports: once it is past the 02:00 UTC
+# reset and has not posted since, it posts; after a failed attempt it waits an hour
+# before trying again so it cannot hammer the PUBG API.
+HIGHLIGHTS_CHECK_SECONDS = 900
+HIGHLIGHTS_RETRY_COOLDOWN = timedelta(minutes=60)
+_highlights_retry_after: dict = {}
+
+
 async def auto_highlights():
     """
     Posts the 'last 24 hours' highlights report (fun titles + top 10 +
-    human/bot kill split) every 24 hours at 02:00 UTC.
+    human/bot kill split) once a day, as soon as possible after the 02:00 UTC reset.
+    Checks every 15 minutes and retries after a failure.
     Edits existing message instead of posting new ones.
     """
     logger.info("[auto_highlights] Starting highlights loop")
@@ -451,9 +462,7 @@ async def auto_highlights():
             first_pass = False
             logger.info("[auto_highlights] Startup catch-up pass (skips guilds already posted since last reset)")
         else:
-            logger.info("[auto_highlights] Waiting until 02:00 UTC")
-            await _wait_until_time(2, 0)
-            logger.info("[auto_highlights] Reached 02:00 UTC, processing guilds")
+            await asyncio.sleep(HIGHLIGHTS_CHECK_SECONDS)
         
         # Run the highlights report for all guilds
         utc = timezone.utc
@@ -475,10 +484,16 @@ async def auto_highlights():
                 if last_posted_date >= reset_time_utc:
                     continue  # Already posted since the most recent reset
 
+            retry_after = _highlights_retry_after.get(guild_id)
+            if retry_after and datetime.now(utc) < retry_after:
+                continue  # an attempt failed recently; waiting before trying again
+            logger.info(f"[auto_highlights] Guild {guild_id}: Highlights are due, fetching report")
+
             # Use robust channel lookup
             channel = await _get_channel_cached(channel_id, guild_id)
             if channel is None:
-                logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found, skipping")
+                logger.error(f"[auto_highlights] Guild {guild_id}: Channel {channel_id} not found or inaccessible, will retry in 60 minutes")
+                _highlights_retry_after[guild_id] = datetime.now(utc) + HIGHLIGHTS_RETRY_COOLDOWN
                 continue
             
             try:
@@ -524,13 +539,19 @@ async def auto_highlights():
                         pass  # Audit log failure is non-critical
                     
                     logger.info(f"[auto_highlights] Guild {guild_id}: Highlights report posted successfully ({len(players)} players)")
+                    _highlights_retry_after.pop(guild_id, None)
+                else:
+                    logger.warning(f"[auto_highlights] Guild {guild_id}: no highlights data returned (no tracked players, or no matches in the last 24 hours); will retry in 60 minutes")
+                    _highlights_retry_after[guild_id] = datetime.now(utc) + HIGHLIGHTS_RETRY_COOLDOWN
             except PubgApiError as e:
-                logger.error(f"[auto_highlights] PUBG API error for guild {guild_id}: {e}")
+                logger.error(f"[auto_highlights] PUBG API error for guild {guild_id} (will retry in 60 minutes): {e}")
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
+                _highlights_retry_after[guild_id] = datetime.now(utc) + HIGHLIGHTS_RETRY_COOLDOWN
                 continue  # Continue with next guild
             except Exception as e:
-                logger.error(f"[auto_highlights] Unexpected error for guild {guild_id}: {e}")
+                logger.error(f"[auto_highlights] Unexpected error for guild {guild_id} (will retry in 60 minutes): {e}", exc_info=True)
                 await _record_status_event(f"⚠️ auto_highlights report failed for guild {guild_id}: {e}"[:200])
+                _highlights_retry_after[guild_id] = datetime.now(utc) + HIGHLIGHTS_RETRY_COOLDOWN
                 continue  # Continue with next guild
 
 
