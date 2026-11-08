@@ -100,7 +100,8 @@ _DEFAULT_GUILD = {
     "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # normalize_player_name(pubg_name) -> {"date": iso_date, "set_at": iso_timestamp}
-    "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso date when player first hit 14-day mark
+    "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso moment the player left the 14-day window (last match + 14 days)
+    "last_seen_at": {},  # normalize_player_name(pubg_name) -> iso time of the player's latest known match (only ever moves forward)
     "audit_log_channel_id": None,  # custom channel for this server's audit logs (overrides default)
 }
 
@@ -725,6 +726,11 @@ async def reset_inactive_count(guild_id: int, player_name: str) -> bool:
         normalized = normalize_player_name(player_name)
         if normalized in guild.get("inactive_since_dates", {}):
             del guild["inactive_since_dates"][normalized]
+            result["reset"] = True
+        # "start counting from today" must also forget the remembered last match,
+        # otherwise the old count would simply come back on the next report
+        if normalized in guild.get("last_seen_at", {}):
+            del guild["last_seen_at"][normalized]
             result["reset"] = True
     
     await modify_guild(guild_id, modifier)

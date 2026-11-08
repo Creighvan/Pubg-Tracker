@@ -69,98 +69,112 @@ async def fetch_clan_level_report(guild_id: int) -> tuple[discord.Embed, dict] |
     return build_clan_level_embed(guild_cfg, clan), clan
 
 
+def _parse_iso(value) -> datetime | None:
+    """Parse an ISO timestamp (accepts a trailing Z); None if missing or unreadable."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def apply_last_active_rules(guild_cfg: dict, players: list[dict], now: datetime | None = None) -> None:
+    """Decide each player's "last active" time and keep the saved counts correct.
+
+    The PUBG API only remembers 14 days of matches. The rules, in plain terms:
+
+    * The bot remembers each player's latest known match (guild_cfg["last_seen_at"]).
+      That value only ever moves FORWARD, so a slow or glitchy API answer can never
+      make a player look less recently active than they already were.
+    * When the API has no match for a player any more (past 14 days), the count
+      keeps going from that remembered match: 15 days, 16 days, ... exact, not
+      "from the day the bot noticed".
+    * The moment the player plays again, the API shows a newer match, the count
+      stops and restarts from that match.
+    * A manual date (/setinactivedate) is kept until the player plays a match
+      AFTER it was set. Older matches the API still lists do not undo it.
+    * A failed lookup, or a player missing from one API answer, never deletes or
+      restarts anything: nothing is changed for that player until the next report.
+    """
+    now = now or datetime.now(timezone.utc)
+    last_seen = guild_cfg.setdefault("last_seen_at", {})
+    manual_all = guild_cfg.setdefault("manual_inactive_dates", {})
+    since_all = guild_cfg.setdefault("inactive_since_dates", {})
+
+    # Clean up protected players who are not in the tracked list to prevent mismatch
+    tracked_normalized = [normalize_player_name(p) for p in guild_cfg["players"]]
+    guild_cfg["protected_players"] = [
+        p for p in guild_cfg.get("protected_players", [])
+        if normalize_player_name(p) in tracked_normalized
+    ]
+
+    for player in players:
+        norm = normalize_player_name(player["name"])
+        api_time = _parse_iso(player.get("last_match_at"))
+
+        # 1) A manual date wins until the player plays a match after it was set.
+        manual = manual_all.get(norm)
+        if manual:
+            raw_date = manual.get("date") if isinstance(manual, dict) else manual
+            manual_date = _parse_iso(raw_date)
+            set_at = _parse_iso(manual.get("set_at")) if isinstance(manual, dict) else None
+            played_again = api_time is not None and set_at is not None and api_time > set_at
+            if manual_date is not None and not played_again:
+                player["last_match_date"] = manual_date.isoformat()
+                player["data_source"] = "manual"
+                player["days_inactive"] = max(0, (now - manual_date).days)
+                since_all.pop(norm, None)
+                continue
+            del manual_all[norm]          # they played again (or the entry is unusable)
+            since_all.pop(norm, None)
+
+        stored = _parse_iso(last_seen.get(norm))
+
+        # 2) The API knows a recent match: remember it, and never go backwards.
+        if api_time is not None:
+            if stored is None or api_time > stored:
+                last_seen[norm] = api_time.isoformat()
+            elif stored > api_time:
+                player["last_match_at"] = stored.isoformat()   # API is behind: show the newer, remembered time
+            since_all.pop(norm, None)                          # active again: the count restarts
+            continue
+
+        # 3) The match times could not be read this time: unknown, not inactive.
+        if player.get("match_lookup_failed"):
+            continue
+
+        # 4) No match in the API's 14-day window: keep counting from the real last match.
+        since = _parse_iso(since_all.get(norm))
+        if stored is not None:
+            since = stored + timedelta(days=14)               # exact
+            since_all[norm] = since.isoformat()
+        elif since is None:
+            since = now                                       # never seen before: count starts at 14 days today
+            since_all[norm] = since.isoformat()
+        last_match = since - timedelta(days=14)
+        player["last_match_date"] = last_match.isoformat()
+        player["data_source"] = "auto_count"
+        player["days_inactive"] = max(0, (now - last_match).days)
+
+
 async def fetch_last_active_report(guild_id: int, guild_name: str | None = None) -> tuple[discord.Embed, list[dict]] | None:
     """Fetch player last active times report for a guild."""
     guild_cfg = await storage.get_guild(guild_id)
     if not guild_cfg["players"]:
         return None
     players, not_found = await _get_pubg().get_last_active_times(guild_cfg["players"])
-    
-    # Historical data beyond 14 days: automatic day counting from 14-day mark
-    # The PUBG API has a hard 14-day limit for match data retention
+
     protected_players = await storage.get_protected_players(guild_id)
-    
-    def update_inactive_dates(guild_cfg):
-        """Update inactive dates for players with no recent matches."""
-        # Clean up protected players who are not in the tracked list to prevent mismatch
-        tracked_normalized = [normalize_player_name(p) for p in guild_cfg["players"]]
-        guild_cfg["protected_players"] = [
-            p for p in guild_cfg.get("protected_players", [])
-            if normalize_player_name(p) in tracked_normalized
-        ]
-        
-        # First, clear manual/auto inactivity for players who have recent matches
-        for player in players:
-            player_normalized = normalize_player_name(player["name"])
-            
-            if player.get("last_match_at"):
-                # Player has recent matches (active within 14 days)
-                # Clean up both auto-counting and manual overrides
-                if player_normalized in guild_cfg.get("inactive_since_dates", {}):
-                    del guild_cfg["inactive_since_dates"][player_normalized]
-                if player_normalized in guild_cfg.get("manual_inactive_dates", {}):
-                    del guild_cfg["manual_inactive_dates"][player_normalized]
-        
-        # Then handle players with no recent matches (beyond 14-day API limit)
-        for player in players:
-            player_normalized = normalize_player_name(player["name"])
-            
-            if not player.get("last_match_at"):
-                # Player has no recent matches (beyond 14-day API limit)
-                
-                # Check if we have manual override first
-                if manual_data := guild_cfg.get("manual_inactive_dates", {}).get(player_normalized):
-                    # Manual date stays fixed - only the days inactive count changes
-                    manual_date = datetime.fromisoformat(manual_data["date"])
-                    player["last_match_date"] = manual_date.isoformat()
-                    player["data_source"] = "manual"
-                    # Calculate days inactive from the fixed manual date to now
-                    player["days_inactive"] = (datetime.now(timezone.utc) - manual_date).days
-                    # Also remove from auto-counting if it exists to avoid conflicts
-                    if player_normalized in guild_cfg.get("inactive_since_dates", {}):
-                        del guild_cfg["inactive_since_dates"][player_normalized]
-                    continue
-                
-                # Check if we have an inactive_since_date
-                if inactive_since := guild_cfg.get("inactive_since_dates", {}).get(player_normalized):
-                    # Calculate days from when they first hit 14-day mark
-                    inactive_since_date = datetime.fromisoformat(inactive_since)
-                    days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
-                    # The last match date is 14 days before they hit the inactive mark
-                    calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
-                    player["last_match_date"] = calculated_date
-                    player["data_source"] = "auto_count"
-                    # Store the actual days inactive for display
-                    player["days_inactive"] = days_inactive
-                else:
-                    # First time hitting 14-day mark - set inactive_since_date
-                    # Only set if not already set (to preserve dates during downtime)
-                    if player_normalized not in guild_cfg.get("inactive_since_dates", {}):
-                        guild_cfg["inactive_since_dates"][player_normalized] = datetime.now(timezone.utc).isoformat()
-                    # Start counting from 14 days ago from the inactive_since_date
-                    inactive_since_date = datetime.fromisoformat(guild_cfg["inactive_since_dates"][player_normalized])
-                    days_inactive = (datetime.now(timezone.utc) - inactive_since_date).days + 14
-                    calculated_date = (inactive_since_date - timedelta(days=14)).isoformat()
-                    player["last_match_date"] = calculated_date
-                    player["data_source"] = "auto_count"
-                    player["days_inactive"] = days_inactive
-        
-        # Also clear manual/auto inactivity for players not found in API results
-        # This handles name changes or players who were removed from PUBG API
-        for player_name in guild_cfg["players"]:
-            player_normalized = normalize_player_name(player_name)
-            player_found = any(normalize_player_name(p["name"]) == player_normalized for p in players)
-            if not player_found:
-                # Player not found in API results - they may have changed names or been removed
-                # Clear both manual and auto inactivity to avoid stale data
-                if player_normalized in guild_cfg.get("manual_inactive_dates", {}):
-                    del guild_cfg["manual_inactive_dates"][player_normalized]
-                if player_normalized in guild_cfg.get("inactive_since_dates", {}):
-                    del guild_cfg["inactive_since_dates"][player_normalized]
-    
-    # Apply inactive date updates atomically
-    await modify_guild(guild_id, update_inactive_dates)
-    
+
+    # Apply the last-active rules and save them atomically
+    await modify_guild(guild_id, lambda cfg: apply_last_active_rules(cfg, players))
+
+    # modify_guild works on its own copy, so read the saved settings back; otherwise the
+    # list would be drawn from the settings as they were BEFORE this run's updates.
+    guild_cfg = await storage.get_guild(guild_id)
+
     return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
 
 

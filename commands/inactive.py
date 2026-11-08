@@ -7,6 +7,7 @@ import storage
 import translations
 from datetime import datetime, timedelta, timezone
 import discord
+from modules.utils import normalize_player_name
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,8 @@ async def setinactivedate_impl(interaction, name, days_ago):
     
     def modifier(guild_cfg):
         guild_cfg["manual_inactive_dates"] = guild_cfg.get("manual_inactive_dates", {})
-        guild_cfg["manual_inactive_dates"][name.lower().replace(" ", "")] = {
+        # same key the report uses to look the player up
+        guild_cfg["manual_inactive_dates"][normalize_player_name(name)] = {
             "date": inactive_date,
             "set_at": datetime.now(timezone.utc).isoformat()
         }
@@ -51,11 +53,16 @@ async def removeinactivedate_impl(interaction, name):
     lang = guild_cfg.get("language", "en")
     
     def modifier(guild_cfg):
-        guild_cfg["inactive_dates"] = guild_cfg.get("inactive_dates", {})
-        if name in guild_cfg["inactive_dates"]:
-            del guild_cfg["inactive_dates"][name]
-            return True
-        return False
+        # The manual date lives in "manual_inactive_dates" (this used to look in a
+        # different, unused key, so a manual date could never be removed here).
+        removed = False
+        for store in ("manual_inactive_dates", "inactive_dates"):
+            entries = guild_cfg.get(store, {})
+            for key in {normalize_player_name(name), name, name.lower().replace(" ", "")}:
+                if key in entries:
+                    del entries[key]
+                    removed = True
+        return removed
     
     removed = await storage.modify_guild(interaction.guild_id, modifier)
     if removed:

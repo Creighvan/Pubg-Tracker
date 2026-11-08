@@ -504,10 +504,22 @@ class PubgClient:
 
         async def resolve_one(p: dict):
             async with match_semaphore:
-                if p["match_ids"]:
-                    p["last_match_at"] = await self.get_match_created_at(p["match_ids"][0])
-                else:
+                p["match_lookup_failed"] = False
+                ids = p["match_ids"][:3]
+                if not ids:
                     p["last_match_at"] = None
+                    return
+                # Read the three newest entries and keep the latest time, so one failed
+                # request (or an unexpected order) cannot make an active player look inactive.
+                times = [t for t in await asyncio.gather(*(self.get_match_created_at(m) for m in ids)) if t]
+                if times:
+                    p["last_match_at"] = max(times)
+                else:
+                    # The player HAS recent matches but their times could not be read this
+                    # time. That is "unknown", never "inactive", so the report leaves the
+                    # saved count alone instead of starting a new one.
+                    p["last_match_at"] = None
+                    p["match_lookup_failed"] = True
 
         await asyncio.gather(*(resolve_one(p) for p in found))
 
