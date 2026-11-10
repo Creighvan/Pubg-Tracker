@@ -18,6 +18,7 @@ import uuid
 from datetime import datetime, timezone
 
 from modules.utils import normalize_player_name
+from modules.protection import active_temporary_protected, is_permanent, set_temporary
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ _DEFAULT_GUILD = {
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # normalize_player_name(pubg_name) -> {"date": iso_date, "set_at": iso_timestamp}
     "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso moment the player left the 14-day window (last match + 14 days)
+    "temporary_protected_players": {},  # normalize_player_name -> {"name", "set_at", "until" (iso or None), "reason"}; see modules/protection.py
     "last_seen_at": {},  # normalize_player_name(pubg_name) -> iso time of the player's latest known match (only ever moves forward)
     "audit_log_channel_id": None,  # custom channel for this server's audit logs (overrides default)
 }
@@ -663,10 +665,55 @@ async def add_protected_player(guild_id: int, player_name: str) -> bool:
             result["added"] = False
             return
         guild["protected_players"].append(player_name.strip())  # Store cleaned name
+        # Making someone permanent replaces any temporary protection they had
+        guild.get("temporary_protected_players", {}).pop(normalized, None)
         result["added"] = True
     
     await modify_guild(guild_id, modifier)
     return result["added"]
+
+
+async def add_temporary_protected(guild_id: int, player_name: str, days: int | None = None, reason: str = "") -> dict:
+    """Mark a tracked player temporarily protected.
+
+    Returns {"status": "added" | "updated" | "permanent" | "not_tracked", "entry": {...} or None}.
+    """
+    result = {"status": None, "entry": None}
+
+    def modifier(guild):
+        normalized = normalize_player_name(player_name)
+        tracked = {normalize_player_name(p): p for p in guild.get("players", [])}
+        if normalized not in tracked:
+            result["status"] = "not_tracked"
+            return
+        if is_permanent(guild, player_name):
+            result["status"] = "permanent"
+            return
+        existed = normalized in active_temporary_protected(guild)
+        result["entry"] = set_temporary(guild, tracked[normalized], days, reason)
+        result["status"] = "updated" if existed else "added"
+
+    await modify_guild(guild_id, modifier)
+    return result
+
+
+async def remove_temporary_protected(guild_id: int, player_name: str) -> bool:
+    """Remove a player's temporary protection. Returns True if there was one."""
+    result = {"removed": False}
+
+    def modifier(guild):
+        store = guild.get("temporary_protected_players", {})
+        if normalize_player_name(player_name) in store:
+            del store[normalize_player_name(player_name)]
+            result["removed"] = True
+
+    await modify_guild(guild_id, modifier)
+    return result["removed"]
+
+
+async def get_temporary_protected(guild_id: int) -> dict:
+    """Temporary protections that have not ended yet: {normalized name: entry}."""
+    return active_temporary_protected(await get_guild(guild_id))
 
 
 async def remove_protected_player(guild_id: int, player_name: str) -> bool:

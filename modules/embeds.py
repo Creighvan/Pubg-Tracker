@@ -33,7 +33,7 @@ from datetime import datetime, timezone
 import discord
 
 from modules.config import RANKED_MODE_LABELS
-from modules.utils import _channel_mention, _safe_div, normalize_player_name, _format_utc_time, next_daily_utc, discord_time
+from modules.utils import _channel_mention, _safe_div, normalize_player_name, _format_utc_time, next_daily_utc, discord_time, LAST_ACTIVE_RUN_UTC, next_last_active_report
 import translations
 
 # Import scheduler helpers from bot.utils (these are used in build_report_status_embed)
@@ -91,8 +91,15 @@ def build_report_status_embed(guild_cfg: dict) -> discord.Embed:
             continue
         if not guild_cfg.get(enabled_key, True):
             disabled_reports.append(name.replace("🟢 ", "").replace("🏆 ", "").replace("✨ ", ""))
-        # Special handling for Last Active and Ranked reports - they update in place at fixed UTC times
-        if name in ("🟢 Last Active", "🏆 Ranked"):
+        # Last Active runs once a day at a fixed UTC time (LAST_ACTIVE_RUN_UTC) and edits one message in place
+        if name == "🟢 Last Active":
+            hour, minute = LAST_ACTIVE_RUN_UTC
+            schedule = translations.get_translation(lang, "updates_in_place_schedule").format(hour=hour, minute=minute)
+            next_time = next_last_active_report(guild_cfg.get(posted_key))
+            embed.add_field(name=name.replace("🟢 ", ""), value=f"{_channel_mention(channel_id)}\n{schedule}\n**{translations.get_translation(lang, 'next_run_label')}** {next_time}", inline=False)
+            continue
+        # Special handling for the Ranked report - it updates in place at a fixed UTC time
+        if name == "🏆 Ranked":
             hour = guild_cfg.get(hour_key)
             if hour is not None:
                 minute = guild_cfg.get(minute_key, 0)
@@ -291,12 +298,15 @@ def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str =
     return get_translation(lang, "days_ago").format(count=count, unit=unit)
 
 
-def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None) -> discord.Embed:
+def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None, temporary_protected: dict | None = None) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
     title = guild_cfg.get("clan_name") or guild_name or "Clan" or "Clan"
     protected_lower = [normalize_player_name(p) for p in (protected_players or [])]
+    # Temporary protection (members who reached out): {normalized name: entry}. A player on both
+    # lists counts as permanent.
+    temp_lower = {normalize_player_name(k) for k in (temporary_protected or {})} - set(protected_lower)
 
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'last_active_report')}",
@@ -319,11 +329,16 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
     active_24h = sum(1 for p in players if p.get("last_match_at") and _recency_emoji(p["last_match_at"]) == "🟢")
     # Count only protected players who are actually in the tracked list
     protected_count = sum(1 for p in players if normalize_player_name(p["name"]) in protected_lower)
+    temp_count = sum(1 for p in players if normalize_player_name(p["name"]) in temp_lower)
 
     embed.add_field(name=f"🟢 {get_translation(lang, 'active_24h')}", value=str(active_24h), inline=True)
     embed.add_field(name=f"👥 {get_translation(lang, 'tracked_players')}", value=str(len(players)), inline=True)
     if protected_count > 0:
-        embed.add_field(name=f"🛡️ {get_translation(lang, 'protected_players')}", value=str(protected_count), inline=True)
+        # With both kinds present the label says "permanently" so the two counts are not confused
+        label = "protected_permanent_players" if temp_count > 0 else "protected_players"
+        embed.add_field(name=f"🛡️ {get_translation(lang, label)}", value=str(protected_count), inline=True)
+    if temp_count > 0:
+        embed.add_field(name=f"⏳ {get_translation(lang, 'temp_protected_players')}", value=str(temp_count), inline=True)
 
     def get_match_date(p):
         """Extract the match date for sorting, defaulting to None (oldest)."""
@@ -356,8 +371,12 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
 
         # Case-insensitive comparison for protected players
         player_normalized = normalize_player_name(p["name"])
-        is_protected = player_normalized in protected_lower
-        protected_mark = " 🛡️" if is_protected else ""
+        if player_normalized in protected_lower:
+            protected_mark = " 🛡️"          # permanent
+        elif player_normalized in temp_lower:
+            protected_mark = " ⏳"          # temporary (reached out)
+        else:
+            protected_mark = ""
         lines.append(f"{idx}. **{p['name']}**{protected_mark} — {_format_time_ago(match_date, days_inactive, lang)}{source_note}")
 
     # Discord embed fields cap at 1024 chars; chunk if the roster is large.
@@ -376,7 +395,11 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
             inline=False,
         )
     footer_text = get_translation(lang, "updates_daily")
-    if protected_count > 0:
+    if temp_count > 0:
+        if protected_count > 0:
+            footer_text += " | " + get_translation(lang, "protected_permanent_footer")
+        footer_text += " | " + get_translation(lang, "temp_protected_footer")
+    elif protected_count > 0:
         footer_text += " | " + get_translation(lang, "protected_footer")
     embed.set_footer(text=footer_text)
     return embed

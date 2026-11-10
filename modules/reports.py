@@ -21,12 +21,17 @@ data like player lists or metadata, or None if the report cannot be generated.
 
 from datetime import datetime, timedelta, timezone
 
+import logging
+
 import discord
 
 import storage
 from pubg_api import PubgApiError
 
 from modules.utils import normalize_player_name
+from modules.protection import active_temporary_protected, purge_expired_temporary
+
+logger = logging.getLogger(__name__)
 
 # Import storage's modify_guild for atomic operations
 modify_guild = storage.modify_guild
@@ -110,6 +115,13 @@ def apply_last_active_rules(guild_cfg: dict, players: list[dict], now: datetime 
         if normalize_player_name(p) in tracked_normalized
     ]
 
+    # Temporary protections: drop the ones that have ended, and any for players no longer tracked
+    for ended in purge_expired_temporary(guild_cfg, now):
+        logger.info(f"[last_active] Temporary protection ended for {ended}")
+    temp_store = guild_cfg.get("temporary_protected_players") or {}
+    for key in [k for k in temp_store if k not in tracked_normalized]:
+        del temp_store[key]
+
     for player in players:
         norm = normalize_player_name(player["name"])
         api_time = _parse_iso(player.get("last_match_at"))
@@ -175,7 +187,8 @@ async def fetch_last_active_report(guild_id: int, guild_name: str | None = None)
     # list would be drawn from the settings as they were BEFORE this run's updates.
     guild_cfg = await storage.get_guild(guild_id)
 
-    return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players), players
+    temporary_protected = active_temporary_protected(guild_cfg)
+    return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players, temporary_protected), players
 
 
 async def fetch_ranked_report(guild_id: int, guild_name: str | None = None, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:

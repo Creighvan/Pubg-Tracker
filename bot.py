@@ -165,6 +165,8 @@ from commands.protected import (
     cleanprotected_impl,
     resetprotected_impl,
     addprotectedbulk_impl,
+    addtempprotected_impl,
+    removetempprotected_impl,
 )
 from commands.inactive import (
     setinactivedate_impl,
@@ -682,7 +684,28 @@ async def addprotected(interaction: discord.Interaction, name: str):
 async def removeprotected(interaction: discord.Interaction, name: str):
     await removeprotected_impl(interaction, name, send_audit_log)
 
-@bot.tree.command(description="List all protected players (immune to inactivity removal)")
+@bot.tree.command(description="Temporarily protect a member who reached out (shown with ⏳ on the Last Active list)")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.describe(
+    name="PUBG name of the tracked player",
+    days="How many days the protection lasts (leave empty to keep it until you remove it)",
+    reason="Optional note, for example: on vacation",
+)
+async def addtempprotected(
+    interaction: discord.Interaction,
+    name: str,
+    days: app_commands.Range[int, 1, 365] = None,
+    reason: app_commands.Range[str, 1, 100] = None,
+):
+    await addtempprotected_impl(interaction, name, days, reason, send_audit_log)
+
+@bot.tree.command(description="Remove a player's temporary protection")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.describe(name="PUBG name of the player")
+async def removetempprotected(interaction: discord.Interaction, name: str):
+    await removetempprotected_impl(interaction, name, send_audit_log)
+
+@bot.tree.command(description="List all protected players (permanent and temporary)")
 async def listprotected(interaction: discord.Interaction):
     await listprotected_impl(interaction)
 

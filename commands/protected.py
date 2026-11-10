@@ -8,7 +8,8 @@ import logging
 import storage
 import translations
 from storage import DatabaseCorruptionError
-from modules.utils import normalize_player_name
+from modules.utils import normalize_player_name, discord_time
+from modules.protection import _parse as _parse_iso
 import discord
 
 logger = logging.getLogger(__name__)
@@ -93,13 +94,26 @@ async def listprotected_impl(interaction):
         lang = guild_cfg.get("language", "en")
 
         protected = await storage.get_protected_players(interaction.guild_id)
+        temporary = await storage.get_temporary_protected(interaction.guild_id)
 
-        if not protected:
+        if not protected and not temporary:
             await interaction.followup.send(translations.get_translation(lang, "protected_empty"))
             return
 
-        message = translations.get_translation(lang, "protected_list").format(count=len(protected)) + "\n" + ", ".join(protected)
-        message += "\n\n🛡️ These players won't be flagged for removal due to inactivity."
+        sections = []
+        if protected:
+            sections.append(f"🛡️ **Permanently protected ({len(protected)})**\n" + ", ".join(protected))
+        if temporary:
+            lines = []
+            for entry in sorted(temporary.values(), key=lambda e: e.get("name", "").lower()):
+                until = _parse_iso(entry.get("until"))
+                when = f"until {discord_time(until, 'F')} ({discord_time(until, 'R')})" if until else "until removed"
+                reason = f" · {entry['reason']}" if entry.get("reason") else ""
+                lines.append(f"• {entry.get('name', '?')} — {when}{reason}")
+            sections.append(f"⏳ **Temporarily protected ({len(temporary)})**\n" + "\n".join(lines))
+        message = "\n\n".join(sections)
+        message += ("\n\n🛡️ Permanent: never flagged for inactivity.  ⏳ Temporary: for members who reached out; "
+                    "it ends on its date, or when you use /removetempprotected.")
         await interaction.followup.send(message)
     except Exception as e:
         logger.error(f"Error in listprotected_impl: {e}", exc_info=True)
@@ -198,4 +212,75 @@ async def addprotectedbulk_impl(interaction, players):
         await interaction.followup.send(message)
     except Exception as e:
         logger.error(f"Error in addprotectedbulk_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+
+
+async def addtempprotected_impl(interaction, name, days, reason, send_audit_log):
+    """Implementation of addtempprotected: temporary protection for a member who reached out."""
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning("addtempprotected_impl: Interaction expired before defer")
+        return
+
+    try:
+        result = await storage.add_temporary_protected(interaction.guild_id, name, days, reason or "")
+        status = result["status"]
+        if status == "not_tracked":
+            await interaction.followup.send(
+                f"❌ **{name}** is not on the tracked player list. Add them first, then mark them temporarily protected.",
+                ephemeral=True)
+            return
+        if status == "permanent":
+            await interaction.followup.send(
+                f"🛡️ **{name}** is already permanently protected, so no temporary protection is needed.",
+                ephemeral=True)
+            return
+
+        entry = result["entry"]
+        until = _parse_iso(entry.get("until"))
+        ends = (f"until {discord_time(until, 'F')} ({discord_time(until, 'R')})" if until
+                else "until you remove it with `/removetempprotected`")
+        verb = "now" if status == "added" else "still"
+        message = f"⏳ **{entry['name']}** is {verb} temporarily protected {ends}."
+        if entry.get("reason"):
+            message += f"\nReason: {entry['reason']}"
+        await interaction.followup.send(message)
+        await send_audit_log(
+            interaction.guild_id,
+            "Temporary Protection Added" if status == "added" else "Temporary Protection Updated",
+            f"Temporarily protected {entry['name']}",
+            user=interaction.user,
+            details={"Player": entry["name"], "Until": entry["until"] or "until removed", "Reason": entry.get("reason") or "-"},
+        )
+    except DatabaseCorruptionError:
+        await interaction.followup.send("❌ Database error. Please try again later.", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in addtempprotected_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+
+
+async def removetempprotected_impl(interaction, name, send_audit_log):
+    """Implementation of removetempprotected."""
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning("removetempprotected_impl: Interaction expired before defer")
+        return
+
+    try:
+        removed = await storage.remove_temporary_protected(interaction.guild_id, name)
+        if not removed:
+            await interaction.followup.send(f"❌ **{name}** is not temporarily protected.", ephemeral=True)
+            return
+        await interaction.followup.send(f"✅ Removed **{name}** from the temporary protection list.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Temporary Protection Removed",
+            f"Removed {name} from temporary protection",
+            user=interaction.user,
+            details={"Player": name},
+        )
+    except Exception as e:
+        logger.error(f"Error in removetempprotected_impl: {e}", exc_info=True)
         await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)

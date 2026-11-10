@@ -191,6 +191,33 @@ def utc_with_local(hhmm_utc: str, when: datetime, style: str = "F") -> str:
     return f"{hhmm_utc} UTC · {discord_time(when, style)}"
 
 
+# Last Active refreshes ONCE a day, shortly after this UTC time (the scheduler checks
+# every 15 minutes, so it posts within about 15 minutes of it). Change it here only.
+LAST_ACTIVE_RUN_UTC = (2, 30)
+
+
+def most_recent_slot(hour: int, minute: int = 0, now: datetime | None = None) -> datetime:
+    """The latest HH:MM UTC moment that is not in the future (today's, or yesterday's if it has not happened yet)."""
+    now = now or datetime.now(timezone.utc)
+    slot = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+    return slot if slot <= now else slot - timedelta(days=1)
+
+
+def next_last_active_report(posted_at: str | None, now: datetime | None = None) -> str:
+    """When Last Active updates next: tomorrow's slot once today's is done, otherwise on the next check."""
+    now = now or datetime.now(timezone.utc)
+    slot = most_recent_slot(*LAST_ACTIVE_RUN_UTC, now=now)
+    try:
+        posted = datetime.fromisoformat(posted_at) if posted_at else None
+    except ValueError:
+        posted = None
+    if posted is not None and posted.tzinfo is None:
+        posted = posted.replace(tzinfo=timezone.utc)
+    if posted is None or posted < slot:
+        return "On the next scheduler check (within about 15 minutes)"
+    return _format_utc_time(slot + timedelta(days=1))
+
+
 def _format_utc_time(when: datetime) -> str:
     """Show a time in each reader's local zone, with the UTC time kept for reference."""
     return f"{discord_time(when, 'F')} ({discord_time(when, 'R')}) · {when.strftime('%H:%M')} UTC"

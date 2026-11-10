@@ -64,7 +64,7 @@ from modules.reports import (
     fetch_survival_mastery_report,
 )
 from modules.embeds import build_feedback_prompt_embed
-from modules.utils import _is_due, _is_weekly_due, get_current_pubg_day
+from modules.utils import _is_due, _is_weekly_due, get_current_pubg_day, LAST_ACTIVE_RUN_UTC, most_recent_slot
 
 
 # Maintenance state tracking
@@ -231,11 +231,11 @@ async def before_auto_digest():
 
 @tasks.loop(minutes=15)
 async def auto_last_active():
-    """Posts the 'last active' report every 24 hours, per guild.
-    Runs once per day after 02:00 UTC daily reset. Recovers if bot was offline."""
+    """Posts the 'last active' report once a day, per guild, shortly after 02:30 UTC
+    (LAST_ACTIVE_RUN_UTC). Recovers if the bot was offline."""
     utc = timezone.utc
     now_utc = datetime.now(utc)
-    reset_time_utc = get_current_pubg_day(now_utc)
+    reset_time_utc = most_recent_slot(*LAST_ACTIVE_RUN_UTC, now=now_utc)
     logger.info(f"[auto_last_active] Running at {now_utc}")
     
     for guild_id in await storage.all_guild_ids():
@@ -248,22 +248,22 @@ async def auto_last_active():
             logger.info(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
-        # Check if we've already posted since the most recent 02:00 UTC reset
+        # Check if we've already posted since the most recent 02:30 UTC slot
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
             logger.info(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
             if last_posted_date >= reset_time_utc:
-                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:00 UTC reset, skipping")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:30 UTC slot, skipping")
                 continue  # Already posted since the most recent reset
             else:
                 # Bot was offline (or this is the first tick since the reset) - proceed to update
                 logger.info(f"[auto_last_active] Guild {guild_id}: Last post was before {reset_time_utc}, updating")
         else:
             logger.info(f"[auto_last_active] Guild {guild_id}: No last_posted timestamp, first run")
-            # Only run after the 02:00 UTC daily reset for first run
-            if now_utc.hour < 2:
-                logger.info(f"[auto_last_active] Guild {guild_id}: Before 02:00 UTC ({now_utc.hour}), skipping")
+            # Only run at or after the daily time for the first run
+            if (now_utc.hour, now_utc.minute) < LAST_ACTIVE_RUN_UTC:
+                logger.info(f"[auto_last_active] Guild {guild_id}: Before {LAST_ACTIVE_RUN_UTC[0]:02d}:{LAST_ACTIVE_RUN_UTC[1]:02d} UTC, skipping")
                 continue
 
         channel = await _get_channel_cached(channel_id, guild_id)
@@ -302,7 +302,7 @@ async def auto_last_active():
                 await send_audit_log(
                     guild_id,
                     "Scheduled Report Updated",
-                    "Last active report updated at 02:00 UTC daily reset",
+                    "Last active report updated at 02:30 UTC daily",
                     is_automated=True,
                     details={"Report Type": "Last Active", "Players": len(players)},
                     report_embed=embed
