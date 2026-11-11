@@ -8,11 +8,13 @@ from pathlib import Path
 import pytest
 
 import storage
-from commands.protected import addtempprotected_impl, listprotected_impl, removetempprotected_impl
+from commands.protected import (
+    addleadership_impl, addtempprotected_impl, listprotected_impl, removeleadership_impl, removetempprotected_impl,
+)
 from modules import reports
 from modules.embeds import build_last_active_embed
 from modules.protection import (
-    active_temporary_protected, protection_kind, purge_expired_temporary, set_temporary,
+    LEADERSHIP_ICON as L, active_temporary_protected, get_leadership, protection_kind, purge_expired_temporary, set_leadership, set_temporary,
 )
 
 NOW = datetime(2026, 11, 8, 6, 0, tzinfo=timezone.utc)
@@ -220,3 +222,96 @@ def test_slash_commands_are_registered():
                 and any("tree.command" in ast.unparse(d) for d in n.decorator_list)}
     assert {"addtempprotected", "removetempprotected", "addprotected", "removeprotected", "listprotected"} <= commands
     assert len(commands) < 100                                     # Discord's limit for global slash commands
+
+
+
+# ---------- clan leaders and managers: their own category (👑) ----------
+def test_priority_is_leadership_then_permanent_then_temporary():
+    cfg = {"protected_players": ["Ann", "Bob"]}
+    set_leadership(cfg, "Ann", "Manager")
+    set_temporary(cfg, "Bob", days=5, now=NOW)
+    set_temporary(cfg, "Cy", days=5, now=NOW)
+    assert protection_kind(cfg, "Ann", NOW) == "leadership"
+    assert protection_kind(cfg, "Bob", NOW) == "permanent"
+    assert protection_kind(cfg, "Cy", NOW) == "temporary"
+    assert get_leadership(cfg)["ann"]["role"] == "Manager"
+
+
+def test_adding_a_leader_moves_them_off_the_other_two_lists(store):
+    store.cfg["protected_players"] = ["Cy", "Ann"]
+    run(storage.add_temporary_protected(1, "Bob", 10))
+    r = run(storage.add_leadership(1, "bob", "Manager"))
+    assert r["status"] == "added" and r["moved_from"] == ["temporary"]
+    assert "bob" not in store.cfg["temporary_protected_players"]
+    r = run(storage.add_leadership(1, "Ann", "Leader"))
+    assert r["moved_from"] == ["permanent"] and store.cfg["protected_players"] == ["Cy"]
+    assert run(storage.add_leadership(1, "Ann", "Manager"))["status"] == "updated"
+    assert run(storage.add_leadership(1, "Stranger"))["status"] == "not_tracked"
+    assert set(run(storage.get_leadership_protected(1))) == {"bob", "ann"}
+    assert run(storage.remove_leadership(1, "BOB")) is True and run(storage.remove_leadership(1, "Bob")) is False
+
+
+def test_a_leader_cannot_also_be_made_temporary(store):
+    run(storage.add_leadership(1, "Ann", "Leader"))
+    assert run(storage.add_temporary_protected(1, "Ann", 5))["status"] == "leadership"
+
+
+def _embed3(permanent, temp_names, leaders):
+    cfg = {"players": ["Ann", "Bob", "Cy", "Di"], "language": "en"}
+    for n in temp_names:
+        set_temporary(cfg, n, days=7)
+    for n, role in leaders:
+        set_leadership(cfg, n, role)
+    e = build_last_active_embed(1, "T", cfg, [P("Ann"), P("Bob"), P("Cy"), P("Di")], [], permanent,
+                                active_temporary_protected(cfg), get_leadership(cfg))
+    return e, "\n".join(f.value for f in e.fields if "**" in f.value)
+
+
+def test_all_three_kinds_are_told_apart_on_the_list():
+    e, rows = _embed3(["Bob"], ["Cy"], [("Ann", "Leader")])
+    assert f"**Ann** {L}" in rows and "**Bob** 🛡️" in rows and "**Cy** ⏳" in rows and "**Di** —" in rows
+    names = [f.name for f in e.fields]
+    assert f"{L} Leaders & managers" in names and "🛡️ Permanently protected" in names and "⏳ Temporarily protected" in names
+    for legend in (f"{L} = Clan leader or manager", "🛡️ = Permanently protected", "⏳ = Temporarily protected"):
+        assert legend in e.footer.text
+
+
+def test_leaders_only_shows_just_their_legend():
+    e, rows = _embed3([], [], [("Ann", "Manager"), ("Bob", "Leader")])
+    assert f"**Ann** {L}" in rows and f"**Bob** {L}" in rows and "🛡️" not in e.footer.text and "⏳" not in e.footer.text
+    assert f"{L} = Clan leader or manager" in e.footer.text
+
+
+def test_a_leader_who_is_also_on_the_permanent_list_counts_once_as_a_leader():
+    e, rows = _embed3(["Ann", "Bob"], [], [("Ann", "Leader")])
+    assert f"**Ann** {L}" in rows and "**Bob** 🛡️" in rows
+    counts = {f.name: f.value for f in e.fields}
+    assert counts[f"{L} Leaders & managers"] == "1" and counts["🛡️ Permanently protected"] == "1"
+
+
+def test_leader_commands_and_list(store):
+    store.cfg["protected_players"] = ["Cy", "Ann"]
+    sent, audits = _call(addleadership_impl, "ann", "Manager")
+    assert "recorded as a clan manager" in sent[0][0] and "Moved off the permanent protection list" in sent[0][0] and len(audits) == 1
+    sent, _ = _call(addleadership_impl, "Stranger", "Leader")
+    assert "not on the tracked player list" in sent[0][0]
+    sent, _ = _call(addtempprotected_impl, "Ann", 5, None)
+    assert "clan leader or manager" in sent[0][0]
+
+    i = Interaction()
+    run(listprotected_impl(i))
+    text = i.sent[0][0]
+    assert f"{L} **Clan leaders & managers (1)**\n• Ann — Manager" in text
+    assert "🛡️ **Permanently protected (1)**\nCy" in text                  # Ann is not listed twice
+
+    sent, audits = _call(removeleadership_impl, "ann")
+    assert "Removed **ann**" in sent[0][0] and len(audits) == 1
+    sent, _ = _call(removeleadership_impl, "ann")
+    assert "not on the clan leaders" in sent[0][0]
+
+
+def test_leader_commands_are_registered():
+    tree = ast.parse((ROOT / "bot.py").read_text(encoding="utf-8"))
+    commands = {n.name for n in ast.walk(tree)
+                if isinstance(n, ast.AsyncFunctionDef) and any("tree.command" in ast.unparse(d) for d in n.decorator_list)}
+    assert {"addleadership", "removeleadership"} <= commands and len(commands) < 100

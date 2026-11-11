@@ -1,5 +1,10 @@
 """
-Two kinds of protection for tracked players (both keep a player from being flagged for inactivity):
+Three kinds of protection for tracked players. All three keep a player from being flagged
+for inactivity; they are kept apart so the list shows WHY someone is protected.
+
+  LEADERSHIP - guild_cfg["leadership_protected"]: clan leaders and managers. Shown with LEADERSHIP_ICON.
+               Managed with /addleadership and /removeleadership. Protected because of
+               their role, so this is neither a "permanent" nor a "temporary" exception.
 
   PERMANENT  - guild_cfg["protected_players"], a plain list of names. Shown as 🛡️.
                Managed with /addprotected and /removeprotected. Never expires.
@@ -9,14 +14,20 @@ Two kinds of protection for tracked players (both keep a player from being flagg
                /addtempprotected and /removetempprotected. It can end on a date
                (the player is then listed normally again) or stay until removed.
 
-A player who is on both lists is shown as permanent. These helpers contain no Discord or
-file code, so they are easy to test.
+A player on more than one list is shown by the first that applies: leadership icon, then 🛡️, then ⏳.
+These helpers contain no Discord or file code, so they are easy to test.
 """
 from datetime import datetime, timedelta, timezone
 
 from modules.utils import normalize_player_name
 
 TEMP_KEY = "temporary_protected_players"
+LEAD_KEY = "leadership_protected"
+# The icon for clan leaders and managers. This is the ONLY place it is chosen: change this one
+# character and the list, the counts, the footer legend, /listprotected and the command replies
+# all follow. (Any emoji works.)
+LEADERSHIP_ICON = "⭐"
+LEAD_ROLES = ("Leader", "Manager")
 REASON_MAX = 100
 
 
@@ -78,8 +89,27 @@ def set_temporary(guild_cfg: dict, display_name: str, days: int | None = None, r
     return entry
 
 
+def get_leadership(guild_cfg: dict) -> dict:
+    """{normalized name: {"name", "role", "set_at"}} for clan leaders and managers."""
+    return dict(guild_cfg.get(LEAD_KEY) or {})
+
+
+def is_leadership(guild_cfg: dict, name: str) -> bool:
+    return normalize_player_name(name) in (guild_cfg.get(LEAD_KEY) or {})
+
+
+def set_leadership(guild_cfg: dict, display_name: str, role: str = "Leader", now: datetime | None = None) -> dict:
+    """Record a clan leader or manager."""
+    now = now or datetime.now(timezone.utc)
+    entry = {"name": display_name, "role": role if role in LEAD_ROLES else "Leader", "set_at": now.isoformat()}
+    guild_cfg.setdefault(LEAD_KEY, {})[normalize_player_name(display_name)] = entry
+    return entry
+
+
 def protection_kind(guild_cfg: dict, name: str, now: datetime | None = None) -> str | None:
-    """'permanent', 'temporary' or None. Permanent wins if a player is on both lists."""
+    """'leadership', 'permanent', 'temporary' or None, in that order of priority."""
+    if is_leadership(guild_cfg, name):
+        return "leadership"
     if is_permanent(guild_cfg, name):
         return "permanent"
     if normalize_player_name(name) in active_temporary_protected(guild_cfg, now):

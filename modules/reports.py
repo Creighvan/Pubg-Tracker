@@ -29,7 +29,7 @@ import storage
 from pubg_api import PubgApiError
 
 from modules.utils import normalize_player_name
-from modules.protection import active_temporary_protected, purge_expired_temporary
+from modules.protection import active_temporary_protected, purge_expired_temporary, get_leadership
 
 logger = logging.getLogger(__name__)
 
@@ -121,6 +121,9 @@ def apply_last_active_rules(guild_cfg: dict, players: list[dict], now: datetime 
     temp_store = guild_cfg.get("temporary_protected_players") or {}
     for key in [k for k in temp_store if k not in tracked_normalized]:
         del temp_store[key]
+    lead_store = guild_cfg.get("leadership_protected") or {}
+    for key in [k for k in lead_store if k not in tracked_normalized]:
+        del lead_store[key]
 
     for player in players:
         norm = normalize_player_name(player["name"])
@@ -188,7 +191,7 @@ async def fetch_last_active_report(guild_id: int, guild_name: str | None = None)
     guild_cfg = await storage.get_guild(guild_id)
 
     temporary_protected = active_temporary_protected(guild_cfg)
-    return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players, temporary_protected), players
+    return build_last_active_embed(guild_id, guild_name, guild_cfg, players, not_found, protected_players, temporary_protected, get_leadership(guild_cfg)), players
 
 
 async def fetch_ranked_report(guild_id: int, guild_name: str | None = None, game_mode: str | None = None) -> tuple[discord.Embed, list[dict]] | None:

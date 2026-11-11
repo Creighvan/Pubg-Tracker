@@ -82,6 +82,7 @@ from discord.ext import commands
 
 import storage
 from modules.utils import utc_with_local, next_daily_utc, next_weekly_utc
+from modules.protection import LEADERSHIP_ICON
 from pubg_api import PubgApiError, PubgClient
 import translations
 
@@ -167,6 +168,8 @@ from commands.protected import (
     addprotectedbulk_impl,
     addtempprotected_impl,
     removetempprotected_impl,
+    addleadership_impl,
+    removeleadership_impl,
 )
 from commands.inactive import (
     setinactivedate_impl,
@@ -705,7 +708,23 @@ async def addtempprotected(
 async def removetempprotected(interaction: discord.Interaction, name: str):
     await removetempprotected_impl(interaction, name, send_audit_log)
 
-@bot.tree.command(description="List all protected players (permanent and temporary)")
+@bot.tree.command(description=f"Record a clan leader or manager (shown with {LEADERSHIP_ICON}, protected because of their role)")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.describe(name="PUBG name of the tracked player", role="Leader or Manager")
+@app_commands.choices(role=[
+    app_commands.Choice(name="Leader", value="Leader"),
+    app_commands.Choice(name="Manager", value="Manager"),
+])
+async def addleadership(interaction: discord.Interaction, name: str, role: app_commands.Choice[str] = None):
+    await addleadership_impl(interaction, name, role.value if role else "Leader", send_audit_log)
+
+@bot.tree.command(description="Remove a player from the clan leaders and managers list")
+@app_commands.checks.has_permissions(manage_guild=True)
+@app_commands.describe(name="PUBG name of the player")
+async def removeleadership(interaction: discord.Interaction, name: str):
+    await removeleadership_impl(interaction, name, send_audit_log)
+
+@bot.tree.command(description="List all protected players (leaders and managers, permanent, and temporary)")
 async def listprotected(interaction: discord.Interaction):
     await listprotected_impl(interaction)
 

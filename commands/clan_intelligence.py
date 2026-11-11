@@ -154,8 +154,9 @@ async def rosterhealth_impl(interaction: discord.Interaction):
     players = guild_cfg.get("players", [])
     protected_players = [normalize_player_name(p) for p in guild_cfg.get("protected_players", [])]
     # Members who reached out: temporarily protected, counted separately from the permanent list
-    from modules.protection import active_temporary_protected
-    temp_protected = set(active_temporary_protected(guild_cfg)) - set(protected_players)
+    from modules.protection import active_temporary_protected, get_leadership, LEADERSHIP_ICON
+    leaders = set(get_leadership(guild_cfg))
+    temp_protected = set(active_temporary_protected(guild_cfg)) - set(protected_players) - leaders
     manual_inactive = guild_cfg.get("manual_inactive_dates", {})
     inactive_since = guild_cfg.get("inactive_since_dates", {})
 
@@ -175,10 +176,14 @@ async def rosterhealth_impl(interaction: discord.Interaction):
     inactive = []
     protected_count = 0
     temp_protected_count = 0
+    leader_count = 0
 
     for player in players:
         normalized = normalize_player_name(player)
 
+        if normalized in leaders:
+            leader_count += 1
+            continue
         if normalized in temp_protected:
             temp_protected_count += 1
             continue
@@ -242,7 +247,8 @@ async def rosterhealth_impl(interaction: discord.Interaction):
               f"**🟢 Active:** {active_count}\n"
               f"**🟡 Declining (7-14 days):** {declining_count}\n"
               f"**🔴 Inactive (14+ days):** {inactive_count}\n"
-              f"**🛡️ Protected:** {protected_count}"
+              + (f"**{LEADERSHIP_ICON} Leaders & managers:** {leader_count}\n" if leader_count else "")
+              + f"**🛡️ Protected:** {protected_count}"
               + (f"\n**⏳ Temporarily protected:** {temp_protected_count}" if temp_protected_count else ""),
         inline=True
     )

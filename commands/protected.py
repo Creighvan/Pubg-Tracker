@@ -9,7 +9,7 @@ import storage
 import translations
 from storage import DatabaseCorruptionError
 from modules.utils import normalize_player_name, discord_time
-from modules.protection import _parse as _parse_iso
+from modules.protection import _parse as _parse_iso, LEADERSHIP_ICON
 import discord
 
 logger = logging.getLogger(__name__)
@@ -95,12 +95,19 @@ async def listprotected_impl(interaction):
 
         protected = await storage.get_protected_players(interaction.guild_id)
         temporary = await storage.get_temporary_protected(interaction.guild_id)
+        leadership = await storage.get_leadership_protected(interaction.guild_id)
+        # a leader or manager is shown only in their own section
+        protected = [p for p in protected if normalize_player_name(p) not in leadership]
 
-        if not protected and not temporary:
+        if not protected and not temporary and not leadership:
             await interaction.followup.send(translations.get_translation(lang, "protected_empty"))
             return
 
         sections = []
+        if leadership:
+            rows = [f"• {e.get('name', '?')} — {e.get('role', 'Leader')}"
+                    for e in sorted(leadership.values(), key=lambda e: (e.get("role", "Leader") != "Leader", e.get("name", "").lower()))]
+            sections.append(f"{LEADERSHIP_ICON} **Clan leaders & managers ({len(leadership)})**\n" + "\n".join(rows))
         if protected:
             sections.append(f"🛡️ **Permanently protected ({len(protected)})**\n" + ", ".join(protected))
         if temporary:
@@ -112,8 +119,8 @@ async def listprotected_impl(interaction):
                 lines.append(f"• {entry.get('name', '?')} — {when}{reason}")
             sections.append(f"⏳ **Temporarily protected ({len(temporary)})**\n" + "\n".join(lines))
         message = "\n\n".join(sections)
-        message += ("\n\n🛡️ Permanent: never flagged for inactivity.  ⏳ Temporary: for members who reached out; "
-                    "it ends on its date, or when you use /removetempprotected.")
+        message += (f"\n\n{LEADERSHIP_ICON} Leaders & managers: protected because of their role.  🛡️ Permanent: never flagged for inactivity.  "
+                    "⏳ Temporary: for members who reached out; it ends on its date, or when you use /removetempprotected.")
         await interaction.followup.send(message)
     except Exception as e:
         logger.error(f"Error in listprotected_impl: {e}", exc_info=True)
@@ -231,6 +238,11 @@ async def addtempprotected_impl(interaction, name, days, reason, send_audit_log)
                 f"❌ **{name}** is not on the tracked player list. Add them first, then mark them temporarily protected.",
                 ephemeral=True)
             return
+        if status == "leadership":
+            await interaction.followup.send(
+                f"{LEADERSHIP_ICON} **{name}** is a clan leader or manager, who are already protected because of their role.",
+                ephemeral=True)
+            return
         if status == "permanent":
             await interaction.followup.send(
                 f"🛡️ **{name}** is already permanently protected, so no temporary protection is needed.",
@@ -283,4 +295,67 @@ async def removetempprotected_impl(interaction, name, send_audit_log):
         )
     except Exception as e:
         logger.error(f"Error in removetempprotected_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+
+
+async def addleadership_impl(interaction, name, role, send_audit_log):
+    """Implementation of addleadership: record a clan leader or manager (their own category, marked with LEADERSHIP_ICON)."""
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning("addleadership_impl: Interaction expired before defer")
+        return
+
+    try:
+        result = await storage.add_leadership(interaction.guild_id, name, role or "Leader")
+        if result["status"] == "not_tracked":
+            await interaction.followup.send(
+                f"❌ **{name}** is not on the tracked player list. Add them first, then record them as a leader or manager.",
+                ephemeral=True)
+            return
+        entry = result["entry"]
+        verb = "is now" if result["status"] == "added" else "is still"
+        message = f"{LEADERSHIP_ICON} **{entry['name']}** {verb} recorded as a clan {entry['role'].lower()}. They are protected because of their role."
+        if result["moved_from"]:
+            message += f"\nMoved off the {' and '.join(result['moved_from'])} protection list."
+        await interaction.followup.send(message)
+        await send_audit_log(
+            interaction.guild_id,
+            "Clan Leader/Manager Added" if result["status"] == "added" else "Clan Leader/Manager Updated",
+            f"Recorded {entry['name']} as clan {entry['role'].lower()}",
+            user=interaction.user,
+            details={"Player": entry["name"], "Role": entry["role"]},
+        )
+    except DatabaseCorruptionError:
+        await interaction.followup.send("❌ Database error. Please try again later.", ephemeral=True)
+    except Exception as e:
+        logger.error(f"Error in addleadership_impl: {e}", exc_info=True)
+        await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)
+
+
+async def removeleadership_impl(interaction, name, send_audit_log):
+    """Implementation of removeleadership."""
+    try:
+        await interaction.response.defer()
+    except discord.NotFound:
+        logger.warning("removeleadership_impl: Interaction expired before defer")
+        return
+
+    try:
+        removed = await storage.remove_leadership(interaction.guild_id, name)
+        if not removed:
+            await interaction.followup.send(f"❌ **{name}** is not on the clan leaders & managers list.", ephemeral=True)
+            return
+        await interaction.followup.send(
+            f"✅ Removed **{name}** from the clan leaders & managers list. They are no longer protected; "
+            "use /addprotected or /addtempprotected if they should stay protected.")
+        await send_audit_log(
+            interaction.guild_id,
+            "Clan Leader/Manager Removed",
+            f"Removed {name} from clan leaders and managers",
+            user=interaction.user,
+            details={"Player": name},
+        )
+    except Exception as e:
+        logger.error(f"Error in removeleadership_impl: {e}", exc_info=True)
         await interaction.followup.send(f"❌ An error occurred: {str(e)}", ephemeral=True)

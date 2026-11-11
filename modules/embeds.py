@@ -33,6 +33,7 @@ from datetime import datetime, timezone
 import discord
 
 from modules.config import RANKED_MODE_LABELS
+from modules.protection import LEADERSHIP_ICON
 from modules.utils import _channel_mention, _safe_div, normalize_player_name, _format_utc_time, next_daily_utc, discord_time, LAST_ACTIVE_RUN_UTC, next_last_active_report
 import translations
 
@@ -298,7 +299,7 @@ def _format_time_ago(iso_str: str | None, days_inactive: int = None, lang: str =
     return get_translation(lang, "days_ago").format(count=count, unit=unit)
 
 
-def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None, temporary_protected: dict | None = None) -> discord.Embed:
+def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: dict, players: list[dict], not_found: list[str], protected_players: list[str] = None, temporary_protected: dict | None = None, leadership: dict | None = None) -> discord.Embed:
     from translations import get_translation
     lang = guild_cfg.get("language", "en")
     
@@ -306,7 +307,11 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
     protected_lower = [normalize_player_name(p) for p in (protected_players or [])]
     # Temporary protection (members who reached out): {normalized name: entry}. A player on both
     # lists counts as permanent.
-    temp_lower = {normalize_player_name(k) for k in (temporary_protected or {})} - set(protected_lower)
+    # Clan leaders and managers are their own category (LEADERSHIP_ICON): protected because of their role,
+    # so they are neither "permanent" nor "temporary". Priority: leadership, then 🛡️, then ⏳.
+    leader_lower = {normalize_player_name(k) for k in (leadership or {})}
+    permanent_lower = {p for p in protected_lower if p not in leader_lower}
+    temp_lower = {normalize_player_name(k) for k in (temporary_protected or {})} - set(protected_lower) - leader_lower
 
     embed = discord.Embed(
         title=f"{title} — {get_translation(lang, 'last_active_report')}",
@@ -328,14 +333,18 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
 
     active_24h = sum(1 for p in players if p.get("last_match_at") and _recency_emoji(p["last_match_at"]) == "🟢")
     # Count only protected players who are actually in the tracked list
-    protected_count = sum(1 for p in players if normalize_player_name(p["name"]) in protected_lower)
+    leader_count = sum(1 for p in players if normalize_player_name(p["name"]) in leader_lower)
+    protected_count = sum(1 for p in players if normalize_player_name(p["name"]) in permanent_lower)
     temp_count = sum(1 for p in players if normalize_player_name(p["name"]) in temp_lower)
+    other_kinds = leader_count > 0 or temp_count > 0      # when more than one kind is shown, the labels must say which
 
     embed.add_field(name=f"🟢 {get_translation(lang, 'active_24h')}", value=str(active_24h), inline=True)
     embed.add_field(name=f"👥 {get_translation(lang, 'tracked_players')}", value=str(len(players)), inline=True)
+    if leader_count > 0:
+        embed.add_field(name=f"{LEADERSHIP_ICON} {get_translation(lang, 'leadership_players')}", value=str(leader_count), inline=True)
     if protected_count > 0:
-        # With both kinds present the label says "permanently" so the two counts are not confused
-        label = "protected_permanent_players" if temp_count > 0 else "protected_players"
+        # With several kinds present the label says "permanently" so the counts are not confused
+        label = "protected_permanent_players" if other_kinds else "protected_players"
         embed.add_field(name=f"🛡️ {get_translation(lang, label)}", value=str(protected_count), inline=True)
     if temp_count > 0:
         embed.add_field(name=f"⏳ {get_translation(lang, 'temp_protected_players')}", value=str(temp_count), inline=True)
@@ -371,7 +380,9 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
 
         # Case-insensitive comparison for protected players
         player_normalized = normalize_player_name(p["name"])
-        if player_normalized in protected_lower:
+        if player_normalized in leader_lower:
+            protected_mark = f" {LEADERSHIP_ICON}"          # clan leader or manager
+        elif player_normalized in permanent_lower:
             protected_mark = " 🛡️"          # permanent
         elif player_normalized in temp_lower:
             protected_mark = " ⏳"          # temporary (reached out)
@@ -395,12 +406,12 @@ def build_last_active_embed(guild_id: int, guild_name: str | None, guild_cfg: di
             inline=False,
         )
     footer_text = get_translation(lang, "updates_daily")
+    if leader_count > 0:
+        footer_text += " | " + get_translation(lang, "leadership_footer").format(icon=LEADERSHIP_ICON)
+    if protected_count > 0:
+        footer_text += " | " + get_translation(lang, "protected_permanent_footer" if other_kinds else "protected_footer")
     if temp_count > 0:
-        if protected_count > 0:
-            footer_text += " | " + get_translation(lang, "protected_permanent_footer")
         footer_text += " | " + get_translation(lang, "temp_protected_footer")
-    elif protected_count > 0:
-        footer_text += " | " + get_translation(lang, "protected_footer")
     embed.set_footer(text=footer_text)
     return embed
 

@@ -18,7 +18,7 @@ import uuid
 from datetime import datetime, timezone
 
 from modules.utils import normalize_player_name
-from modules.protection import active_temporary_protected, is_permanent, set_temporary
+from modules.protection import active_temporary_protected, is_permanent, is_leadership, set_temporary, set_leadership, get_leadership
 
 logger = logging.getLogger(__name__)
 
@@ -102,6 +102,7 @@ _DEFAULT_GUILD = {
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # normalize_player_name(pubg_name) -> {"date": iso_date, "set_at": iso_timestamp}
     "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso moment the player left the 14-day window (last match + 14 days)
+    "leadership_protected": {},  # normalize_player_name -> {"name", "role": "Leader"|"Manager", "set_at"}; clan leaders and managers
     "temporary_protected_players": {},  # normalize_player_name -> {"name", "set_at", "until" (iso or None), "reason"}; see modules/protection.py
     "last_seen_at": {},  # normalize_player_name(pubg_name) -> iso time of the player's latest known match (only ever moves forward)
     "audit_log_channel_id": None,  # custom channel for this server's audit logs (overrides default)
@@ -686,6 +687,9 @@ async def add_temporary_protected(guild_id: int, player_name: str, days: int | N
         if normalized not in tracked:
             result["status"] = "not_tracked"
             return
+        if is_leadership(guild, player_name):
+            result["status"] = "leadership"
+            return
         if is_permanent(guild, player_name):
             result["status"] = "permanent"
             return
@@ -709,6 +713,56 @@ async def remove_temporary_protected(guild_id: int, player_name: str) -> bool:
 
     await modify_guild(guild_id, modifier)
     return result["removed"]
+
+
+async def add_leadership(guild_id: int, player_name: str, role: str = "Leader") -> dict:
+    """Record a tracked player as a clan leader or manager.
+
+    They are protected because of their role, so they are taken off the permanent and
+    temporary lists. Returns {"status": "added" | "updated" | "not_tracked", "entry": {...},
+    "moved_from": ["permanent", "temporary"]}.
+    """
+    result = {"status": None, "entry": None, "moved_from": []}
+
+    def modifier(guild):
+        normalized = normalize_player_name(player_name)
+        tracked = {normalize_player_name(p): p for p in guild.get("players", [])}
+        if normalized not in tracked:
+            result["status"] = "not_tracked"
+            return
+        existed = is_leadership(guild, player_name)
+        permanent = guild.get("protected_players", [])
+        remaining = [p for p in permanent if normalize_player_name(p) != normalized]
+        if len(remaining) != len(permanent):
+            guild["protected_players"] = remaining
+            result["moved_from"].append("permanent")
+        if guild.get("temporary_protected_players", {}).pop(normalized, None) is not None:
+            result["moved_from"].append("temporary")
+        result["entry"] = set_leadership(guild, tracked[normalized], role)
+        result["status"] = "updated" if existed else "added"
+
+    await modify_guild(guild_id, modifier)
+    return result
+
+
+async def remove_leadership(guild_id: int, player_name: str) -> bool:
+    """Take a player off the leaders/managers list. Returns True if they were on it."""
+    result = {"removed": False}
+
+    def modifier(guild):
+        store = guild.get("leadership_protected", {})
+        key = normalize_player_name(player_name)
+        if key in store:
+            del store[key]
+            result["removed"] = True
+
+    await modify_guild(guild_id, modifier)
+    return result["removed"]
+
+
+async def get_leadership_protected(guild_id: int) -> dict:
+    """Clan leaders and managers: {normalized name: entry}."""
+    return get_leadership(await get_guild(guild_id))
 
 
 async def get_temporary_protected(guild_id: int) -> dict:
