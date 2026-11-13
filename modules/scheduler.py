@@ -231,7 +231,7 @@ async def before_auto_digest():
 
 @tasks.loop(minutes=15)
 async def auto_last_active():
-    """Posts the 'last active' report once a day, per guild, shortly after 02:30 UTC
+    """Posts the 'last active' report once a day, per guild, shortly after 03:00 UTC
     (LAST_ACTIVE_RUN_UTC). Recovers if the bot was offline."""
     utc = timezone.utc
     now_utc = datetime.now(utc)
@@ -248,13 +248,13 @@ async def auto_last_active():
             logger.info(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
-        # Check if we've already posted since the most recent 02:30 UTC slot
+        # Check if we've already posted since the most recent 03:00 UTC slot
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
             logger.info(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
             if last_posted_date >= reset_time_utc:
-                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:30 UTC slot, skipping")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 03:00 UTC slot, skipping")
                 continue  # Already posted since the most recent reset
             else:
                 # Bot was offline (or this is the first tick since the reset) - proceed to update

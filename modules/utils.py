@@ -193,7 +193,7 @@ def utc_with_local(hhmm_utc: str, when: datetime, style: str = "F") -> str:
 
 # Last Active refreshes ONCE a day, shortly after this UTC time (the scheduler checks
 # every 15 minutes, so it posts within about 15 minutes of it). Change it here only.
-LAST_ACTIVE_RUN_UTC = (2, 30)
+LAST_ACTIVE_RUN_UTC = (3, 0)
 
 
 def most_recent_slot(hour: int, minute: int = 0, now: datetime | None = None) -> datetime:
