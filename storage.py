@@ -83,7 +83,6 @@ _DEFAULT_GUILD = {
     "donation_hour_utc": 12,  # Sunday noon UTC by default
     "donation_minute_utc": 0,
     "donation_posted_at": None,
-    "discord_links": {},  # normalize_player_name(pubg_name) -> discord user id (int), for @mentions/congrats
     "leaderboard_shard": "pc-na",  # platform-REGION shard, only used by the leaderboards endpoint
     "leaderboard_queue": "squad",  # squad, duo, or solo — TPP
     "last_feedback_prompt_at": None,  # ISO timestamp of the last 14-day feedback prompt
@@ -95,7 +94,6 @@ _DEFAULT_GUILD = {
     "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (02:00 UTC)
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
-    "mentions_enabled": True,  # whether linked Discord accounts get @mentioned in reports (default True)
     "cheat_reports": [],  # list of cheat report dicts
     "statistical_anomalies": {},  # normalize_player_name(pubg_name) -> {stats, flags, last_checked}
     "cheat_report_channel_id": None,  # destination for cheat report notifications
@@ -127,10 +125,6 @@ def _validate_schema(data: dict) -> bool:
         # Validate expected fields exist and have correct types
         if "players" in guild_data and not isinstance(guild_data["players"], list):
             logger.critical(f"Guild {guild_id} 'players' field is not a list")
-            return False
-        
-        if "discord_links" in guild_data and not isinstance(guild_data["discord_links"], dict):
-            logger.critical(f"Guild {guild_id} 'discord_links' field is not a dictionary")
             return False
         
         if "protected_players" in guild_data and not isinstance(guild_data["protected_players"], list):
@@ -334,7 +328,7 @@ async def get_guild(guild_id: int) -> dict:
             guilds = data
         guild = guilds.get(guild_key)
         # deepcopy, not a plain dict() copy: the defaults contain mutable
-        # lists/dicts (players, discord_links, ranked_known_players). A
+        # lists/dicts (players, ranked_known_players). A
         # shallow copy shares those with _DEFAULT_GUILD itself, so the first
         # mutation for a brand-new guild (e.g. /addplayer appending) rewrote
         # the module-level defaults and the NEXT new guild inherited the
@@ -526,42 +520,6 @@ async def remove_player(guild_id: int, name: str) -> bool:
             result["changed"] = True
     await modify_guild(guild_id, modifier)
     return result["changed"]
-
-
-async def link_discord_account(guild_id: int, pubg_name: str, discord_user_id: int):
-    """Links a PUBG name to a Discord user ID for this server, so reports
-    can @mention the right person. Overwrites any existing link for that
-    name."""
-    def modifier(guild):
-        guild["discord_links"][normalize_player_name(pubg_name)] = discord_user_id
-    await modify_guild(guild_id, modifier)
-
-
-async def unlink_discord_account(guild_id: int, pubg_name: str) -> bool:
-    result = {"existed": False}
-    def modifier(guild):
-        existed = guild["discord_links"].pop(normalize_player_name(pubg_name), None) is not None
-        result["existed"] = existed
-    await modify_guild(guild_id, modifier)
-    return result["existed"]
-
-
-async def get_discord_id(guild_id: int, pubg_name: str) -> int | None:
-    guild = await get_guild(guild_id)
-    return guild["discord_links"].get(normalize_player_name(pubg_name))
-
-
-async def get_mentions_enabled(guild_id: int) -> bool:
-    """Check if mentions are enabled for a guild."""
-    guild = await get_guild(guild_id)
-    return guild.get("mentions_enabled", True)
-
-
-async def set_mentions_enabled(guild_id: int, enabled: bool):
-    """Enable or disable mentions for a guild."""
-    def modifier(guild):
-        guild["mentions_enabled"] = enabled
-    await modify_guild(guild_id, modifier)
 
 
 async def add_cheat_report(

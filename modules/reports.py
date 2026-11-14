@@ -275,6 +275,5 @@ async def fetch_leaderboard_report(
         guild_cfg["players"], season_id, game_mode=queue,
         max_pages=max_pages, leaderboard_shard=guild_cfg.get("leaderboard_shard", "pc-na"),
     )
-    mentions_enabled = guild_cfg.get("mentions_enabled", True)
-    embed = build_leaderboard_embed(guild_id, guild_name, guild_cfg, found, checked, max_pages, queue, mentions_enabled)
+    embed = build_leaderboard_embed(guild_id, guild_name, guild_cfg, found, checked, max_pages, queue)
     return embed, found

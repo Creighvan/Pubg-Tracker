@@ -70,61 +70,6 @@ _lock = asyncio.Lock()
 MAX_DAILY_SNAPSHOTS = 90  # 3 months
 MAX_MATCH_HISTORY = 1000  # matches per guild
 
-# Achievement definitions (shared with commands/achievements.py)
-ACHIEVEMENTS = {
-    "first_win": {
-        "name": "First Chicken Dinner",
-        "emoji": "🏆",
-        "description": "Won your first match",
-    },
-    "wins_10": {
-        "name": "10 Wins",
-        "emoji": "🏆",
-        "description": "Reached 10 total wins",
-    },
-    "wins_50": {
-        "name": "50 Wins",
-        "emoji": "🏆",
-        "description": "Reached 50 total wins",
-    },
-    "wins_100": {
-        "name": "100 Wins",
-        "emoji": "🏆",
-        "description": "Reached 100 total wins",
-    },
-    "kills_100": {
-        "name": "100 Kills",
-        "emoji": "💀",
-        "description": "Reached 100 total kills",
-    },
-    "kills_500": {
-        "name": "500 Kills",
-        "emoji": "💀",
-        "description": "Reached 500 total kills",
-    },
-    "kills_1000": {
-        "name": "1000 Kills",
-        "emoji": "💀",
-        "description": "Reached 1000 total kills",
-    },
-    "kills_5000": {
-        "name": "5000 Kills",
-        "emoji": "💀",
-        "description": "Reached 5000 total kills",
-    },
-    "survival_tier5": {
-        "name": "Survival Tier 5",
-        "emoji": "🛡️",
-        "description": "Reached Survival Mastery Tier 5",
-    },
-    "survival_level30": {
-        "name": "Survival Level 30",
-        "emoji": "🛡️",
-        "description": "Reached Survival Mastery Level 30",
-    },
-}
-
-
 _DEFAULT_HISTORY = {
     # guild_id -> {
     #   "daily_snapshots": {
@@ -188,31 +133,6 @@ _DEFAULT_HISTORY = {
     #       "is_tracked": bool,  # Whether this player is in the clan roster
     #     }
     #   ],
-    #   "achievements": {
-    #     normalize_player_name -> {
-    #       "first_win": ISO timestamp,
-    #       "wins_10": ISO timestamp,
-    #       "wins_50": ISO timestamp,
-    #       "wins_100": ISO timestamp,
-    #       "kills_100": ISO timestamp,
-    #       "kills_500": ISO timestamp,
-    #       "kills_1000": ISO timestamp,
-    #       "survival_tier5": ISO timestamp,
-    #       # ... more achievements
-    #     }
-    #   },
-    #   "streaks": {
-    #     normalize_player_name -> {
-    #       "top10_streak": int,
-    #       "top10_streak_start": ISO timestamp,
-    #       "win_streak": int,
-    #       "win_streak_start": ISO timestamp,
-    #       "kills_streak": int,
-    #       "kills_streak_start": ISO timestamp,
-    #       "day_streak": int,
-    #       "day_streak_start": ISO timestamp,
-    #     }
-    #   },
     # }
 }
 
@@ -253,8 +173,6 @@ async def get_guild_history(guild_id: int) -> dict:
             data[guild_id_str] = {
                 "daily_snapshots": {},
                 "match_history": [],
-                "achievements": {},
-                "streaks": {},
             }
             _save_history(data)
         return data[guild_id_str]
@@ -292,8 +210,6 @@ async def record_daily_snapshot(
             data[guild_id_str] = {
                 "daily_snapshots": {},
                 "match_history": [],
-                "achievements": {},
-                "streaks": {},
             }
 
         if "daily_snapshots" not in data[guild_id_str]:
@@ -368,8 +284,6 @@ async def record_match(
             data[guild_id_str] = {
                 "daily_snapshots": {},
                 "match_history": [],
-                "achievements": {},
-                "streaks": {},
             }
 
         if "match_history" not in data[guild_id_str]:
@@ -456,8 +370,6 @@ async def record_clan_participant(
             data[guild_id_str] = {
                 "daily_snapshots": {},
                 "match_history": [],
-                "achievements": {},
-                "streaks": {},
                 "clan_participants": [],
             }
 

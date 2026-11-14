@@ -2,7 +2,6 @@
 import asyncio
 from types import SimpleNamespace
 
-import pytest
 
 import storage
 from commands.settings import reportstatus_impl

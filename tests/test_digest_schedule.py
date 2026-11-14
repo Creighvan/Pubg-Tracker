@@ -1,8 +1,6 @@
 """The digest must post once per day shortly after its set time, and say so in the log."""
 import asyncio
 import logging
-import os
-import sys
 from datetime import datetime, timezone
 
 import discord

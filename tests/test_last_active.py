@@ -3,7 +3,6 @@ import asyncio
 import copy
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 import modules.reports as reports
 from modules.reports import apply_last_active_rules

@@ -82,25 +82,3 @@ async def setchickendinnerchannel_impl(interaction):
     await storage.modify_guild(interaction.guild_id, modifier)
     await interaction.followup.send(translations.get_translation(lang, "chicken_dinner_channel_set", channel=interaction.channel.mention))
 
-
-async def pingtoggle_impl(interaction):
-    """Implementation of pingtoggle command."""
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
-
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    current = guild_cfg.get("mentions_enabled", False)
-    
-    def modifier(guild_cfg):
-        guild_cfg["mentions_enabled"] = not current
-        return not current
-    
-    new_state = await storage.modify_guild(interaction.guild_id, modifier)
-    status = "enabled" if new_state else "disabled"
-    await interaction.followup.send(f"Mention notifications {status}")

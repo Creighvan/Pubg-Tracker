@@ -51,8 +51,6 @@ def _spawn(coro, name: str, loop=None) -> "asyncio.Task":
     task.add_done_callback(_on_task_done)
     return task
 import history
-from commands.achievements import check_achievements, record_achievement, ACHIEVEMENTS
-from commands.streaks import update_streaks
 
 from modules.config import get_scheduler_lock, _record_status_event, SUPPORT_SERVER_ID
 from modules.reports import (
@@ -231,7 +229,7 @@ async def before_auto_digest():
 
 @tasks.loop(minutes=15)
 async def auto_last_active():
-    """Posts the 'last active' report once a day, per guild, shortly after 03:00 UTC
+    """Posts the 'last active' report once a day, per guild, shortly after 02:30 UTC
     (LAST_ACTIVE_RUN_UTC). Recovers if the bot was offline."""
     utc = timezone.utc
     now_utc = datetime.now(utc)
@@ -248,13 +246,13 @@ async def auto_last_active():
             logger.info(f"[auto_last_active] Guild {guild_id}: No channel configured, skipping")
             continue
 
-        # Check if we've already posted since the most recent 03:00 UTC slot
+        # Check if we've already posted since the most recent 02:30 UTC slot
         last_posted = guild_cfg.get("last_activity_posted_at")
         if last_posted:
             last_posted_date = datetime.fromisoformat(last_posted).astimezone(utc)
             logger.info(f"[auto_last_active] Guild {guild_id}: last_posted={last_posted}, last_posted_date={last_posted_date}, reset_time={reset_time_utc}")
             if last_posted_date >= reset_time_utc:
-                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 03:00 UTC slot, skipping")
+                logger.info(f"[auto_last_active] Guild {guild_id}: Already posted since the last 02:30 UTC slot, skipping")
                 continue  # Already posted since the most recent reset
             else:
                 # Bot was offline (or this is the first tick since the reset) - proceed to update
@@ -1149,21 +1147,8 @@ async def run_daily_snapshot():
                         "ranked_status": status,
                     }
 
-                    # Check for new achievements
-                    new_achievements = await check_achievements(guild_id, player["name"], stats)
-                    for achievement_id in new_achievements:
-                        await record_achievement(guild_id, player["name"], achievement_id)
-                        achievement = ACHIEVEMENTS.get(achievement_id, {})
-                        logger.info(f"[auto_daily_snapshot] {player['name']} earned achievement: {achievement.get('name', achievement_id)}")
-
                 await history.record_daily_snapshot(guild_id, today, player_stats)
                 logger.info(f"[auto_daily_snapshot] Recorded snapshot for guild {guild_id}: {len(player_stats)} players")
-
-                # Update streaks after recording snapshot
-                for player in players:
-                    normalized = normalize_player_name(player)
-                    if normalized in player_stats:
-                        await update_streaks(guild_id, player, player_stats[normalized])
 
             except PubgApiError as e:
                 logger.error(f"[auto_daily_snapshot] PUBG API error for guild {guild_id}: {e}")

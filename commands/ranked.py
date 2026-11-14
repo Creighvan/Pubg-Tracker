@@ -42,44 +42,6 @@ async def rankedsolofpp_impl(interaction, pubg):
     await _run_ranked_command_impl(interaction, pubg, "solo-fpp", "Solo FPP")
 
 
-async def refreshranked_impl(interaction, pubg):
-    """Implementation of refreshranked command."""
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
-
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["ranked_refresh"] = True
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.followup.send(translations.get_translation(lang, "ranked_refresh_queued"))
-
-
-async def updateranked_impl(interaction, pubg):
-    """Implementation of updateranked command."""
-    # Defer immediately to prevent timeout
-    try:
-        await interaction.response.defer()
-    except discord.NotFound:
-        # Interaction already expired, nothing we can do
-        return
-
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    lang = guild_cfg.get("language", "en")
-    
-    def modifier(guild_cfg):
-        guild_cfg["ranked_update"] = True
-    await storage.modify_guild(interaction.guild_id, modifier)
-    
-    await interaction.followup.send(translations.get_translation(lang, "ranked_update_queued"))
-
-
 async def _run_ranked_command_impl(interaction, pubg, mode, mode_label):
     """Helper to run ranked commands."""
     # Defer immediately to prevent timeout

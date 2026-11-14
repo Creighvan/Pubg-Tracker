@@ -805,7 +805,6 @@ def build_survival_mastery_embeds(
 
 def build_leaderboard_embed(
     guild_id: int, guild_name: str, guild_cfg: dict, found: dict[str, dict], checked: int, pages: int, queue: str,
-    mentions_enabled: bool = True
 ) -> discord.Embed:
     title = guild_cfg.get("clan_name") or guild_name or "Clan"
     lang = guild_cfg.get("language", "en")
@@ -826,8 +825,7 @@ def build_leaderboard_embed(
     medals = {1: "🥇", 2: "🥈", 3: "🥉"}
     lines = []
     for i, e in enumerate(ranked, start=1):
-        discord_id = guild_cfg.get("discord_links", {}).get(normalize_player_name(e["name"]))
-        who = f"<@{discord_id}>" if discord_id and mentions_enabled else f"**{e['name']}**"
+        who = f"**{e['name']}**"
         rank_str = medals.get(i, f"#{i}")
         lines.append(f"{rank_str} — Ladder #{e['rank']:,} — {who}")
     # Discord embed field values cap at 1024 chars; chunk if many roster

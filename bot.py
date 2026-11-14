@@ -24,18 +24,14 @@ Slash commands:
   /setchannel               - set current channel as the auto-post channel
   /setinterval <hours>      - how often (in hours) the digest auto-posts (default 6)
   /setdigesttime <0-23>      - post digest daily at a fixed UTC hour instead
-  /postnow                  - manually trigger a digest post immediately
   /lastactive                - show when each roster player last played, right now
   /setactivitychannel        - set current channel for the 24h "last active" report
-  /posthighlights            - manually trigger highlights report immediately
   /rankedsquad                 - show current-season ranked Squad TPP standings
   /rankedduo                   - show current-season ranked Duo TPP standings
   /rankedsolo                  - show current-season ranked Solo TPP standings
   /rankedsquadfpp              - show current-season ranked Squad FPP standings
   /rankedduofpp                - show current-season ranked Duo FPP standings
   /rankedsolofpp               - show current-season ranked Solo FPP standings
-  /refreshranked            - rescan ranked roster and update the ranked report
-  /updateranked              - update the ranked report with fresh data without clearing cache
   /setrankedchannel           - set current channel for the daily ranked report (updates at 04:30 UTC)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
@@ -44,14 +40,9 @@ Slash commands:
   /leaderboardstats [pages]          - check official leaderboard for roster placements (on-demand only)
   /setleaderboardregion               - platform-region shard for leaderboard lookups (default pc-na)
   /setleaderboardqueue                - squad, duo, or solo (TPP) for leaderboard lookups
-  /linkme <pubg_name>                   - link your Discord account to a PUBG name (shows as a mention on /leaderboardstats and lets you /unlinkme it later)
-  /linkplayer <member> <pubg_name>       - link someone else's Discord account to a PUBG name (requires Manage Server)
-  /unlinkme <pubg_name>                - remove a Discord-to-PUBG-name link
-  /links                                - show every PUBG-name-to-Discord link for this server
   /chickendinner                        - check the roster's most recent matches for wins right now
   /setchickendinnerchannel               - set current channel for win alerts (defaults to the digest channel)
   /setapistatuschannel                   - set current channel for live PUBG API status (updates only when status changes)
-  /pingtoggle                           - toggle mention notifications for achievement awards
   /botservers                          - [Admin] list all Discord servers the bot is in
   /askfeedback [channel] [secret_key]  - [Admin] post feedback & support prompt to a server channel
 
@@ -187,15 +178,12 @@ from commands.ranked import (
     rankedsquadfpp_impl,
     rankedduofpp_impl,
     rankedsolofpp_impl,
-    refreshranked_impl,
-    updateranked_impl,
 )
 from commands.highlights import dailyhighlights_impl
 from commands.mastery import survivalstats_impl
 from commands.mapstats import mapstats_impl
 from commands.reports import (
     clanstats_impl,
-    postnow_impl,
     leaderboard_impl,
     lastactive_impl,
 )
@@ -207,7 +195,6 @@ from commands.settings import (
     setrankedchannel_impl,
     setrankedqueue_impl,
     sethighlightschannel_impl,
-    posthighlights_impl,
     setsurvivalchannel_impl,
     setmaintenancechannel_impl,
     setscheduledmaintenancechannel_impl,
@@ -222,12 +209,6 @@ from commands.settings import (
     language_impl,
     reportstatus_impl,
     donate_impl,
-)
-from commands.links import (
-    linkme_impl,
-    linkplayer_impl,
-    unlinkme_impl,
-    links_impl,
 )
 from commands.chicken_dinner import (
     chickendinner_impl,
@@ -251,24 +232,11 @@ from commands.clan_intelligence import (
     clantrend_impl,
     rosterhealth_impl,
 )
-from commands.achievements import (
-    achievements_impl,
-)
-from commands.streaks import (
-    streaks_impl,
-)
-from commands.weeklyawards import (
-    weeklyawards_impl,
-)
 from commands.weaponstats import (
     weaponstats_impl,
 )
-from commands.matches import (
-    matches_impl,
-)
 from commands.chemistry import (
     chemistry_impl,
-    bestsquad_impl,
 )
 
 # Initialize bot and pubg instances
@@ -802,22 +770,6 @@ async def clanstats(interaction: discord.Interaction, game_mode: app_commands.Ch
     mode = game_mode.value if game_mode else None
     await clanstats_impl(interaction, pubg, game_mode=mode)
 
-@bot.tree.command(description="Manually post today's clan digest to this channel")
-@app_commands.describe(game_mode="Game mode to show stats for (solo, duo, squad with TPP/FPP)")
-@app_commands.choices(
-    game_mode=[
-        app_commands.Choice(name="Solo TPP", value="solo-tpp"),
-        app_commands.Choice(name="Solo FPP", value="solo-fpp"),
-        app_commands.Choice(name="Duo TPP", value="duo-tpp"),
-        app_commands.Choice(name="Duo FPP", value="duo-fpp"),
-        app_commands.Choice(name="Squad TPP", value="squad-tpp"),
-        app_commands.Choice(name="Squad FPP", value="squad-fpp"),
-    ]
-)
-async def postnow(interaction: discord.Interaction, game_mode: app_commands.Choice[str] = None):
-    mode = game_mode.value if game_mode else None
-    await postnow_impl(interaction, pubg, game_mode=mode)
-
 @bot.tree.command(description="Show roster sorted by a stat")
 @app_commands.describe(sort_by="Which stat to sort by")
 @app_commands.choices(
@@ -1072,14 +1024,6 @@ async def rankedduofpp(interaction: discord.Interaction):
 async def rankedsolofpp(interaction: discord.Interaction):
     await rankedsolofpp_impl(interaction, pubg)
 
-@bot.tree.command(description="Rescan the full roster the next time a ranked queue is checked and update the ranked report")
-async def refreshranked(interaction: discord.Interaction):
-    await refreshranked_impl(interaction, pubg)
-
-@bot.tree.command(description="Update the ranked report with fresh data without clearing the cache")
-async def updateranked(interaction: discord.Interaction):
-    await updateranked_impl(interaction, pubg)
-
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setrankedchannel(interaction: discord.Interaction):
@@ -1113,12 +1057,6 @@ async def dailyhighlights(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def sethighlightschannel(interaction: discord.Interaction):
     await sethighlightschannel_impl(interaction)
-
-
-@bot.tree.command(description="Manually trigger highlights report (for testing)")
-@app_commands.checks.has_permissions(manage_guild=True)
-async def posthighlights(interaction: discord.Interaction):
-    await posthighlights_impl(interaction, pubg)
 
 
 @bot.tree.command(description="Show roster Survival Mastery grouped by tier and sorted by level")
@@ -1171,23 +1109,32 @@ async def setscheduledmaintenancechannel(interaction: discord.Interaction):
     await setscheduledmaintenancechannel_impl(interaction)
 
 
-@bot.tree.command(description="Schedule a PUBG server maintenance notice")
-@app_commands.checks.has_permissions(manage_guild=True)
+@bot.tree.command(description="[Admin] Schedule a PUBG server maintenance notice (posts to every server; bot owner only)")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(start_date="Start date (YYYY-MM-DD UTC)", start_hour="Start hour (0-23 UTC)", duration_hours="Duration in hours (e.g., 8.5)")
 async def schedulemaintenance(interaction: discord.Interaction, start_date: str, start_hour: app_commands.Range[int, 0, 23], duration_hours: float):
+    if not await _is_admin_authorized(interaction):
+        await interaction.response.send_message("⛔ This command can only be used by the bot owner.", ephemeral=True)
+        return
     await schedulemaintenance_impl(interaction, start_date, start_hour, duration_hours)
 
 
-@bot.tree.command(description="Clear scheduled maintenance notice")
-@app_commands.checks.has_permissions(manage_guild=True)
+@bot.tree.command(description="[Admin] Clear the scheduled maintenance notice (bot owner only)")
+@app_commands.default_permissions(administrator=True)
 async def clearmaintenance(interaction: discord.Interaction):
+    if not await _is_admin_authorized(interaction):
+        await interaction.response.send_message("⛔ This command can only be used by the bot owner.", ephemeral=True)
+        return
     await clearmaintenance_impl(interaction)
 
 
-@bot.tree.command(description="Force post a maintenance status correction (down/online)")
-@app_commands.checks.has_permissions(manage_guild=True)
+@bot.tree.command(description="[Admin] Force-post a maintenance status correction to every server (bot owner only)")
+@app_commands.default_permissions(administrator=True)
 @app_commands.describe(status="Status to post: 'down' or 'online'")
 async def forcemaintenance(interaction: discord.Interaction, status: str):
+    if not await _is_admin_authorized(interaction):
+        await interaction.response.send_message("⛔ This command can only be used by the bot owner.", ephemeral=True)
+        return
     await forcemaintenance_impl(interaction, status)
 
 
@@ -1234,27 +1181,6 @@ async def leaderboardstats(interaction: discord.Interaction, pages: app_commands
     await interaction.followup.send(embed=embed)
 
 
-@bot.tree.command(description="Link your Discord account to a PUBG name (shows as a mention on the official leaderboard report)")
-@app_commands.describe(pubg_name="Your exact PUBG in-game name")
-async def linkme(interaction: discord.Interaction, pubg_name: str):
-    await linkme_impl(interaction, pubg_name)
-
-@bot.tree.command(description="Link another member's Discord account to a PUBG name on their behalf")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.describe(member="The Discord member to link", pubg_name="Their exact PUBG in-game name")
-async def linkplayer(interaction: discord.Interaction, member: discord.Member, pubg_name: str):
-    await linkplayer_impl(interaction, member, pubg_name)
-
-@bot.tree.command(description="Remove your Discord-to-PUBG-name link")
-@app_commands.describe(pubg_name="The PUBG name to unlink")
-async def unlinkme(interaction: discord.Interaction, pubg_name: str):
-    await unlinkme_impl(interaction, pubg_name)
-
-@bot.tree.command(description="Show every PUBG-name-to-Discord link for this server")
-@app_commands.checks.has_permissions(manage_guild=True)
-async def links(interaction: discord.Interaction):
-    await links_impl(interaction)
-
 @bot.tree.command(description="Check the roster's recent match history for wins in all game modes")
 async def chickendinner(interaction: discord.Interaction):
     await chickendinner_impl(interaction, pubg)
@@ -1263,27 +1189,6 @@ async def chickendinner(interaction: discord.Interaction):
 @app_commands.checks.has_permissions(manage_guild=True)
 async def setchickendinnerchannel(interaction: discord.Interaction):
     await setchickendinnerchannel_impl(interaction)
-
-@bot.tree.command(description="Toggle mention notifications for achievement awards in reports")
-@app_commands.checks.has_permissions(manage_guild=True)
-@app_commands.choices(
-    enabled=[
-        app_commands.Choice(name="On", value="on"),
-        app_commands.Choice(name="Off", value="off"),
-    ],
-)
-async def pingtoggle(interaction: discord.Interaction, enabled: app_commands.Choice[str]):
-    """Enable or disable @mentions for linked Discord accounts in reports."""
-    guild_cfg = await storage.get_guild(interaction.guild_id)
-    is_enabled = enabled.value == "on"
-    await storage.set_mentions_enabled(interaction.guild_id, is_enabled)
-    state = "enabled" if is_enabled else "disabled"
-    await interaction.response.send_message(
-        f"✅ Mention notifications are now **{state}**. "
-        f"When {'enabled' if is_enabled else 'disabled'}, linked Discord accounts will {'be @mentioned' if is_enabled else 'not be @mentioned'} "
-        f"in achievement reports. Their avatar links will still work regardless of this setting."
-    )
-
 
 @bot.tree.command(description="Show 7-day trend for a tracked player")
 @app_commands.describe(player="PUBG player name", days="Number of days to analyze (default 7)")
@@ -1319,24 +1224,6 @@ async def rosterhealth(interaction: discord.Interaction):
     await rosterhealth_impl(interaction)
 
 
-@bot.tree.command(description="Show achievements for a player or all tracked players")
-@app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
-async def achievements(interaction: discord.Interaction, player: str = None):
-    await achievements_impl(interaction, player)
-
-
-@bot.tree.command(description="Show current streaks for a player or all tracked players")
-@app_commands.describe(player="PUBG player name (optional - shows all if not specified)")
-async def streaks(interaction: discord.Interaction, player: str = None):
-    await streaks_impl(interaction, player)
-
-
-@bot.tree.command(description="Show weekly clan awards")
-@app_commands.describe(days="Number of days to analyze (default 7)")
-async def weeklyawards(interaction: discord.Interaction, days: app_commands.Range[int, 3, 30] = 7):
-    await weeklyawards_impl(interaction, days)
-
-
 @bot.tree.command(description="Show weapon statistics for a player")
 @app_commands.describe(player="PUBG player name")
 async def weaponstats(interaction: discord.Interaction, player: str):
@@ -1348,21 +1235,10 @@ async def mapstats(interaction: discord.Interaction):
     await mapstats_impl(interaction, pubg)
 
 
-@bot.tree.command(description="Show recent matches for a player")
-@app_commands.describe(player="PUBG player name")
-async def matches(interaction: discord.Interaction, player: str):
-    await matches_impl(interaction, player)
-
-
 @bot.tree.command(description="Show chemistry between two players")
 @app_commands.describe(player1="First PUBG player name", player2="Second PUBG player name")
 async def chemistry(interaction: discord.Interaction, player1: str, player2: str):
     await chemistry_impl(interaction, player1, player2)
-
-
-@bot.tree.command(description="Show the best squad combination in the clan")
-async def bestsquad(interaction: discord.Interaction):
-    await bestsquad_impl(interaction)
 
 
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
