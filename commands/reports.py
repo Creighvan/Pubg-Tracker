@@ -40,11 +40,6 @@ async def clanstats_impl(interaction, pubg, game_mode=None):
         await interaction.followup.send(translations.get_translation(lang, "no_clan_data"))
 
 
-async def postnow_impl(interaction, pubg, game_mode=None):
-    """Implementation of postnow command."""
-    await clanstats_impl(interaction, pubg, game_mode=game_mode)
-
-
 async def leaderboard_impl(interaction, pubg, sort_by):
     """Implementation of leaderboard command."""
     # Defer immediately to prevent timeout
