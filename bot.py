@@ -959,7 +959,7 @@ async def lastactive(interaction: discord.Interaction):
 async def setactivitychannel(interaction: discord.Interaction):
     await setactivitychannel_impl(interaction)
 
-@bot.tree.command(description="[Admin] Set a custom audit log channel for this server (visible to all server admins)")
+@bot.tree.command(description="[Admin] Set custom audit channel (visible to all server admins)")
 async def setauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -968,7 +968,7 @@ async def setauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server (visible to all server admins)")
+@bot.tree.command(description="[Admin] Remove custom audit channel (visible to all server admins)")
 async def clearauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -977,7 +977,7 @@ async def clearauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Show current audit logging configuration for this server (visible to all server admins)")
+@bot.tree.command(description="[Admin] Show audit config (visible to all server admins)")
 async def showauditconfig(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -1203,7 +1203,7 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
     return is_owner or has_admin_id or has_valid_key
 
 
-@bot.tree.command(description="[Admin] List all Discord servers the bot is in (visible to all server admins)")
+@bot.tree.command(description="[Admin] List bot servers (visible to all server admins)")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def botservers(interaction: discord.Interaction, secret_key: str = None):
@@ -1239,7 +1239,7 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(description="[Admin] Reset database corruption flag (visible to all server admins)")
+@bot.tree.command(description="[Admin] Reset corruption flag (visible to all server admins)")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
@@ -1365,7 +1365,7 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Resync all Discord commands (fixes duplicates; visible to all server admins)")
+@bot.tree.command(description="[Admin] Resync Discord commands (visible to all server admins)")
 @app_commands.describe(
     secret_key="Optional admin secret key to unlock this command",
 )
