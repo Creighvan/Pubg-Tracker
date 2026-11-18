@@ -1,12 +1,11 @@
 # PUBG Clan Intelligence & Analytics Discord Bot
 
-A comprehensive PUBG clan analytics bot that tracks roster statistics, accumulates historical data, and provides team chemistry analysis. Originally designed for roster cleanup, it has evolved into a full clan intelligence system that answers "How are we doing?" rather than just reporting current lifetime statistics.
+A comprehensive PUBG clan analytics bot that tracks roster statistics, accumulates historical data, and provides clan intelligence. Originally designed for roster cleanup, it has evolved into a full clan intelligence system that answers "How are we doing?" rather than just reporting current lifetime statistics.
 
 **Core Features:**
 - **Historical Data Layer** - 90-day daily snapshots, match history with participant tracking
 - **Player Analytics** - Profiles, trends, comparisons, season summaries with rank progression
-- **Clan Analytics** - Clan trends, roster health, map analytics
-- **Team Intelligence** - Chemistry analysis (who plays well together), team relationships
+- **Clan Analytics** - Clan trends, roster health
 - **Roster Management** - Inactivity tracking, protected player lists, automated cleanup
 - **Scheduled Reports** - Daily highlights, ranked standings, chicken dinner alerts
 - **Automatic Maintenance Detection** - Detects PUBG server maintenance, pauses reports, auto-resumes when servers recover
@@ -288,7 +287,6 @@ The bot automatically accumulates historical data to enable trend analysis and t
 **Match History with Participant Tracking:**
 - Records match participants with team identification
 - Canonical participant dataset: `player_id`, `player_name`, `team_id`, map, placement, kills, damage
-- Enables chemistry and team analytics
 - Distinguishes: shared matches vs confirmed teammates vs unknown relationships
 
 **Data Retention:**
@@ -300,7 +298,6 @@ The bot automatically accumulates historical data to enable trend analysis and t
 Once the roster is configured with `/addplayer` or `/addplayers`, the bot automatically:
 - Collects daily snapshots at 03:00 UTC
 - Records match history as players participate in matches
-- Tracks team relationships for chemistry analysis
 
 No manual match recording is required — historical data accumulates in the background.
 
@@ -372,11 +369,9 @@ When the bot joins a server, and once at startup for any server that has the bot
 || `/playertrend <player>` | 7-day trend analysis (improvement/decline in key stats) |
 || `/compare <player1> <player2>` | Side-by-side player comparison |
 || `/clantrend` | Clan-wide historical trends (aggregate stats over time) |
-|| `/mapstats` | Map performance analytics (best/worst maps, K/D, win rates) |
 || `/season <player>` | Season summary with rank progression tracking |
-|| `/chemistry <player1> <player2>` | Squad chemistry analysis (who plays well together, team performance) |
 
-**Note:** Historical analytics require accumulated data. Trend commands need at least 2 days of snapshots. Chemistry requires sufficient match history with team tracking.
+**Note:** Historical analytics require accumulated data. Trend commands need at least 2 days of snapshots.
 
 ### Chicken Dinner win alerts
 

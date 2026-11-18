@@ -94,9 +94,7 @@ _DEFAULT_GUILD = {
     "chicken_dinner_reset_at": None,  # ISO timestamp of the last daily reset (02:00 UTC)
     "status_channel_id": None,  # destination for the live bot-status embed
     "status_message_id": None,  # id of the persistent status message this bot edits in place (None = post a fresh one next update)
-    "cheat_reports": [],  # list of cheat report dicts
     "statistical_anomalies": {},  # normalize_player_name(pubg_name) -> {stats, flags, last_checked}
-    "cheat_report_channel_id": None,  # destination for cheat report notifications
     "protected_players": [],  # list of PUBG player names protected from inactivity removal
     "manual_inactive_dates": {},  # normalize_player_name(pubg_name) -> {"date": iso_date, "set_at": iso_timestamp}
     "inactive_since_dates": {},  # normalize_player_name(pubg_name) -> iso moment the player left the 14-day window (last match + 14 days)
@@ -521,92 +519,6 @@ async def remove_player(guild_id: int, name: str) -> bool:
     await modify_guild(guild_id, modifier)
     return result["changed"]
 
-
-async def add_cheat_report(
-    guild_id: int,
-    reporter_name: str,
-    accused_name: str,
-    cheat_type: str,
-    description: str,
-    match_id: str | None = None,
-    evidence_urls: list[str] | None = None,
-) -> str:
-    """Add a cheat report and return the report ID."""
-    result = {"report_id": None}
-    
-    def modifier(guild):
-        # Use UUID for guaranteed uniqueness even under concurrent requests
-        report_id = f"report_{uuid.uuid4().hex}"
-        report = {
-            "report_id": report_id,
-            "reported_at": datetime.now(timezone.utc).isoformat(),
-            "reporter_name": reporter_name,
-            "accused_name": accused_name,
-            "accused_name_lower": normalize_player_name(accused_name),
-            "cheat_type": cheat_type,
-            "description": description,
-            "match_id": match_id,
-            "evidence_urls": evidence_urls or [],
-            "status": "pending",  # pending, submitted, resolved
-            "krafton_ticket_id": None,
-        }
-        guild["cheat_reports"].append(report)
-        result["report_id"] = report_id
-    
-    await modify_guild(guild_id, modifier)
-    return result["report_id"]
-
-
-async def get_cheat_reports(guild_id: int) -> list[dict]:
-    """Get all cheat reports for a guild."""
-    guild = await get_guild(guild_id)
-    return guild.get("cheat_reports", [])
-
-
-async def get_cheat_report(guild_id: int, report_id: str) -> dict | None:
-    """Get a specific cheat report by ID."""
-    guild = await get_guild(guild_id)
-    for report in guild.get("cheat_reports", []):
-        if report["report_id"] == report_id:
-            return report
-    return None
-
-
-async def update_cheat_report_status(guild_id: int, report_id: str, status: str, krafton_ticket_id: str | None = None):
-    """Update the status of a cheat report."""
-    result = {"found": False}
-    
-    def modifier(guild):
-        for report in guild.get("cheat_reports", []):
-            if report["report_id"] == report_id:
-                report["status"] = status
-                if krafton_ticket_id:
-                    report["krafton_ticket_id"] = krafton_ticket_id
-                result["found"] = True
-                break
-    
-    await modify_guild(guild_id, modifier)
-    return result["found"]
-
-
-async def update_statistical_anomaly(guild_id: int, player_name: str, stats: dict, flags: list[str]):
-    """Update or add a statistical anomaly entry."""
-    def modifier(guild):
-        player_normalized = normalize_player_name(player_name)
-        guild["statistical_anomalies"][player_normalized] = {
-            "name": player_name,
-            "stats": stats,
-            "flags": flags,
-            "last_checked": datetime.now(timezone.utc).isoformat(),
-            "report_count": guild["statistical_anomalies"].get(player_normalized, {}).get("report_count", 0) + 1,
-        }
-    await modify_guild(guild_id, modifier)
-
-
-async def get_statistical_anomalies(guild_id: int) -> dict[str, dict]:
-    """Get all statistical anomalies for a guild."""
-    guild = await get_guild(guild_id)
-    return guild.get("statistical_anomalies", {})
 
 
 async def add_protected_player(guild_id: int, player_name: str) -> bool:

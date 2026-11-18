@@ -170,7 +170,7 @@ from commands.ranked import (
 )
 from commands.highlights import dailyhighlights_impl
 from commands.mastery import survivalstats_impl
-from commands.mapstats import mapstats_impl
+
 from commands.reports import (
     clanstats_impl,
     leaderboard_impl,
@@ -204,7 +204,6 @@ from commands.chicken_dinner import (
     setchickendinnerchannel_impl,
 )
 from commands.admin import (
-    reportcheater_impl,
     runallreports_impl,
 )
 from commands.analytics import (
@@ -224,9 +223,7 @@ from commands.clan_intelligence import (
 from commands.weaponstats import (
     weaponstats_impl,
 )
-from commands.chemistry import (
-    chemistry_impl,
-)
+
 
 # Initialize bot and pubg instances
 bot = commands.Bot(command_prefix="!", intents=intents, tree_cls=GuildOnlyTree, allowed_mentions=discord.AllowedMentions.none())
@@ -962,7 +959,7 @@ async def lastactive(interaction: discord.Interaction):
 async def setactivitychannel(interaction: discord.Interaction):
     await setactivitychannel_impl(interaction)
 
-@bot.tree.command(description="[Admin] Set a custom audit log channel for this server (overrides central server)")
+@bot.tree.command(description="[Admin] Set a custom audit log channel for this server (visible to all server admins)")
 async def setauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -971,7 +968,7 @@ async def setauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server")
+@bot.tree.command(description="[Admin] Remove custom audit channel and use central audit server for this server (visible to all server admins)")
 async def clearauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -980,7 +977,7 @@ async def clearauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Show current audit logging configuration for this server")
+@bot.tree.command(description="[Admin] Show current audit logging configuration for this server (visible to all server admins)")
 async def showauditconfig(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -1104,7 +1101,7 @@ async def forcemaintenance(interaction: discord.Interaction, status: str):
 
 @bot.tree.command(description="Show each player's top weapon mastery and survival level (slow — 2 calls/player)")
 async def masterystats(interaction: discord.Interaction):
-    await interaction.response.send_message("⏳ Processing mastery data for 77 players... This takes ~35 minutes. Results will be posted when complete.", ephemeral=True)
+    await interaction.response.send_message("⏳ Processing mastery data for all tracked players... This takes ~35 minutes. Results will be posted when complete.", ephemeral=True)
     
     # Run in background to avoid timeout
     asyncio.create_task(_run_masterystats_background(interaction.channel_id, interaction.guild_id))
@@ -1194,17 +1191,6 @@ async def weaponstats(interaction: discord.Interaction, player: str):
     await weaponstats_impl(interaction, player)
 
 
-@bot.tree.command(description="Show clan map performance statistics")
-async def mapstats(interaction: discord.Interaction):
-    await mapstats_impl(interaction, pubg)
-
-
-@bot.tree.command(description="Show chemistry between two players")
-@app_commands.describe(player1="First PUBG player name", player2="Second PUBG player name")
-async def chemistry(interaction: discord.Interaction, player1: str, player2: str):
-    await chemistry_impl(interaction, player1, player2)
-
-
 async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
     """Check if the user is the bot application owner, on the ADMIN_USER_IDS whitelist, or supplied the correct BOT_ADMIN_KEY."""
     app_info = await bot.application_info()
@@ -1217,7 +1203,7 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
     return is_owner or has_admin_id or has_valid_key
 
 
-@bot.tree.command(description="[Admin] List all Discord servers the bot is in")
+@bot.tree.command(description="[Admin] List all Discord servers the bot is in (visible to all server admins)")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def botservers(interaction: discord.Interaction, secret_key: str = None):
@@ -1253,7 +1239,7 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(description="[Admin] Reset database corruption flag")
+@bot.tree.command(description="[Admin] Reset database corruption flag (visible to all server admins)")
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
@@ -1379,7 +1365,7 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Resync all Discord commands (fixes duplicates)")
+@bot.tree.command(description="[Admin] Resync all Discord commands (fixes duplicates; visible to all server admins)")
 @app_commands.describe(
     secret_key="Optional admin secret key to unlock this command",
 )

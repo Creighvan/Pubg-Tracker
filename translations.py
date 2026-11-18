@@ -114,16 +114,7 @@ TRANSLATIONS = {
         "weapon_kills": "Kills",
         "weapon_damage": "Damage",
         "weapon_kills_per_match": "Kills/Match",
-        "map_stats_title": "Map Analytics",
-        "map_data_coming_soon": "Map-specific performance tracking requires match-level data.",
-        "matches_title": "Recent Matches",
-        "matches_coming_soon": "Match history requires match-level telemetry data.",
-        "chemistry_title": "Chemistry",
-        "chemistry_coming_soon": "Chemistry analysis requires match-level data with participant tracking.",
-        "bestsquad_title": "Best Squad",
-        "bestsquad_coming_soon": "Best squad analysis requires match-level data with participant tracking.",
-        "both_players_tracked": "Both players must be tracked to analyze chemistry.",
-        
+
         # Last Active Report
         "last_active_report": "Last Active Report",
         "source_manual": " *(manual)*",
@@ -454,16 +445,6 @@ TRANSLATIONS = {
         "weapon_kills": "击杀",
         "weapon_damage": "伤害",
         "weapon_kills_per_match": "每局击杀",
-        "map_stats_title": "地图分析",
-        "map_data_coming_soon": "地图特定性能跟踪需要比赛级别数据。",
-        "matches_title": "最近比赛",
-        "matches_coming_soon": "比赛历史需要比赛级别遥测数据。",
-        "chemistry_title": "配合",
-        "chemistry_coming_soon": "配合分析需要带有参与者跟踪的比赛级别数据。",
-        "bestsquad_title": "最佳小队",
-        "bestsquad_coming_soon": "最佳小队分析需要带有参与者跟踪的比赛级别数据。",
-        "both_players_tracked": "分析配合需要两名玩家都被跟踪。",
-        
         # Last Active Report
         "last_active_report": "最后活跃报告",
         "source_manual": " *(手动)*",
@@ -796,15 +777,7 @@ TRANSLATIONS = {
         "weapon_kills": "Eliminaciones",
         "weapon_damage": "Daño",
         "weapon_kills_per_match": "Eliminaciones/Partida",
-        "map_stats_title": "Análisis de Mapas",
-        "map_data_coming_soon": "El seguimiento de rendimiento específico del mapa requiere datos a nivel de partido.",
-        "matches_title": "Partidos Recientes",
-        "matches_coming_soon": "El historial de partidos requiere datos de telemetría a nivel de partido.",
-        "chemistry_title": "Química",
-        "chemistry_coming_soon": "El análisis de química requiere datos a nivel de partido con seguimiento de participantes.",
-        "bestsquad_title": "Mejor Escuadra",
-        "bestsquad_coming_soon": "El análisis de mejor escuadra requiere datos a nivel de partido con seguimiento de participantes.",
-        "both_players_tracked": "Ambos jugadores deben ser rastreados para analizar la química.",
+
         
         # Last Active Report
         "last_active_report": "Informe de última actividad",
@@ -1140,15 +1113,7 @@ TRANSLATIONS = {
         "weapon_kills": "हत्याएं",
         "weapon_damage": "नुकसान",
         "weapon_kills_per_match": "हत्याएं/मैच",
-        "map_stats_title": "मानचित्र विश्लेषण",
-        "map_data_coming_soon": "मानचित्र-विशिष्ट प्रदर्शन ट्रैकिंग को मैच-स्तर के डेटा की आवश्यकता होती है।",
-        "matches_title": "हाल के मैच",
-        "matches_coming_soon": "मैच इतिहास को मैच-स्तर की टेलीमेट्री डेटा की आवश्यकता होती है।",
-        "chemistry_title": "रसायन",
-        "chemistry_coming_soon": "रसायन विश्लेषण को मैच-स्तर के डेटा की आवश्यकता होती है जिसमें प्रतिभागी ट्रैकिंग हो।",
-        "bestsquad_title": "सर्वश्रेष्ठ दल",
-        "bestsquad_coming_soon": "सर्वश्रेष्ठ दल विश्लेषण को मैच-स्तर के डेटा की आवश्यकता होती है जिसमें प्रतिभागी ट्रैकिंग हो।",
-        "both_players_tracked": "रसायन विश्लेषण के लिए दोनों खिलाड़ियों को ट्रैक किया जाना चाहिए।",
+
         
         # Last Active Report
         "last_active_report": "अंतिम सक्रिय रिपोर्ट",
@@ -1482,15 +1447,7 @@ TRANSLATIONS = {
         "weapon_kills": "قتلى",
         "weapon_damage": "ضرر",
         "weapon_kills_per_match": "قتلى/مباراة",
-        "map_stats_title": "تحليل الخرائط",
-        "map_data_coming_soon": "تتبع الأداء الخاص بالخريطة يتطلب بيانات على مستوى المباراة.",
-        "matches_title": "المباريات الأخيرة",
-        "matches_coming_soon": "تاريخ المباريات يتطلب بيانات القياس عن بعد على مستوى المباراة.",
-        "chemistry_title": "الكيمياء",
-        "chemistry_coming_soon": "تحليل الكيمياء يتطلب بيانات على مستوى المباراة مع تتبع المشاركين.",
-        "bestsquad_title": "أفضل فريق",
-        "bestsquad_coming_soon": "تحليل أفضل فريق يتطلب بيانات على مستوى المباراة مع تتبع المشاركين.",
-        "both_players_tracked": "يجب تتبع كلا اللاعبين لتحليل الكيمياء.",
+
         
         # Last Active Report
         "last_active_report": "تقرير آخر نشاط",
@@ -1824,15 +1781,7 @@ TRANSLATIONS = {
         "weapon_kills": "Éliminations",
         "weapon_damage": "Dégâts",
         "weapon_kills_per_match": "Éliminations/Match",
-        "map_stats_title": "Analyse de Cartes",
-        "map_data_coming_soon": "Le suivi de performance spécifique à la carte nécessite des données au niveau du match.",
-        "matches_title": "Matchs Récents",
-        "matches_coming_soon": "L'historique des matchs nécessite des données de télémétrie au niveau du match.",
-        "chemistry_title": "Chimie",
-        "chemistry_coming_soon": "L'analyse de chimie nécessite des données au niveau du match avec suivi des participants.",
-        "bestsquad_title": "Meilleure Escouade",
-        "bestsquad_coming_soon": "L'analyse de meilleure escouade nécessite des données au niveau du match avec suivi des participants.",
-        "both_players_tracked": "Les deux joueurs doivent être suivis pour analyser la chimie.",
+
         
         # Last Active Report
         "last_active_report": "Rapport de dernière activité",
@@ -2166,15 +2115,7 @@ TRANSLATIONS = {
         "weapon_kills": "হত্যা",
         "weapon_damage": "ক্ষতি",
         "weapon_kills_per_match": "হত্যা/ম্যাচ",
-        "map_stats_title": "ম্যাপ বিশ্লেষণ",
-        "map_data_coming_soon": "ম্যাপ-নির্দিষ্ট পারফরম্যান্স ট্র্যাকিং ম্যাচ-লেভেল ডেটা প্রয়োজন।",
-        "matches_title": "সাম্প্রতিক ম্যাচ",
-        "matches_coming_soon": "ম্যাচ ইতিহাস ম্যাচ-লেভেল টেলিমেট্রি ডেটা প্রয়োজন।",
-        "chemistry_title": "রসায়ন",
-        "chemistry_coming_soon": "রসায়ন বিশ্লেষণ ম্যাচ-লেভেল ডেটা প্রয়োজন যা অংশগ্রহণকারী ট্র্যাকিং সহ।",
-        "bestsquad_title": "সেরা স্কোয়াড",
-        "bestsquad_coming_soon": "সেরা স্কোয়াড বিশ্লেষণ ম্যাচ-লেভেল ডেটা প্রয়োজন যা অংশগ্রহণকারী ট্র্যাকিং সহ।",
-        "both_players_tracked": "রসায়ন বিশ্লেষণের জন্য উভয় খেলোয়াড়কে ট্র্যাক করতে হবে।",
+
         
         # Last Active Report
         "last_active_report": "শেষ সক্রিয় রিপোর্ট",
@@ -2508,15 +2449,7 @@ TRANSLATIONS = {
         "weapon_kills": "Eliminações",
         "weapon_damage": "Dano",
         "weapon_kills_per_match": "Eliminações/Partida",
-        "map_stats_title": "Análise de Mapas",
-        "map_data_coming_soon": "O rastreamento de desempenho específico do mapa requer dados em nível de partida.",
-        "matches_title": "Partidas Recentes",
-        "matches_coming_soon": "O histórico de partidas requer dados de telemetria em nível de partida.",
-        "chemistry_title": "Química",
-        "chemistry_coming_soon": "A análise de química requer dados em nível de partida com rastreamento de participantes.",
-        "bestsquad_title": "Melhor Esquadrão",
-        "bestsquad_coming_soon": "A análise de melhor esquadrão requer dados em nível de partida com rastreamento de participantes.",
-        "both_players_tracked": "Ambos os jogadores devem ser rastreados para analisar a química.",
+
         
         # Last Active Report
         "last_active_report": "Relatório de última atividade",
@@ -2858,15 +2791,7 @@ TRANSLATIONS = {
         "weapon_kills": "Kill",
         "weapon_damage": "Kerusakan",
         "weapon_kills_per_match": "Kill/Match",
-        "map_stats_title": "Analisis Peta",
-        "map_data_coming_soon": "Pelacakan performa spesifik peta memerlukan data tingkat pertandingan.",
-        "matches_title": "Pertandingan Terbaru",
-        "matches_coming_soon": "Riwayat pertandingan memerlukan data telemetri tingkat pertandingan.",
-        "chemistry_title": "Kimia",
-        "chemistry_coming_soon": "Analisis kimia memerlukan data tingkat pertandingan dengan pelacakan peserta.",
-        "bestsquad_title": "Skuad Terbaik",
-        "bestsquad_coming_soon": "Analisis skuad terbaik memerlukan data tingkat pertandingan dengan pelacakan peserta.",
-        "both_players_tracked": "Kedua pemain harus dilacak untuk menganalisis kimia.",
+
         
         # Last Active Report
         "last_active_report": "Laporan aktivitas terakhir",
@@ -3208,15 +3133,7 @@ TRANSLATIONS = {
         "weapon_kills": "ہلاکتیں",
         "weapon_damage": "نقصان",
         "weapon_kills_per_match": "ہلاکتیں/میچ",
-        "map_stats_title": "نقشہ تجزیہ",
-        "map_data_coming_soon": "نقشہ مخصوص کارکردگی کی ٹریکنگ میچ لیول ڈیٹا کی ضرورت ہے۔",
-        "matches_title": "حالیہ میچز",
-        "matches_coming_soon": "میچ کی تاریخ میچ لیول ٹیلمیٹری ڈیٹا کی ضرورت ہے۔",
-        "chemistry_title": "کیمسٹری",
-        "chemistry_coming_soon": "کیمسٹری تجزیہ کے لیے میچ لیول ڈیٹا کی ضرورت ہے جس میں شرکاء کی ٹریکنگ ہو۔",
-        "bestsquad_title": "بہترین اسکواڈ",
-        "bestsquad_coming_soon": "بہترین اسکواڈ تجزیہ کے لیے میچ لیول ڈیٹا کی ضرورت ہے جس میں شرکاء کی ٹریکنگ ہو۔",
-        "both_players_tracked": "کیمسٹری کا تجزیہ کرنے کے لیے دونوں کھلاڑیوں کو ٹریک کیا جانا چاہیے۔",
+
         
         # Last Active Report
         "last_active_report": "آخری فعال رپورٹ",

@@ -68,7 +68,6 @@ EXPECTED_COMMANDS = {
         "setchickendinnerchannel_impl",
     ],
     "commands.admin": [
-        "reportcheater_impl",
         "askfeedback_impl",
         "botservers_impl",
     ],
@@ -86,12 +85,6 @@ EXPECTED_COMMANDS = {
     "commands.analytics": [
         "playertrend_impl",
         "compare_impl",
-    ],
-    "commands.chemistry": [
-        "chemistry_impl",
-    ],
-    "commands.mapstats": [
-        "mapstats_impl",
     ],
     "commands.season": [
         "season_impl",
