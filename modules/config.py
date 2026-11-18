@@ -31,6 +31,7 @@ BOT_ADMIN_KEY = os.environ.get("BOT_ADMIN_KEY", "")
 ADMIN_USER_IDS = {int(x.strip()) for x in os.environ.get("ADMIN_USER_IDS", "").split(",") if x.strip().isdigit()}
 SUPPORT_SERVER_URL = "https://discord.gg/KEUWmwBYV4"
 SUPPORT_SERVER_ID = int(os.environ.get("SUPPORT_SERVER_ID", "1539320166318481459"))
+ADMIN_SERVER_ID = SUPPORT_SERVER_ID  # Admin commands restricted to this server only
 SUPPORT_FEEDBACK_CHANNEL_ID = int(os.environ.get("SUPPORT_FEEDBACK_CHANNEL_ID", "0"))
 AUDIT_SERVER_ID = int(os.environ.get("AUDIT_SERVER_ID", "0")) if os.environ.get("AUDIT_SERVER_ID") else None
 AUDIT_LOG_CHANNEL_ID = int(os.environ.get("AUDIT_LOG_CHANNEL_ID", "0")) if os.environ.get("AUDIT_LOG_CHANNEL_ID") else None

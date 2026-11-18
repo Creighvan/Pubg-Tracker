@@ -103,6 +103,7 @@ from modules.config import (
     ADMIN_USER_IDS,
     SUPPORT_SERVER_URL,
     SUPPORT_SERVER_ID,
+    ADMIN_SERVER_ID,
     SUPPORT_FEEDBACK_CHANNEL_ID,
     AUDIT_SERVER_ID,
     AUDIT_LOG_CHANNEL_ID,
@@ -959,7 +960,8 @@ async def lastactive(interaction: discord.Interaction):
 async def setactivitychannel(interaction: discord.Interaction):
     await setactivitychannel_impl(interaction)
 
-@bot.tree.command(description="[Admin] Set custom audit channel (visible to all server admins)")
+@bot.tree.command(description="[Admin] Set custom audit channel")
+@app_commands.guilds(ADMIN_SERVER_ID)
 async def setauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -968,7 +970,8 @@ async def setauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await setauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Remove custom audit channel (visible to all server admins)")
+@bot.tree.command(description="[Admin] Remove custom audit channel")
+@app_commands.guilds(ADMIN_SERVER_ID)
 async def clearauditchannel(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -977,7 +980,8 @@ async def clearauditchannel(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await clearauditchannel_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="[Admin] Show audit config (visible to all server admins)")
+@bot.tree.command(description="[Admin] Show audit config")
+@app_commands.guilds(ADMIN_SERVER_ID)
 async def showauditconfig(interaction: discord.Interaction):
     # Check whitelist only (synchronous, no async calls to prevent timeout)
     if interaction.user.id not in ADMIN_USER_IDS:
@@ -1071,6 +1075,7 @@ async def setscheduledmaintenancechannel(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="[Admin] Schedule a PUBG server maintenance notice (posts to every server; bot owner only)")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(start_date="Start date (YYYY-MM-DD UTC)", start_hour="Start hour (0-23 UTC)", duration_hours="Duration in hours (e.g., 8.5)")
 async def schedulemaintenance(interaction: discord.Interaction, start_date: str, start_hour: app_commands.Range[int, 0, 23], duration_hours: float):
@@ -1081,6 +1086,7 @@ async def schedulemaintenance(interaction: discord.Interaction, start_date: str,
 
 
 @bot.tree.command(description="[Admin] Clear the scheduled maintenance notice (bot owner only)")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.default_permissions(administrator=True)
 async def clearmaintenance(interaction: discord.Interaction):
     if not await _is_admin_authorized(interaction):
@@ -1090,6 +1096,7 @@ async def clearmaintenance(interaction: discord.Interaction):
 
 
 @bot.tree.command(description="[Admin] Force-post a maintenance status correction to every server (bot owner only)")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.default_permissions(administrator=True)
 @app_commands.describe(status="Status to post: 'down' or 'online'")
 async def forcemaintenance(interaction: discord.Interaction, status: str):
@@ -1203,7 +1210,23 @@ async def _is_admin_authorized(interaction: discord.Interaction, secret_key: str
     return is_owner or has_admin_id or has_valid_key
 
 
-@bot.tree.command(description="[Admin] List bot servers (visible to all server admins)")
+async def _is_admin_server_and_authorized(interaction: discord.Interaction, secret_key: str = None) -> bool:
+    """Check if the command is being used in the admin server AND the user is authorized."""
+    # First check: must be in the admin server
+    if interaction.guild_id != ADMIN_SERVER_ID:
+        await interaction.response.send_message("⛔ This command can only be used in the admin server.", ephemeral=True)
+        return False
+    
+    # Second check: user must be authorized
+    if not await _is_admin_authorized(interaction, secret_key):
+        await interaction.response.send_message("⛔ You are not authorized to use this command.", ephemeral=True)
+        return False
+    
+    return True
+
+
+@bot.tree.command(description="[Admin] List bot servers")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def botservers(interaction: discord.Interaction, secret_key: str = None):
@@ -1239,7 +1262,8 @@ async def botservers(interaction: discord.Interaction, secret_key: str = None):
     await interaction.followup.send(embed=embed, ephemeral=True)
 
 
-@bot.tree.command(description="[Admin] Reset corruption flag (visible to all server admins)")
+@bot.tree.command(description="[Admin] Reset corruption flag")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.describe(secret_key="Optional admin secret key to unlock this command")
 @app_commands.default_permissions(administrator=True)
 async def resetcorruption(interaction: discord.Interaction, secret_key: str = None):
@@ -1365,7 +1389,8 @@ class FeedbackPromptView(discord.ui.View):
         await interaction.response.send_modal(FeedbackModal())
 
 
-@bot.tree.command(description="[Admin] Resync Discord commands (visible to all server admins)")
+@bot.tree.command(description="[Admin] Resync Discord commands")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.describe(
     secret_key="Optional admin secret key to unlock this command",
 )
@@ -1401,6 +1426,7 @@ async def resynccommands(
 
 
 @bot.tree.command(description="[Admin] Post feedback & suggestions prompt to a channel")
+@app_commands.guilds(ADMIN_SERVER_ID)
 @app_commands.describe(
     channel="Channel to post the feedback prompt in (defaults to current channel)",
     secret_key="Optional admin secret key to unlock this command",
