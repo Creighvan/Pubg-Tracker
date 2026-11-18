@@ -67,14 +67,9 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/clanstats` - Clan statistics
 
 ### Ranked Commands
-- [ ] `/rankedsquad` - Squad ranked
-- [ ] `/rankedduo` - Duo ranked
-- [ ] `/rankedsolo` - Solo ranked
-- [ ] `/rankedsquadfpp` - Squad FPP ranked
-- [ ] `/rankedduofpp` - Duo FPP ranked
-- [ ] `/rankedsolofpp` - Solo FPP ranked
-- [ ] `/refreshranked` - Refresh ranked
-- [ ] `/updateranked` - Update ranked
+- [ ] `/ranked` - no queue: uses this server's ranked queue
+- [ ] `/ranked queue:Duo FPP` - a specific queue
+- [ ] `/ranked` for each of the six queues returns standings or a clear "no data" message
 
 ### Analytics Commands
 - [ ] `/profile <player>` - Player profile
@@ -84,18 +79,12 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/rosterhealth` - Roster health
 - [ ] `/season` - Season summary
 - [ ] `/mapstats` - Map statistics
-- [ ] `/matches <player>` - Match history
 - [ ] `/weaponstats <player>` - Weapon stats
-- [ ] `/weeklyawards` - Weekly awards
-- [ ] `/achievements` - Achievements
-- [ ] `/streaks` - Streaks
 - [ ] `/chemistry <player1> <player2>` - Chemistry
-- [ ] `/bestsquad` - Best squad
 
 ### Other Commands
 - [ ] `/chickendinner` - Chicken dinner report
 - [ ] `/setchickendinnerchannel` - Set chicken dinner channel
-- [ ] `/pingtoggle` - Toggle ping notifications
 - [ ] `/masterystats` - Mastery stats
 - [ ] `/survivalstats` - Survival stats
 - [ ] `/setclan <name>` - Set clan
@@ -105,8 +94,6 @@ pm2 logs pubg-bot --lines 50
 - [ ] `/setinactivedate <name> <days>` - Set inactive date
 - [ ] `/removeinactivedate <name>` - Remove inactive date
 - [ ] `/resetinactivecount <name>` - Reset inactive count
-- [ ] `/linkplayer <user> <pubg_name>` - Link player
-- [ ] `/links` - List links
 
 ## Expected Behavior After Fix
 

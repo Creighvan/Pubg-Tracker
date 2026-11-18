@@ -301,7 +301,6 @@ Once the roster is configured with `/addplayer` or `/addplayers`, the bot automa
 - Collects daily snapshots at 03:00 UTC
 - Records match history as players participate in matches
 - Tracks team relationships for chemistry analysis
-- Calculates achievements and streaks
 
 No manual match recording is required — historical data accumulates in the background.
 
@@ -323,7 +322,6 @@ No manual match recording is required — historical data accumulates in the bac
 | `/removeinactivedate <name>` | Remove manual inactive date for a player |
 | `/resetinactivedate <name>` | Reset auto-counting for a specific player (start from today) |
 | `/clanstats` | Post aggregated stats right now |
-| `/postnow` | Manually post today's digest to the current channel, on demand |
 | `/leaderboard [sort_by]` | Roster ranked by kills/wins/damage |
 | `/setgamemode <mode>` | squad-fpp, squad, duo-fpp, duo, solo-fpp, solo |
 | `/setclan <member_name>` | Choose the clan through the exact PUBG name of one of its current members |
@@ -345,20 +343,14 @@ No manual match recording is required — historical data accumulates in the bac
 | `/setdigesttime <0-23>` | Post the digest once/day at a fixed UTC hour instead |
 | `/lastactive` | Show when each roster player last played, right now |
 | `/setactivitychannel` | Set channel for the live-updating last active report (posts immediately, then updates at 02:00 UTC daily reset) |
-| `/rankedsquad`, `/rankedduo`, `/rankedsolo` | Show current-season ranked TPP standings for that queue |
-| `/rankedsquadfpp`, `/rankedduofpp`, `/rankedsolofpp` | Show current-season ranked FPP standings for that queue |
-| `/refreshranked` | Rescan the full ranked roster and update the ranked report |
-| `/updateranked` | Update the ranked report with fresh data without clearing the cache |
+| `/ranked [queue]` | Show current-season ranked standings. Pick Squad, Duo or Solo, TPP or FPP; leave the queue empty to use this server's daily-report queue (set with `/setrankedqueue`) |
 | `/setrankedchannel` | Set channel for the daily ranked report (posts immediately, then updates at 04:30 UTC) |
 | `/setrankedqueue <queue>` | Choose the single TPP or FPP queue used by the daily ranked report |
 | `/dailyhighlights` | Show fun-title awards + top 5 + human/bot kills for the last 6 hours, right now (the scheduled report covers the last 24 hours) |
 | `/sethighlightschannel` | Set channel for the daily highlights report (defaults to digest channel) |
 | `/masterystats` | Each player's top weapon mastery + survival level (slow — 2 API calls per player) |
-| `/linkplayer <member> <pubg_name>` | Link another member's Discord account to a PUBG name on their behalf (requires Manage Server) |
-| `/links` | Show every PUBG-name-to-Discord link currently set for this server |
 | `/chickendinner` | Check the roster's most recent matches for wins right now |
 | `/setchickendinnerchannel` | Set the channel for automatic Chicken Dinner win alerts (defaults to the digest channel; checks every 15 minutes) |
-| `/pingtoggle <on/off>` | Toggle mention notifications for achievement awards in reports (default: on) |
 | `/botservers [secret_key]` | **Admin/Owner**: List all servers the bot is in, member counts, and tracked player counts (ephemeral) |
 | `/askfeedback [channel] [secret_key]` | **Admin/Owner**: Post an interactive feedback & suggestions prompt embed with a submission popup modal |
 | `/setauditchannel` | **Admin**: Set a custom audit log channel for this server (overrides central audit server) |
@@ -419,9 +411,6 @@ than triggering one edit per event.
 Reports never post a separate per-player message and never @mention or
 ping anyone by default. Linking shows a linked player's name as a non-pinging `@mention` instead of the plain PUBG name.
 
-- `/linkplayer <member> <pubg_name>` — link someone else's account for them (requires Manage Server permission).
-- `/links` — list every current PUBG-name-to-Discord link for the server (requires Manage Server permission).
-- `/pingtoggle <on/off>` — enable or disable mention notifications for achievement awards in reports (default: on). Avatar links still work regardless of this setting.
 
 ### Fixed-time scheduling (UTC)
 
