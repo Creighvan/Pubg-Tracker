@@ -337,8 +337,6 @@ async def record_clan_participant(
     This is the canonical participant dataset that enables:
     - /clanmatches
     - /chemistry
-    - /bestduo
-    - /bestsquad
     - Squad win rates
     - Common teammates
     - Team-specific Chicken Dinner stats

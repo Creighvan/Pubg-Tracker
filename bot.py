@@ -26,12 +26,7 @@ Slash commands:
   /setdigesttime <0-23>      - post digest daily at a fixed UTC hour instead
   /lastactive                - show when each roster player last played, right now
   /setactivitychannel        - set current channel for the 24h "last active" report
-  /rankedsquad                 - show current-season ranked Squad TPP standings
-  /rankedduo                   - show current-season ranked Duo TPP standings
-  /rankedsolo                  - show current-season ranked Solo TPP standings
-  /rankedsquadfpp              - show current-season ranked Squad FPP standings
-  /rankedduofpp                - show current-season ranked Duo FPP standings
-  /rankedsolofpp               - show current-season ranked Solo FPP standings
+  /ranked [queue]             - current-season ranked standings (no queue = this server's ranked queue)
   /setrankedchannel           - set current channel for the daily ranked report (updates at 04:30 UTC)
   /setrankedqueue <queue>      - choose the single TPP or FPP queue for daily reports
   /dailyhighlights              - last-24h fun-title awards + top 10 + human/bot kills, right now
@@ -47,9 +42,7 @@ Slash commands:
   /askfeedback [channel] [secret_key]  - [Admin] post feedback & support prompt to a server channel
 
 Report identity behavior:
-  Reports never post a separate per-player message and never @mention/ping
-  anyone. The only place a link (/linkme) still shows up is a non-pinging
-  <@id> mention in place of the plain name on /leaderboardstats results.
+  Reports never post a separate per-player message and never @mention/ping anyone.
 
 Setup:
   1. pip install -r requirements.txt
@@ -172,12 +165,8 @@ from commands.clan import (
     setclanchannel_impl,
 )
 from commands.ranked import (
-    rankedsquad_impl,
-    rankedduo_impl,
-    rankedsolo_impl,
-    rankedsquadfpp_impl,
-    rankedduofpp_impl,
-    rankedsolofpp_impl,
+    ranked_impl,
+    RANKED_QUEUES,
 )
 from commands.highlights import dailyhighlights_impl
 from commands.mastery import survivalstats_impl
@@ -1000,29 +989,13 @@ async def showauditconfig(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
     await showauditconfig_impl(interaction, ADMIN_USER_IDS)
 
-@bot.tree.command(description="Show current-season ranked Squad TPP standings")
-async def rankedsquad(interaction: discord.Interaction):
-    await rankedsquad_impl(interaction, pubg)
+RANKED_QUEUE_CHOICES = [app_commands.Choice(name=label, value=key) for key, label in RANKED_QUEUES.items()]
 
-@bot.tree.command(description="Show current-season ranked Duo TPP standings")
-async def rankedduo(interaction: discord.Interaction):
-    await rankedduo_impl(interaction, pubg)
-
-@bot.tree.command(description="Show current-season ranked Solo TPP standings")
-async def rankedsolo(interaction: discord.Interaction):
-    await rankedsolo_impl(interaction, pubg)
-
-@bot.tree.command(description="Show current-season ranked Squad FPP standings")
-async def rankedsquadfpp(interaction: discord.Interaction):
-    await rankedsquadfpp_impl(interaction, pubg)
-
-@bot.tree.command(description="Show current-season ranked Duo FPP standings")
-async def rankedduofpp(interaction: discord.Interaction):
-    await rankedduofpp_impl(interaction, pubg)
-
-@bot.tree.command(description="Show current-season ranked Solo FPP standings")
-async def rankedsolofpp(interaction: discord.Interaction):
-    await rankedsolofpp_impl(interaction, pubg)
+@bot.tree.command(description="Show current-season ranked standings (leave the queue empty to use this server's ranked queue)")
+@app_commands.describe(queue="Which ranked queue; if you leave it empty this server's daily-report queue is used")
+@app_commands.choices(queue=RANKED_QUEUE_CHOICES)
+async def ranked(interaction: discord.Interaction, queue: app_commands.Choice[str] = None):
+    await ranked_impl(interaction, pubg, queue.value if queue else None)
 
 @bot.tree.command(description="Set this channel for the daily ranked report (defaults to the digest channel)")
 @app_commands.checks.has_permissions(manage_guild=True)
@@ -1032,16 +1005,7 @@ async def setrankedchannel(interaction: discord.Interaction):
 @bot.tree.command(description="Set which ranked queue the daily report tracks")
 @app_commands.checks.has_permissions(manage_guild=True)
 @app_commands.guild_only()
-@app_commands.choices(
-    queue=[
-        app_commands.Choice(name="Squad TPP", value="squad"),
-        app_commands.Choice(name="Duo TPP", value="duo"),
-        app_commands.Choice(name="Solo TPP", value="solo"),
-        app_commands.Choice(name="Squad FPP", value="squad-fpp"),
-        app_commands.Choice(name="Duo FPP", value="duo-fpp"),
-        app_commands.Choice(name="Solo FPP", value="solo-fpp"),
-    ]
-)
+@app_commands.choices(queue=RANKED_QUEUE_CHOICES)
 async def setrankedqueue(interaction: discord.Interaction, queue: app_commands.Choice[str]):
     await setrankedqueue_impl(interaction, queue)
 

@@ -30,7 +30,7 @@ def test_removed_commands_are_not_registered():
 
 def test_the_commands_that_stay_are_still_there():
     keep = {"clanstats", "dailyhighlights", "lastactive", "reportstatus", "runallreports", "chickendinner",
-            "addprotected", "addtempprotected", "addleadership", "listprotected", "rankedsquad", "leaderboardstats",
+            "addprotected", "addtempprotected", "addleadership", "listprotected", "ranked", "leaderboardstats",
             "setinactivedate", "setclan", "clanlevel", "survivalstats"}
     assert keep <= set(_commands())
 

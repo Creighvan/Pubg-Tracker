@@ -58,23 +58,14 @@ EXPECTED_COMMANDS = {
     ],
     "commands.reports": [
         "clanstats_impl",
-        "postnow_impl",
         "lastactive_impl",
     ],
     "commands.ranked": [
-        "rankedsquad_impl",
-        "rankedduo_impl",
-        "rankedsolo_impl",
-        "rankedsquadfpp_impl",
-        "rankedduofpp_impl",
-        "rankedsolofpp_impl",
-        "refreshranked_impl",
-        "updateranked_impl",
+        "ranked_impl",
     ],
     "commands.chicken_dinner": [
         "chickendinner_impl",
         "setchickendinnerchannel_impl",
-        "pingtoggle_impl",
     ],
     "commands.admin": [
         "reportcheater_impl",
@@ -92,23 +83,12 @@ EXPECTED_COMMANDS = {
         "removeinactivedate_impl",
         "resetinactivecount_impl",
     ],
-    "commands.links": [
-        "linkplayer_impl",
-        "links_impl",
-    ],
     "commands.analytics": [
         "playertrend_impl",
         "compare_impl",
     ],
-    "commands.achievements": [
-        "achievements_impl",
-    ],
-    "commands.streaks": [
-        "streaks_impl",
-    ],
     "commands.chemistry": [
         "chemistry_impl",
-        "bestsquad_impl",
     ],
     "commands.mapstats": [
         "mapstats_impl",
@@ -116,14 +96,8 @@ EXPECTED_COMMANDS = {
     "commands.season": [
         "season_impl",
     ],
-    "commands.matches": [
-        "matches_impl",
-    ],
     "commands.weaponstats": [
         "weaponstats_impl",
-    ],
-    "commands.weeklyawards": [
-        "weeklyawards_impl",
     ],
     "commands.clan_intelligence": [
         "clantrend_impl",

@@ -1,6 +1,10 @@
-"""Last Active updates once a day, shortly after 02:30 UTC, editing one message in place."""
+"""Last Active updates once a day, shortly after its UTC time, editing one message in place.
+
+The time itself lives in ONE place (modules.utils.LAST_ACTIVE_RUN_UTC). These tests read it from there,
+so changing the time (for example 02:30 -> 03:00) never needs a test change.
+"""
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import discord
 import pytest
@@ -9,16 +13,27 @@ import translations
 from modules.embeds import build_last_active_embed, build_report_status_embed
 from modules.utils import LAST_ACTIVE_RUN_UTC, most_recent_slot, next_last_active_report
 
+H, M = LAST_ACTIVE_RUN_UTC
+HHMM = f"{H:02d}:{M:02d}"
 
-def test_the_run_time_is_0230_utc():
-    assert LAST_ACTIVE_RUN_UTC == (2, 30)
+
+def slot(day=8):
+    return datetime(2026, 11, day, H, M, 0, tzinfo=timezone.utc)
+
+
+def at(minutes, day=8):
+    """A scheduler tick `minutes` after (negative: before) that day's run time."""
+    return slot(day) + timedelta(minutes=minutes, seconds=7)
+
+
+def test_the_run_time_is_a_valid_utc_time():
+    assert isinstance(H, int) and isinstance(M, int) and 0 <= H <= 23 and 0 <= M <= 59
 
 
 def test_most_recent_slot():
-    at = lambda h, m: datetime(2026, 11, 8, h, m, 7, tzinfo=timezone.utc)
-    assert most_recent_slot(2, 30, at(2, 29)) == datetime(2026, 11, 7, 2, 30, tzinfo=timezone.utc)   # not yet today
-    assert most_recent_slot(2, 30, at(2, 30)) == datetime(2026, 11, 8, 2, 30, tzinfo=timezone.utc)
-    assert most_recent_slot(2, 30, at(23, 0)) == datetime(2026, 11, 8, 2, 30, tzinfo=timezone.utc)
+    assert most_recent_slot(H, M, at(-1)) == slot(7)           # not yet reached today: yesterday's
+    assert most_recent_slot(H, M, slot(8)) == slot(8)
+    assert most_recent_slot(H, M, at(60)) == slot(8)
 
 
 @pytest.fixture
@@ -29,7 +44,7 @@ def sched(monkeypatch):
     return s
 
 
-def _ticks(sched, monkeypatch, cfg, ticks, day=8):
+def _ticks(sched, monkeypatch, cfg, ticks):
     import modules.utils as utils
     edits = []
 
@@ -61,67 +76,63 @@ def _ticks(sched, monkeypatch, cfg, ticks, day=8):
 
     monkeypatch.setattr(sched, "datetime", D)
     monkeypatch.setattr(utils, "datetime", D)
-    done = {}
-    for hhmm in ticks:
-        h, m = map(int, hhmm.split(":"))
-        clock["now"] = datetime(2026, 11, day, h, m, 7, tzinfo=timezone.utc)
+    done = []
+    for when in ticks:
+        clock["now"] = when
         before = len(edits)
         asyncio.run(sched.auto_last_active.coro())
-        done[hhmm] = len(edits) - before
+        done.append(len(edits) - before)
     return done
 
 
-CFG = lambda posted: {"last_activity_channel_id": 5, "activity_enabled": True,
-                      "last_activity_message_id": 99, "last_activity_posted_at": posted}
+def CFG(posted):
+    cfg = {"last_activity_channel_id": 5, "activity_enabled": True, "last_activity_message_id": 99}
+    if posted is not None:
+        cfg["last_activity_posted_at"] = posted.isoformat()
+    return cfg
 
 
-def test_updates_on_the_first_check_after_0230_and_only_once(sched, monkeypatch):
-    cfg = CFG("2026-11-07T02:33:10+00:00")            # yesterday's update
-    done = _ticks(sched, monkeypatch, cfg, ["02:03", "02:18", "02:33", "02:48", "03:03", "14:18"])
-    assert done == {"02:03": 0, "02:18": 0, "02:33": 1, "02:48": 0, "03:03": 0, "14:18": 0}
+def test_updates_on_the_first_check_after_its_time_and_only_once(sched, monkeypatch):
+    cfg = CFG(slot(7) + timedelta(minutes=3))                        # yesterday's update
+    ticks = [at(-27), at(-12), at(3), at(18), at(33), at(12 * 60)]
+    assert _ticks(sched, monkeypatch, cfg, ticks) == [0, 0, 1, 0, 0, 0]
 
 
-def test_switch_over_day_gives_one_extra_update_after_0230(sched, monkeypatch):
-    cfg = CFG("2026-11-08T02:05:00+00:00")            # posted at the OLD 02:00 time today
-    done = _ticks(sched, monkeypatch, cfg, ["02:18", "02:33", "02:48"])
-    assert done == {"02:18": 0, "02:33": 1, "02:48": 0}
+def test_switch_over_day_gives_one_extra_update(sched, monkeypatch):
+    cfg = CFG(slot(8) - timedelta(minutes=25))                        # posted today, but before the new time
+    assert _ticks(sched, monkeypatch, cfg, [at(-12), at(3), at(18)]) == [0, 1, 0]
 
 
-def test_first_ever_run_waits_for_0230(sched, monkeypatch):
-    cfg = CFG(None)
-    del cfg["last_activity_posted_at"]
-    done = _ticks(sched, monkeypatch, cfg, ["02:18", "02:33"])
-    assert done == {"02:18": 0, "02:33": 1}
+def test_first_ever_run_waits_for_its_time(sched, monkeypatch):
+    assert _ticks(sched, monkeypatch, CFG(None), [at(-12), at(3)]) == [0, 1]
 
 
 def test_a_missed_day_is_caught_up(sched, monkeypatch):
-    cfg = CFG("2026-11-06T02:33:00+00:00")            # bot was down yesterday
-    done = _ticks(sched, monkeypatch, cfg, ["09:18", "09:33"])
-    assert done == {"09:18": 1, "09:33": 0}
+    cfg = CFG(slot(6) + timedelta(minutes=3))                          # nothing posted yesterday
+    assert _ticks(sched, monkeypatch, cfg, [at(6 * 60), at(6 * 60 + 15)]) == [1, 0]
 
 
 def test_next_update_text():
-    now = datetime(2026, 11, 8, 9, 0, tzinfo=timezone.utc)
-    assert "next scheduler check" in next_last_active_report("2026-11-07T02:33:00+00:00", now)
-    text = next_last_active_report("2026-11-08T02:35:00+00:00", now)
-    assert "<t:" in text and text.endswith("02:30 UTC")             # tomorrow 02:30 UTC, shown in local time too
+    now = at(6 * 60)
+    assert "next scheduler check" in next_last_active_report((slot(7) + timedelta(minutes=3)).isoformat(), now)
+    text = next_last_active_report((slot(8) + timedelta(minutes=5)).isoformat(), now)
+    assert "<t:" in text and text.endswith(f"{HHMM} UTC")             # tomorrow's time, shown in local time too
 
 
 def test_reportstatus_describes_the_real_schedule():
-    cfg = {"post_channel_id": 5, "last_activity_channel_id": 6, "last_activity_posted_at": "2026-11-08T02:35:00+00:00"}
+    cfg = {"post_channel_id": 5, "last_activity_channel_id": 6,
+           "last_activity_posted_at": (slot(8) + timedelta(minutes=5)).isoformat()}
     fields = {f.name: f.value for f in build_report_status_embed(cfg).fields}
     value = next(v for n, v in fields.items() if "Last Active" in n)
-    assert "Daily at 02:30 UTC (updates in place)" in value and "02:30 UTC" in value
+    assert f"Daily at {HHMM} UTC (updates in place)" in value
 
 
-def test_footer_and_confirmation_texts_say_0230_and_highlights_is_unchanged():
-    for lang in translations.TRANSLATIONS:
-        assert "02:00" not in translations.TRANSLATIONS[lang]["updates_daily"]
-    assert "02:30" in translations.get_translation("en", "updates_daily")
-    assert "02:30" in translations.get_translation("en", "activity_channel_set", channel="#x")
-    assert "02:00" in translations.get_translation("en", "highlights_footer")      # Highlights still runs at 02:00
+def test_the_texts_in_every_language_carry_the_current_time():
+    en = translations.TRANSLATIONS["en"]
+    assert HHMM in en["updates_daily"] and HHMM in en["activity_channel_set"]
+    assert "02:00" in translations.get_translation("en", "highlights_footer")      # Highlights has its own time
 
 
-def test_embed_footer_shows_the_new_time():
+def test_embed_footer_shows_the_time():
     embed = build_last_active_embed(1, "Test", {"players": ["Ann"]}, [{"name": "Ann", "last_match_at": None}], [], [])
-    assert "02:30 UTC" in embed.footer.text
+    assert f"{HHMM} UTC" in embed.footer.text

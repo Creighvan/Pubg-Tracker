@@ -12,38 +12,23 @@ import discord
 logger = logging.getLogger(__name__)
 
 
-async def rankedsquad_impl(interaction, pubg):
-    """Implementation of rankedsquad command."""
-    await _run_ranked_command_impl(interaction, pubg, "squad", "Squad TPP")
+# The six queues, in the order Discord shows them. The keys are what the PUBG report code understands.
+RANKED_QUEUES = {
+    "squad": "Squad TPP",
+    "duo": "Duo TPP",
+    "solo": "Solo TPP",
+    "squad-fpp": "Squad FPP",
+    "duo-fpp": "Duo FPP",
+    "solo-fpp": "Solo FPP",
+}
 
 
-async def rankedduo_impl(interaction, pubg):
-    """Implementation of rankedduo command."""
-    await _run_ranked_command_impl(interaction, pubg, "duo", "Duo TPP")
+async def ranked_impl(interaction, pubg, queue=None):
+    """Implementation of /ranked: current-season standings for any of the six queues.
 
-
-async def rankedsolo_impl(interaction, pubg):
-    """Implementation of rankedsolo command."""
-    await _run_ranked_command_impl(interaction, pubg, "solo", "Solo TPP")
-
-
-async def rankedsquadfpp_impl(interaction, pubg):
-    """Implementation of rankedsquadfpp command."""
-    await _run_ranked_command_impl(interaction, pubg, "squad-fpp", "Squad FPP")
-
-
-async def rankedduofpp_impl(interaction, pubg):
-    """Implementation of rankedduofpp command."""
-    await _run_ranked_command_impl(interaction, pubg, "duo-fpp", "Duo FPP")
-
-
-async def rankedsolofpp_impl(interaction, pubg):
-    """Implementation of rankedsolofpp command."""
-    await _run_ranked_command_impl(interaction, pubg, "solo-fpp", "Solo FPP")
-
-
-async def _run_ranked_command_impl(interaction, pubg, mode, mode_label):
-    """Helper to run ranked commands."""
+    With no queue given it uses the queue this server's daily ranked report tracks
+    (/setrankedqueue), which is Squad TPP unless changed.
+    """
     # Defer immediately to prevent timeout
     try:
         await interaction.response.defer()
@@ -53,13 +38,17 @@ async def _run_ranked_command_impl(interaction, pubg, mode, mode_label):
 
     guild_cfg = await storage.get_guild(interaction.guild_id)
     lang = guild_cfg.get("language", "en")
-    
+
+    mode = queue if queue in RANKED_QUEUES else guild_cfg.get("ranked_queue", "squad")
+    if mode not in RANKED_QUEUES:
+        mode = "squad"
+
     try:
         result = await fetch_ranked_report(interaction.guild_id, interaction.guild.name, mode)
     except PubgApiError as e:
         await interaction.followup.send(f"❌ {translations.get_translation(lang, 'api_error', error=str(e))}")
         return
-    
+
     if result:
         embed, _ = result
         await interaction.followup.send(embed=embed)
