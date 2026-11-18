@@ -7,7 +7,6 @@ import storage
 import translations
 from pubg_api import PubgApiError
 import discord
-from modules.reports import fetch_clan_report
 
 logger = logging.getLogger(__name__)
 
